@@ -1,0 +1,207 @@
+---
+// Simple grid demo component
+---
+
+<div class="grid-demo">
+  <div class="mac-buttons">
+    <span class="mac-btn red"></span>
+    <span class="mac-btn yellow"></span>
+    <span class="mac-btn green"></span>
+  </div>
+  <div class="grid-container">
+    <div class="grid-header">
+      <div class="grid-cell header">Name</div>
+      <div class="grid-cell header">Age</div>
+      <div class="grid-cell header">Role</div>
+      <div class="grid-cell header">Department</div>
+    </div>
+    <div class="grid-body">
+      <div class="grid-row">
+        <div class="grid-cell">John Smith</div>
+        <div class="grid-cell">28</div>
+        <div class="grid-cell"><span class="badge badge-green">Developer</span></div>
+        <div class="grid-cell">Engineering</div>
+      </div>
+      <div class="grid-row">
+        <div class="grid-cell">Sarah Johnson</div>
+        <div class="grid-cell">32</div>
+        <div class="grid-cell"><span class="badge badge-blue">Designer</span></div>
+        <div class="grid-cell">Product</div>
+      </div>
+      <div class="grid-row">
+        <div class="grid-cell">Michael Chen</div>
+        <div class="grid-cell">25</div>
+        <div class="grid-cell"><span class="badge badge-green">Developer</span></div>
+        <div class="grid-cell">Engineering</div>
+      </div>
+      <div class="grid-row">
+        <div class="grid-cell">Emily Davis</div>
+        <div class="grid-cell">29</div>
+        <div class="grid-cell"><span class="badge badge-purple">Manager</span></div>
+        <div class="grid-cell">Operations</div>
+      </div>
+      <div class="grid-row">
+        <div class="grid-cell">David Wilson</div>
+        <div class="grid-cell">31</div>
+        <div class="grid-cell"><span class="badge badge-blue">Designer</span></div>
+        <div class="grid-cell">Product</div>
+      </div>
+      <div class="grid-row">
+        <div class="grid-cell">Lisa Anderson</div>
+        <div class="grid-cell">27</div>
+        <div class="grid-cell"><span class="badge badge-green">Developer</span></div>
+        <div class="grid-cell">Engineering</div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-info">
+    <p>⚡ High performance grid with <strong>1M+ rows</strong> support</p>
+  </div>
+</div>
+
+<style>
+  .grid-demo {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .mac-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .mac-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .mac-btn.red { background: #ef4444; }
+  .mac-btn.yellow { background: #f59e0b; }
+  .mac-btn.green { background: #10b981; }
+
+  .grid-container {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 0.875rem;
+    width: 100%;
+  }
+
+  .grid-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr 1.5fr;
+    background: rgba(30, 41, 59, 0.5);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-weight: 600;
+  }
+
+  .grid-body {
+    background: transparent;
+  }
+
+  .grid-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr 1.5fr;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background-color 0.15s ease;
+    animation: slideInRight 0.5s ease-out backwards;
+  }
+
+  .grid-row:nth-child(1) { animation-delay: 0.1s; }
+  .grid-row:nth-child(2) { animation-delay: 0.2s; }
+  .grid-row:nth-child(3) { animation-delay: 0.3s; }
+  .grid-row:nth-child(4) { animation-delay: 0.4s; }
+  .grid-row:nth-child(5) { animation-delay: 0.5s; }
+  .grid-row:nth-child(6) { animation-delay: 0.6s; }
+
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .grid-row:hover {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .grid-row:last-child {
+    border-bottom: none;
+  }
+
+  .grid-cell {
+    padding: 0.75rem 1rem;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    line-height: 1.4;
+    color: #e2e8f0;
+    font-size: 0.875rem;
+  }
+
+  .grid-cell:last-child {
+    border-right: none;
+  }
+
+  .grid-cell.header {
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+
+  .badge-green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .badge-blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .badge-purple {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+
+  .grid-info {
+    margin-top: 1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.8rem;
+  }
+
+  .grid-info strong {
+    color: #10b981;
+  }
+
+  @media (max-width: 768px) {
+    .grid-demo { padding: 1rem; }
+    .grid-header, .grid-row {
+      grid-template-columns: 1.5fr 0.75fr 1fr 1fr;
+      font-size: 0.75rem;
+    }
+    .grid-cell { padding: 0.5rem 0.75rem; }
+  }
+</style>

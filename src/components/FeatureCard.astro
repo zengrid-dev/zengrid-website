@@ -1,0 +1,67 @@
+---
+import { Plane, Filter, BarChart3, ArrowDownUp, Layers } from 'lucide-astro';
+
+interface Props {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+const { icon, title, description } = Astro.props;
+
+const iconMap: Record<string, any> = {
+  plane: Plane,
+  filter: Filter,
+  chart: BarChart3,
+  sort: ArrowDownUp,
+  layers: Layers,
+};
+
+const IconComponent = iconMap[icon];
+---
+
+<div class="card fade-in">
+  <div class="feature-icon-wrapper">
+    <div class="feature-icon">
+      {IconComponent && <IconComponent size={32} strokeWidth={2} />}
+    </div>
+  </div>
+  <h3 class="card-title">{title}</h3>
+  <p class="card-description">{description}</p>
+</div>
+
+<style>
+  .feature-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .feature-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .card:hover .feature-icon {
+    transform: scale(1.1) rotate(5deg);
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    border-color: #34d399;
+  }
+
+  .feature-icon :global(svg) {
+    width: 32px;
+    height: 32px;
+    position: relative;
+    z-index: 1;
+  }
+</style>

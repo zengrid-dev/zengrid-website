@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+/* ============================================
+   ZenGrid Design System (Dark Mode / Dev Theme)
+   ============================================ */
+
+@layer theme {
+  :root {
+    /* Brand Colors - Neon & Deep */
+    --zen-primary: #10b981;       /* Emerald 500 */
+    --zen-primary-glow: #34d399;  /* Emerald 400 */
+    --zen-secondary: #8b5cf6;     /* Violet 500 */
+    
+    /* Backgrounds - Deep Slate/Black */
+    --bg-dark: #020617;           /* Slate 950 - Main BG */
+    --bg-card: #0f172a;           /* Slate 900 - Card BG */
+    --bg-card-hover: #1e293b;     /* Slate 800 */
+    
+    /* Text */
+    --text-main: #f8fafc;         /* Slate 50 */
+    --text-muted: #94a3b8;        /* Slate 400 */
+    --text-dim: #64748b;          /* Slate 500 */
+
+    /* Borders & Lines */
+    --border-subtle: #1e293b;     /* Slate 800 */
+    --border-highlight: #334155;  /* Slate 700 */
+
+    /* Effects */
+    --glow-primary: 0 0 20px rgba(16, 185, 129, 0.3);
+    --glow-text: 0 0 10px rgba(52, 211, 153, 0.5);
+  }
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+html, body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, sans-serif;
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+/* Animated Background */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.3), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.25), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.25), transparent 40%);
+  animation: bgFloat 20s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@keyframes bgFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(-5%, -5%, 0) scale(1.1);
+  }
+  66% {
+    transform: translate3d(5%, 5%, 0) scale(1.05);
+  }
+}
+
+::selection {
+  background: var(--zen-primary);
+  color: #000;
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+
+h1, h2, h3, h4 {
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  text-shadow: 0 0 40px rgba(0,0,0,0.5);
+}
+
+p {
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--zen-primary-glow), var(--zen-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+/* ============================================
+   Layout & Components
+   ============================================ */
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Modern Card */
+.card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  border-color: var(--zen-primary);
+  box-shadow: var(--glow-primary);
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 20px;
+  color: var(--zen-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--zen-primary);
+  color: #020617 !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.btn-primary:hover {
+  background: var(--zen-primary-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-highlight);
+  color: var(--text-main) !important;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-main);
+  background: rgba(255,255,255,0.05);
+}
+
+/* ============================================
+   Background Effects
+   ============================================ */
+
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(30, 41, 59, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 41, 59, 0.3) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+}
+
+.glow-spot {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(50px);
+}
+
+/* Animation Utilities */
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* Stats Bar Override */
+.stats-bar {
+  border-top: 1px solid var(--border-subtle) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  background: rgba(2, 6, 23, 0.5) !important;
+  backdrop-filter: blur(10px);
+}

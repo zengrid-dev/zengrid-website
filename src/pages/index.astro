@@ -1,16 +1,366 @@
 ---
-
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import GridDemo from '../components/GridDemo.astro';
+import FrameworkBadges from '../components/FrameworkBadges.astro';
+import { Code2 } from 'lucide-astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout>
+  <Navbar />
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-bg-grid"></div>
+    <div class="glow-spot" style="top: -200px; left: -100px;"></div>
+    <div class="glow-spot" style="top: 200px; right: -100px; background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);"></div>
+
+    <div class="container">
+      <div class="hero-layout">
+        <div class="hero-content">
+          <div class="badge">
+            <span class="badge-dot"></span> v0.1.0 alpha is now available
+          </div>
+
+          <h1 class="hero-title">
+            The Virtual Grid <br/>
+            <span class="gradient-text">Developers Love</span>
+          </h1>
+          <p class="hero-description">
+            Zero dependencies. 60FPS scrolling. 1M+ rows. <br />
+            The fastest data grid for your next enterprise app.
+          </p>
+          <div class="hero-cta">
+            <a href="/docs" class="btn btn-primary">
+              <Code2 size={20} /> Start Coding
+            </a>
+            <a href="/demo" class="btn btn-secondary">View Demo</a>
+          </div>
+          <div style="margin-top: 2rem;">
+            <FrameworkBadges />
+          </div>
+        </div>
+
+        <div class="hero-demo animate-float">
+          <div class="code-window-wrapper">
+             <GridDemo />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <section class="stats-bar">
+    <div class="container">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value">1M+</div>
+          <div class="stat-label">Rows Rendered</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">&lt;50ms</div>
+          <div class="stat-label">Initial Load</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">14kb</div>
+          <div class="stat-label">Gzipped Size</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Type Safe</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="section features" style="padding-top: 6rem;">
+    <div class="container">
+      <div class="section-header">
+        <h2>Engineered for Performance</h2>
+        <p>Built from the ground up to handle the most demanding data workloads without skipping a frame.</p>
+      </div>
+
+      <div class="features-grid">
+        <FeatureCard
+          icon="plane"
+          title="Blazing Fast"
+          description="Virtual DOM rendering ensures consistent 60FPS performance even with millions of records."
+        />
+        <FeatureCard
+          icon="filter"
+          title="Deep Customization"
+          description="Full control over every cell, header, and row with a powerful templating API."
+        />
+        <FeatureCard
+          icon="chart"
+          title="Excel-Grade"
+          description="Native support for clipboard operations, range selection, and keyboard navigation."
+        />
+        <FeatureCard
+          icon="filter"
+          title="Advanced Filtering"
+          description="Complex logical operators and custom filter functions out of the box."
+        />
+        <FeatureCard
+          icon="sort"
+          title="Multi-Sort"
+          description="Stable multi-column sorting with custom comparators for any data type."
+        />
+        <FeatureCard
+          icon="layers"
+          title="Tree Data"
+          description="Hierarchical data visualization with expand/collapse and lazy loading."
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="section cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to build faster?</h2>
+        <p class="cta-text">Join thousands of developers building better data tools.</p>
+        <div class="cta-actions">
+           <a href="/docs" class="btn btn-primary">Get Started Now</a>
+        </div>
+        <p class="cta-footer">MIT Licensed • <a href="https://github.com/yourusername/zengrid" target="_blank">View on GitHub</a></p>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</BaseLayout>
+
+<script>
+  // Modern parallax and interaction effects
+  const hero = document.querySelector('.hero') as HTMLElement;
+  const glowSpots = document.querySelectorAll('.glow-spot');
+
+  // Parallax effect on mouse move
+  hero?.addEventListener('mousemove', (e) => {
+    const { clientX, clientY } = e;
+    const { offsetWidth, offsetHeight } = hero;
+
+    const xPos = (clientX / offsetWidth - 0.5) * 20;
+    const yPos = (clientY / offsetHeight - 0.5) * 20;
+
+    glowSpots.forEach((spot, index) => {
+      const speed = (index + 1) * 0.5;
+      (spot as HTMLElement).style.transform = `translate(${xPos * speed}px, ${yPos * speed}px)`;
+    });
+  });
+</script>
+
+<style>
+  /* Hero Specifics */
+  .hero {
+    padding: 4rem 0 3rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 600px;
+  }
+
+  /* Modern animated grid background */
+  .hero-bg-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+    animation: gridPulse 8s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  @keyframes gridPulse {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale3d(1, 1, 1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale3d(1.05, 1.05, 1);
+    }
+  }
+
+  /* Ensure content is above background */
+  .hero .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero .glow-spot {
+    z-index: 0;
+    transition: transform 0.3s ease-out;
+  }
+
+  .hero-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 2rem;
+    align-items: center;
+  }
+
+
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--zen-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--zen-primary);
+    animation: breathe 2s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  @keyframes breathe {
+    0%, 100% {
+      transform: scale3d(1, 1, 1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale3d(1.3, 1.3, 1);
+      opacity: 0.8;
+    }
+  }
+
+  /* Static glow - no animation needed */
+  .badge-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    background: radial-gradient(circle, var(--zen-primary) 0%, transparent 70%);
+    border-radius: 50%;
+    opacity: 0.3;
+    z-index: -1;
+  }
+
+  .hero-title {
+    margin-bottom: 1rem;
+    color: var(--text-main);
+  }
+
+  .hero-description {
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+    color: var(--text-muted);
+    max-width: 500px;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Code Window Effect */
+  .code-window-wrapper {
+    position: relative;
+  }
+
+  .code-window-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    border-radius: 16px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .hero { padding: 3rem 0 2rem; }
+    .hero-layout {
+      grid-template-columns: 1fr;
+      text-align: center;
+      gap: 3rem;
+    }
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hero-description { margin-left: auto; margin-right: auto; }
+    .hero-cta { justify-content: center; }
+  }
+
+  /* Stats Section */
+  .stats-bar {
+    padding: 2rem 0;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 0.25rem;
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  }
+
+  .stat-label {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Section Headers */
+  .section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 4rem;
+  }
+
+  .section-header h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 2rem;
+  }
+
+  /* CTA Section */
+  .cta-section {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--bg-dark) 0%, #0f172a 100%);
+    padding: 8rem 0;
+  }
+  
+  .cta-content {
+    position: relative;
+    z-index: 10;
+  }
+
+  .cta-text {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .cta-footer {
+    margin-top: 3rem;
+    font-size: 0.875rem;
+    color: var(--text-dim);
+  }
+</style>

@@ -5,19 +5,19 @@
       <stop offset="100%" style="stop-color:#3db892"/>
     </linearGradient>
   </defs>
-
+  
   <!-- 3x3 Grid -->
   <g transform="translate(8, 8)">
     <!-- Row 1 -->
     <rect x="0" y="0" width="14" height="14" rx="4" ry="2" fill="url(#iconGrad)" opacity="0.55"/>
     <rect x="17" y="0" width="14" height="14" rx="2" fill="url(#iconGrad)" opacity="0.7"/>
     <rect x="34" y="0" width="14" height="14" rx="2" ry="4" fill="url(#iconGrad)" opacity="0.55"/>
-
+    
     <!-- Row 2 -->
     <rect x="0" y="17" width="14" height="14" rx="2" fill="url(#iconGrad)" opacity="0.7"/>
     <rect x="17" y="17" width="14" height="14" rx="2" fill="#3db892"/>
     <rect x="34" y="17" width="14" height="14" rx="2" fill="url(#iconGrad)" opacity="0.7"/>
-
+    
     <!-- Row 3 -->
     <rect x="0" y="34" width="14" height="14" rx="2" ry="4" fill="url(#iconGrad)" opacity="0.45"/>
     <rect x="17" y="34" width="14" height="14" rx="2" fill="url(#iconGrad)" opacity="0.55"/>

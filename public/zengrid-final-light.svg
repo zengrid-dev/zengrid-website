@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100">
+  <defs>
+    <linearGradient id="cellGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3db892"/>
+      <stop offset="100%" style="stop-color:#2a9d7a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 3x3 Grid Icon -->
+  <g transform="translate(30, 16)">
+    <!-- Row 1 -->
+    <rect x="0" y="0" width="20" height="20" rx="5" ry="3" fill="url(#cellGradLight)" opacity="0.55"/>
+    <rect x="24" y="0" width="20" height="20" rx="3" fill="url(#cellGradLight)" opacity="0.7"/>
+    <rect x="48" y="0" width="20" height="20" rx="3" ry="5" fill="url(#cellGradLight)" opacity="0.55"/>
+    
+    <!-- Row 2 -->
+    <rect x="0" y="24" width="20" height="20" rx="3" fill="url(#cellGradLight)" opacity="0.7"/>
+    <rect x="24" y="24" width="20" height="20" rx="3" fill="url(#cellGradLight)"/>
+    <rect x="48" y="24" width="20" height="20" rx="3" fill="url(#cellGradLight)" opacity="0.7"/>
+    
+    <!-- Row 3 -->
+    <rect x="0" y="48" width="20" height="20" rx="3" ry="5" fill="url(#cellGradLight)" opacity="0.45"/>
+    <rect x="24" y="48" width="20" height="20" rx="3" fill="url(#cellGradLight)" opacity="0.55"/>
+    <rect x="48" y="48" width="20" height="20" rx="5" ry="3" fill="url(#cellGradLight)" opacity="0.45"/>
+  </g>
+  
+  <!-- Wordmark -->
+  <text x="125" y="58" 
+        font-family="'Outfit', 'SF Pro Display', 'Segoe UI', system-ui, sans-serif" 
+        font-size="42" 
+        font-weight="300"
+        letter-spacing="5">
+    <tspan fill="#3db892" font-weight="400">Zen</tspan><tspan fill="#1a1a2e">Grid</tspan>
+  </text>
+</svg>

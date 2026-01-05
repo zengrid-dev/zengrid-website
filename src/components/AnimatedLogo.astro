@@ -1,0 +1,151 @@
+---
+---
+
+<div class="animated-logo">
+  <div class="logo-icon" id="zen-grid-logo">
+    <div class="cell" data-index="0"></div>
+    <div class="cell" data-index="1"></div>
+    <div class="cell" data-index="2"></div>
+    <div class="cell" data-index="3"></div>
+    <div class="cell" data-index="4"></div>
+    <div class="cell" data-index="5"></div>
+    <div class="cell" data-index="6"></div>
+    <div class="cell" data-index="7"></div>
+    <div class="cell" data-index="8"></div>
+  </div>
+</div>
+
+<style>
+  .animated-logo {
+    display: inline-block;
+  }
+
+  .logo-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+  }
+
+  .cell {
+    position: absolute;
+    width: 11.3px;
+    height: 11.3px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, #4ecca3 0%, #3db892 100%);
+    transition:
+      transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform, opacity;
+  }
+
+  /* Cell positions (scaled down from 120px to 40px) */
+  .cell[data-index="0"] { left: 0; top: 0; }
+  .cell[data-index="1"] { left: 14.3px; top: 0; }
+  .cell[data-index="2"] { left: 28.6px; top: 0; }
+  .cell[data-index="3"] { left: 0; top: 14.3px; }
+  .cell[data-index="4"] { left: 14.3px; top: 14.3px; }
+  .cell[data-index="5"] { left: 28.6px; top: 14.3px; }
+  .cell[data-index="6"] { left: 0; top: 28.6px; }
+  .cell[data-index="7"] { left: 14.3px; top: 28.6px; }
+  .cell[data-index="8"] { left: 28.6px; top: 28.6px; }
+
+  /* Base opacity and corner styling */
+  .cell[data-index="0"] { opacity: 0.55; border-radius: 3px 2px 2px 2px; }
+  .cell[data-index="1"] { opacity: 0.7; }
+  .cell[data-index="2"] { opacity: 0.55; border-radius: 2px 3px 2px 2px; }
+  .cell[data-index="3"] { opacity: 0.7; }
+  .cell[data-index="4"] { opacity: 1; box-shadow: 0 1px 4px rgba(78, 204, 163, 0.25); }
+  .cell[data-index="5"] { opacity: 0.7; }
+  .cell[data-index="6"] { opacity: 0.45; border-radius: 2px 2px 2px 3px; }
+  .cell[data-index="7"] { opacity: 0.55; }
+  .cell[data-index="8"] { opacity: 0.45; border-radius: 2px 2px 3px 2px; }
+
+  /* Wave animation states - GPU accelerated with translate3d */
+  .cell.wave-lift {
+    transform: translate3d(0, -1px, 0) scale3d(0.92, 0.92, 1);
+    opacity: 0.9 !important;
+  }
+
+  .cell.wave-bloom {
+    transform: translate3d(0, 0, 0) scale3d(1.04, 1.04, 1);
+    opacity: 1 !important;
+  }
+
+  .cell.wave-settle {
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+</style>
+
+<script>
+  function initElegantWave() {
+    const container = document.getElementById('zen-grid-logo');
+    if (!container) return;
+
+    const cells = container.querySelectorAll('.cell');
+    let isAnimating = false;
+
+    const STAGGER_DELAY = 90;
+    const LIFT_DURATION = 280;
+    const BLOOM_DURATION = 320;
+    const SETTLE_DURATION = 400;
+
+    cells.forEach((cell) => {
+      cell.addEventListener('mouseenter', () => {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const hoveredIndex = parseInt(cell.dataset.index);
+        const hoveredRow = Math.floor(hoveredIndex / 3);
+        const hoveredCol = hoveredIndex % 3;
+
+        let maxDistance = 0;
+
+        cells.forEach((c, i) => {
+          const row = Math.floor(i / 3);
+          const col = i % 3;
+          const distance = Math.abs(row - hoveredRow) + Math.abs(col - hoveredCol);
+          if (distance > maxDistance) maxDistance = distance;
+        });
+
+        cells.forEach((c, i) => {
+          const row = Math.floor(i / 3);
+          const col = i % 3;
+          const distance = Math.abs(row - hoveredRow) + Math.abs(col - hoveredCol);
+
+          const delay = distance * STAGGER_DELAY;
+
+          setTimeout(() => {
+            c.classList.add('wave-lift');
+
+            setTimeout(() => {
+              c.classList.remove('wave-lift');
+              c.classList.add('wave-bloom');
+
+              setTimeout(() => {
+                c.classList.remove('wave-bloom');
+                c.classList.add('wave-settle');
+
+                setTimeout(() => {
+                  c.classList.remove('wave-settle');
+
+                  if (distance === maxDistance) {
+                    setTimeout(() => {
+                      isAnimating = false;
+                    }, 200);
+                  }
+                }, SETTLE_DURATION);
+              }, BLOOM_DURATION);
+            }, LIFT_DURATION);
+          }, delay);
+        });
+      });
+    });
+  }
+
+  // Initialize on page load
+  initElegantWave();
+
+  // Reinitialize after navigation (for SPAs)
+  document.addEventListener('astro:page-load', initElegantWave);
+</script>

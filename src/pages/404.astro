@@ -1,0 +1,236 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout>
+  <Navbar />
+
+  <section class="error-page">
+    <div class="error-bg-grid"></div>
+    <div class="container">
+      <div class="error-content">
+        <div class="error-code">404</div>
+        <h1 class="error-title">Page Not Found</h1>
+        <p class="error-description">
+          Looks like this page got lost in the grid. <br />
+          Don't worry, we'll help you get back on track.
+        </p>
+        <div class="error-actions">
+          <a href="/" class="btn btn-primary">Back to Home</a>
+          <a href="/docs" class="btn btn-secondary">View Docs</a>
+        </div>
+
+        <div class="error-links">
+          <p>Popular pages:</p>
+          <ul>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/examples">Examples</a></li>
+            <li><a href="/benchmarks">Benchmarks</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="error-visual">
+        <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+          <!-- Grid pattern -->
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(16, 185, 129, 0.1)" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect width="400" height="300" fill="url(#grid)" />
+
+          <!-- Broken grid cell -->
+          <g class="broken-cell">
+            <rect x="160" y="100" width="80" height="80" fill="rgba(16, 185, 129, 0.1)"
+                  stroke="var(--zen-primary)" stroke-width="2" rx="8"/>
+            <line x1="170" y1="110" x2="230" y2="170" stroke="var(--zen-primary)"
+                  stroke-width="3" stroke-linecap="round"/>
+            <line x1="230" y1="110" x2="170" y2="170" stroke="var(--zen-primary)"
+                  stroke-width="3" stroke-linecap="round"/>
+          </g>
+
+          <!-- Surrounding cells -->
+          <rect x="60" y="100" width="80" height="80" fill="none"
+                stroke="rgba(16, 185, 129, 0.3)" stroke-width="1" rx="8"/>
+          <rect x="260" y="100" width="80" height="80" fill="none"
+                stroke="rgba(16, 185, 129, 0.3)" stroke-width="1" rx="8"/>
+          <rect x="160" y="0" width="80" height="80" fill="none"
+                stroke="rgba(16, 185, 129, 0.3)" stroke-width="1" rx="8"/>
+          <rect x="160" y="200" width="80" height="80" fill="none"
+                stroke="rgba(16, 185, 129, 0.3)" stroke-width="1" rx="8"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .error-page {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 4rem 0;
+  }
+
+  .error-bg-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16, 185, 129, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+  }
+
+  .error-page .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .error-content {
+    text-align: left;
+  }
+
+  .error-code {
+    font-size: clamp(4rem, 10vw, 8rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--zen-primary-glow), var(--zen-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+  }
+
+  .error-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin-bottom: 1rem;
+    color: var(--text-main);
+  }
+
+  .error-description {
+    font-size: 1.125rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    line-height: 1.7;
+  }
+
+  .error-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  .error-links {
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .error-links p {
+    font-size: 0.875rem;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .error-links ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 2rem;
+  }
+
+  .error-links a {
+    color: var(--zen-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .error-links a:hover {
+    color: var(--zen-primary-glow);
+  }
+
+  .error-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .error-visual svg {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.2));
+  }
+
+  .broken-cell {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: translate(0, 0);
+    }
+    50% {
+      opacity: 0.7;
+      transform: translate(2px, 2px);
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .error-page .container {
+      grid-template-columns: 1fr;
+      text-align: center;
+      gap: 3rem;
+    }
+
+    .error-content {
+      text-align: center;
+    }
+
+    .error-actions {
+      justify-content: center;
+    }
+
+    .error-links ul {
+      justify-content: center;
+    }
+
+    .error-visual {
+      order: -1;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .error-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .error-links ul {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  }
+</style>
