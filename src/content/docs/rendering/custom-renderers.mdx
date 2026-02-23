@@ -1,0 +1,459 @@
+---
+title: Custom Cell Renderers
+description: Create custom cell renderers with the CellRenderer interface for specialized data display.
+order: 31
+category: Rendering
+tags: [renderers, custom, tutorial]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+Create custom cell renderers to display specialized data formats or interactive components. Custom renderers give you full control over cell rendering while maintaining grid performance.
+
+## CellRenderer Interface
+
+Implement the `CellRenderer` interface to create custom renderers:
+
+```ts title="CellRenderer Interface"
+interface CellRenderer {
+  render(element: HTMLElement, params: RenderParams): void;
+  update(element: HTMLElement, params: RenderParams): void;
+  destroy(element: HTMLElement): void;
+  getCellClass?(params: RenderParams): string | undefined;
+}
+```
+
+### Method Lifecycle
+
+- **render()** - Called once when cell first appears, create DOM structure
+- **update()** - Called when cell scrolls into view with new data, update existing DOM
+- **destroy()** - Called when cell leaves viewport, cleanup event listeners and resources
+- **getCellClass()** - Optional method to return CSS class based on cell state
+
+<Callout type="info">
+The separation of `render()` and `update()` enables efficient cell reuse during virtual scrolling.
+</Callout>
+
+## RenderParams
+
+All renderers receive a `RenderParams` object:
+
+```ts title="RenderParams Interface"
+interface RenderParams {
+  cell: CellRef;           // Cell reference { row, col }
+  position: CellPosition;  // Cell position { x, y, width, height }
+  value: any;              // Cell value
+  column?: ColumnDef;      // Column definition
+  rowData?: any;           // Complete row data object
+  isSelected: boolean;     // Cell selection state
+  isActive: boolean;       // Active cell state
+  isEditing: boolean;      // Cell editing state
+}
+```
+
+## Basic Custom Renderer
+
+Create a simple custom renderer for displaying ratings:
+
+```ts title="RatingRenderer Example"
+class RatingRenderer implements CellRenderer {
+  render(element: HTMLElement, params: RenderParams): void {
+    element.className = 'rating-cell';
+    element.innerHTML = '<span class="stars"></span>';
+  }
+
+  update(element: HTMLElement, params: RenderParams): void {
+    const stars = element.querySelector('.stars');
+    if (stars) {
+      const rating = Number(params.value) || 0;
+      stars.innerHTML = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    }
+  }
+
+  destroy(element: HTMLElement): void {
+    // No cleanup needed for this simple renderer
+  }
+
+  getCellClass(params: RenderParams): string | undefined {
+    const rating = Number(params.value) || 0;
+    if (rating >= 4) return 'rating-high';
+    if (rating >= 2) return 'rating-medium';
+    return 'rating-low';
+  }
+}
+```
+
+## Interactive Renderer
+
+Create a renderer with event handlers:
+
+```ts title="StatusBadgeRenderer Example"
+class StatusBadgeRenderer implements CellRenderer {
+  private clickHandler: ((event: MouseEvent) => void) | null = null;
+
+  render(element: HTMLElement, params: RenderParams): void {
+    element.className = 'status-badge-cell';
+    element.innerHTML = `
+      <button class="status-badge" data-row="${params.cell.row}">
+        <span class="status-text"></span>
+      </button>
+    `;
+
+    this.clickHandler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest('.status-badge') as HTMLButtonElement;
+      if (button) {
+        const row = Number(button.dataset.row);
+        this.onStatusClick(row, params.value);
+      }
+    };
+
+    element.addEventListener('click', this.clickHandler);
+  }
+
+  update(element: HTMLElement, params: RenderParams): void {
+    const badge = element.querySelector('.status-badge') as HTMLButtonElement;
+    const text = element.querySelector('.status-text');
+
+    if (badge && text) {
+      badge.dataset.row = String(params.cell.row);
+      text.textContent = params.value || 'unknown';
+
+      // Update button class based on status
+      badge.className = `status-badge status-${params.value}`;
+    }
+  }
+
+  destroy(element: HTMLElement): void {
+    if (this.clickHandler) {
+      element.removeEventListener('click', this.clickHandler);
+      this.clickHandler = null;
+    }
+  }
+
+  private onStatusClick(row: number, status: string): void {
+    console.log(`Status clicked: row ${row}, status ${status}`);
+    // Handle status change logic
+  }
+}
+```
+
+<Callout type="warning">
+Always clean up event listeners in the `destroy()` method to prevent memory leaks.
+</Callout>
+
+## Advanced Renderer with State
+
+Create a complex renderer with internal state management:
+
+```ts title="SparklineRenderer Example"
+class SparklineRenderer implements CellRenderer {
+  private canvas: HTMLCanvasElement | null = null;
+  private ctx: CanvasRenderingContext2D | null = null;
+
+  render(element: HTMLElement, params: RenderParams): void {
+    element.className = 'sparkline-cell';
+
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = params.position.width - 8;
+    this.canvas.height = params.position.height - 8;
+    this.canvas.style.display = 'block';
+
+    this.ctx = this.canvas.getContext('2d');
+    element.appendChild(this.canvas);
+  }
+
+  update(element: HTMLElement, params: RenderParams): void {
+    if (!this.canvas || !this.ctx) return;
+
+    const data = Array.isArray(params.value) ? params.value : [];
+    if (data.length === 0) return;
+
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+
+    // Clear canvas
+    this.ctx.clearRect(0, 0, width, height);
+
+    // Draw sparkline
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = '#2563eb';
+    this.ctx.lineWidth = 2;
+
+    data.forEach((value, index) => {
+      const x = (index / (data.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+
+      if (index === 0) {
+        this.ctx!.moveTo(x, y);
+      } else {
+        this.ctx!.lineTo(x, y);
+      }
+    });
+
+    this.ctx.stroke();
+
+    // Draw dots at endpoints
+    this.ctx.fillStyle = '#2563eb';
+    this.ctx.beginPath();
+    this.ctx.arc(0, height - ((data[0] - min) / range) * height, 3, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.beginPath();
+    this.ctx.arc(width, height - ((data[data.length - 1] - min) / range) * height, 3, 0, Math.PI * 2);
+    this.ctx.fill();
+  }
+
+  destroy(element: HTMLElement): void {
+    this.canvas = null;
+    this.ctx = null;
+  }
+
+  getCellClass(params: RenderParams): string | undefined {
+    const data = Array.isArray(params.value) ? params.value : [];
+    if (data.length < 2) return undefined;
+
+    const trend = data[data.length - 1] - data[0];
+    return trend >= 0 ? 'sparkline-up' : 'sparkline-down';
+  }
+}
+```
+
+## Conditional Rendering
+
+Use render params to conditionally render based on cell state:
+
+```ts title="Conditional Rendering Example"
+class ConditionalRenderer implements CellRenderer {
+  render(element: HTMLElement, params: RenderParams): void {
+    element.className = 'conditional-cell';
+    element.innerHTML = '<div class="content"></div>';
+  }
+
+  update(element: HTMLElement, params: RenderParams): void {
+    const content = element.querySelector('.content');
+    if (!content) return;
+
+    // Render differently based on selection state
+    if (params.isSelected) {
+      content.innerHTML = `<strong>${params.value}</strong>`;
+      element.style.backgroundColor = '#e3f2fd';
+    } else if (params.isActive) {
+      content.innerHTML = `<em>${params.value}</em>`;
+      element.style.backgroundColor = '#fff3e0';
+    } else {
+      content.textContent = params.value;
+      element.style.backgroundColor = '';
+    }
+
+    // Access row data for context
+    if (params.rowData?.isArchived) {
+      element.classList.add('archived');
+      element.style.opacity = '0.5';
+    } else {
+      element.classList.remove('archived');
+      element.style.opacity = '1';
+    }
+  }
+
+  destroy(element: HTMLElement): void {
+    // Cleanup
+  }
+}
+```
+
+<Callout type="tip">
+Use `params.rowData` to access other fields in the same row for complex rendering logic.
+</Callout>
+
+## Renderer Registration
+
+Register your custom renderer with the grid:
+
+```ts title="Register Custom Renderer"
+// Register globally
+grid.registerRenderer('rating', new RatingRenderer());
+grid.registerRenderer('sparkline', new SparklineRenderer());
+grid.registerRenderer('status', new StatusBadgeRenderer());
+
+// Use in column definitions
+const grid = new Grid({
+  columns: [
+    { field: 'rating', header: 'Rating', renderer: 'rating' },
+    { field: 'trend', header: 'Trend', renderer: 'sparkline' },
+    { field: 'status', header: 'Status', renderer: 'status' }
+  ]
+});
+```
+
+### Inline Registration
+
+You can also provide renderer instances directly:
+
+```ts title="Inline Renderer Registration"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'rating',
+      header: 'Rating',
+      renderer: new RatingRenderer()
+    }
+  ]
+});
+```
+
+## Performance Best Practices
+
+### Minimize DOM Operations
+
+```ts title="Efficient Update Method"
+// ❌ Bad: Recreating DOM on every update
+update(element: HTMLElement, params: RenderParams): void {
+  element.innerHTML = `<span>${params.value}</span>`;
+}
+
+// ✅ Good: Update existing DOM
+update(element: HTMLElement, params: RenderParams): void {
+  const span = element.querySelector('span');
+  if (span) span.textContent = params.value;
+}
+```
+
+### Cache References
+
+```ts title="Caching Element References"
+class OptimizedRenderer implements CellRenderer {
+  private spanElement: HTMLSpanElement | null = null;
+
+  render(element: HTMLElement, params: RenderParams): void {
+    element.innerHTML = '<span></span>';
+    this.spanElement = element.querySelector('span');
+  }
+
+  update(element: HTMLElement, params: RenderParams): void {
+    if (this.spanElement) {
+      this.spanElement.textContent = params.value;
+    }
+  }
+
+  destroy(element: HTMLElement): void {
+    this.spanElement = null;
+  }
+}
+```
+
+### Avoid Heavy Computations
+
+```ts title="Optimize Computations"
+// ❌ Bad: Heavy computation on every update
+update(element: HTMLElement, params: RenderParams): void {
+  const complexResult = heavyCalculation(params.value);
+  element.textContent = complexResult;
+}
+
+// ✅ Good: Cache or precompute when possible
+update(element: HTMLElement, params: RenderParams): void {
+  // Use cached or precomputed values from column data
+  element.textContent = params.column?.cachedValues?.[params.cell.row] ?? params.value;
+}
+```
+
+<Callout type="warning">
+Avoid expensive operations in `update()` as it's called frequently during scrolling.
+</Callout>
+
+## Testing Custom Renderers
+
+Test your renderers in isolation:
+
+```ts title="Testing Custom Renderer"
+describe('RatingRenderer', () => {
+  let renderer: RatingRenderer;
+  let element: HTMLElement;
+
+  beforeEach(() => {
+    renderer = new RatingRenderer();
+    element = document.createElement('div');
+  });
+
+  test('renders correct number of stars', () => {
+    const params = {
+      cell: { row: 0, col: 0 },
+      position: { x: 0, y: 0, width: 100, height: 30 },
+      value: 4,
+      isSelected: false,
+      isActive: false,
+      isEditing: false
+    };
+
+    renderer.render(element, params);
+    renderer.update(element, params);
+
+    const stars = element.querySelector('.stars');
+    expect(stars?.textContent).toBe('★★★★☆');
+  });
+
+  test('applies correct CSS class', () => {
+    const params = {
+      cell: { row: 0, col: 0 },
+      position: { x: 0, y: 0, width: 100, height: 30 },
+      value: 5,
+      isSelected: false,
+      isActive: false,
+      isEditing: false
+    };
+
+    const className = renderer.getCellClass(params);
+    expect(className).toBe('rating-high');
+  });
+});
+```
+
+## Styling Custom Renderers
+
+Apply custom styles to your renderer elements:
+
+```css title="Custom Renderer Styles"
+.rating-cell {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+.stars {
+  color: #fbbf24;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
+.rating-high {
+  background-color: #dcfce7;
+}
+
+.rating-medium {
+  background-color: #fef3c7;
+}
+
+.rating-low {
+  background-color: #fee2e2;
+}
+
+.sparkline-cell {
+  padding: 4px;
+}
+
+.sparkline-up {
+  border-left: 3px solid #10b981;
+}
+
+.sparkline-down {
+  border-left: 3px solid #ef4444;
+}
+```
+
+<Callout type="tip">
+Use CSS classes returned by `getCellClass()` to style cells based on their values without modifying the DOM in `update()`.
+</Callout>

@@ -1,0 +1,252 @@
+---
+title: Text Editor
+description: Text editor for string input with validation and formatting options.
+order: 33
+category: Cell Editors
+tags: [editors, text, input]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `TextEditor` provides a versatile text input editor with support for various input types, validation, and formatting options.
+
+## Basic Usage
+
+```ts title="Basic Text Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'name',
+    header: 'Name',
+    editor: 'text'
+  }
+];
+```
+
+## Editor Options
+
+The `TextEditor` supports the following options:
+
+```ts title="TextEditor Options"
+interface TextEditorOptions {
+  type?: 'text' | 'number' | 'email' | 'url' | 'tel' | 'password';
+  placeholder?: string;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  pattern?: string;
+  required?: boolean;
+  className?: string;
+  autoFocus?: boolean;
+  selectAllOnFocus?: boolean;
+  validator?: (value: string) => boolean | string;
+  stopOnBlur?: boolean;
+}
+```
+
+### Input Types
+
+Use the `type` option to specify the HTML input type:
+
+```ts title="Email Input"
+{
+  field: 'email',
+  header: 'Email',
+  editor: 'text',
+  editorOptions: {
+    type: 'email',
+    placeholder: 'user@example.com',
+    required: true
+  }
+}
+```
+
+```ts title="URL Input"
+{
+  field: 'website',
+  header: 'Website',
+  editor: 'text',
+  editorOptions: {
+    type: 'url',
+    placeholder: 'https://example.com'
+  }
+}
+```
+
+<Callout type="tip">
+Using the appropriate input type enables browser-native validation and mobile keyboard optimization.
+</Callout>
+
+## Validation
+
+### Length Constraints
+
+```ts title="Max Length"
+{
+  field: 'username',
+  header: 'Username',
+  editor: 'text',
+  editorOptions: {
+    maxLength: 20,
+    placeholder: 'Max 20 characters'
+  }
+}
+```
+
+### Pattern Matching
+
+Use regex patterns for advanced validation:
+
+```ts title="Pattern Validation"
+{
+  field: 'zipCode',
+  header: 'ZIP Code',
+  editor: 'text',
+  editorOptions: {
+    pattern: '^\\d{5}(-\\d{4})?$',
+    placeholder: '12345 or 12345-6789'
+  }
+}
+```
+
+### Custom Validator
+
+Implement complex validation logic with a custom validator function:
+
+```ts title="Custom Validator"
+{
+  field: 'password',
+  header: 'Password',
+  editor: 'text',
+  editorOptions: {
+    type: 'password',
+    validator: (value: string) => {
+      if (value.length < 8) {
+        return 'Password must be at least 8 characters';
+      }
+      if (!/[A-Z]/.test(value)) {
+        return 'Password must contain an uppercase letter';
+      }
+      if (!/[0-9]/.test(value)) {
+        return 'Password must contain a number';
+      }
+      return true;
+    }
+  }
+}
+```
+
+<Callout type="info">
+The validator function returns `true` for valid input, or an error message string for invalid input.
+</Callout>
+
+## Focus Behavior
+
+### Auto-Focus
+
+The editor automatically focuses when opened by default. Disable with `autoFocus: false`:
+
+```ts title="Disable Auto-Focus"
+{
+  editor: 'text',
+  editorOptions: {
+    autoFocus: false
+  }
+}
+```
+
+### Select All on Focus
+
+By default, text is selected when the editor opens. This allows users to immediately type to replace the value:
+
+```ts title="Disable Select All"
+{
+  editor: 'text',
+  editorOptions: {
+    selectAllOnFocus: false
+  }
+}
+```
+
+## Blur Behavior
+
+Control what happens when the editor loses focus:
+
+```ts title="Stop Editing on Blur"
+{
+  editor: 'text',
+  editorOptions: {
+    stopOnBlur: true // Commits edit when clicking outside
+  }
+}
+```
+
+<Callout type="warning">
+With `stopOnBlur: false` (default), clicking outside the editor cancels the edit. Set to `true` to commit instead.
+</Callout>
+
+## Styling
+
+Add custom CSS classes to the input element:
+
+```ts title="Custom Styling"
+{
+  editor: 'text',
+  editorOptions: {
+    className: 'custom-input highlight-on-error'
+  }
+}
+```
+
+## Complete Example
+
+```ts title="Complete Text Editor Configuration"
+const columns: ColumnDef[] = [
+  {
+    field: 'fullName',
+    header: 'Full Name',
+    editor: 'text',
+    editorOptions: {
+      placeholder: 'Enter full name...',
+      maxLength: 50,
+      required: true,
+      selectAllOnFocus: true,
+      validator: (value: string) => {
+        if (!value.trim()) {
+          return 'Name is required';
+        }
+        if (value.trim().split(' ').length < 2) {
+          return 'Please enter first and last name';
+        }
+        return true;
+      }
+    }
+  },
+  {
+    field: 'phone',
+    header: 'Phone',
+    editor: 'text',
+    editorOptions: {
+      type: 'tel',
+      placeholder: '(555) 555-5555',
+      pattern: '^\\([0-9]{3}\\) [0-9]{3}-[0-9]{4}$',
+      validator: (value: string) => {
+        return /^\(\d{3}\) \d{3}-\d{4}$/.test(value) ||
+               'Invalid phone format';
+      }
+    }
+  }
+];
+```
+
+## Keyboard Shortcuts
+
+The text editor supports standard keyboard shortcuts:
+
+- **Enter**: Commit and close editor
+- **Escape**: Cancel and close editor
+- **Tab**: Commit and move to next cell
+- **Shift+Tab**: Commit and move to previous cell
+
+<Callout type="tip">
+All text selection and navigation shortcuts (Ctrl+A, Home, End, arrow keys) work as expected within the editor.
+</Callout>

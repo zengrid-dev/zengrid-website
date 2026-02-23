@@ -1,0 +1,374 @@
+---
+title: Columns
+description: Configure column widths, constraints, reordering, pinning, and visibility.
+order: 15
+category: Features
+tags: [columns, resize, reorder, pin]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides comprehensive column management with support for resizing, reordering, pinning, and visibility control.
+
+## Column Definition
+
+Define columns with the ColumnDef interface:
+
+```js title="column-definition.js"
+const grid = new ZenGrid(container, {
+  columns: [
+    {
+      id: 'name',
+      field: 'name',
+      header: 'Name',
+      width: 200,
+      minWidth: 100,
+      maxWidth: 400,
+      sortable: true,
+      filterable: true,
+      resizable: true,
+      reorderable: true,
+      editable: true,
+      renderer: 'text',
+      editor: 'text'
+    }
+  ]
+});
+```
+
+### ColumnDef Interface
+
+```typescript title="column-def.ts"
+interface ColumnDef {
+  id: string;              // Unique column identifier
+  field: string;           // Data field to display
+  header: string;          // Header text
+  width?: number;          // Column width in pixels
+  minWidth?: number;       // Minimum width constraint
+  maxWidth?: number;       // Maximum width constraint
+  sortable?: boolean;      // Enable sorting
+  filterable?: boolean;    // Enable filtering
+  resizable?: boolean;     // Enable resizing
+  reorderable?: boolean;   // Enable reordering
+  editable?: boolean;      // Enable editing
+  renderer?: string;       // Cell renderer type
+  editor?: string;         // Cell editor type
+}
+```
+
+<Callout type="info">
+The `id` and `field` properties are required. All other properties are optional with sensible defaults.
+</Callout>
+
+## Column Resizing
+
+### Enable Resizing
+
+```js title="enable-resize.js"
+// Enable resizing on specific columns
+{
+  id: 'name',
+  field: 'name',
+  resizable: true,
+  minWidth: 100,
+  maxWidth: 500
+}
+
+// Attach resize handles (done automatically by default)
+grid.attachColumnResize(headerElement);
+```
+
+### Programmatic Resizing
+
+```js title="programmatic-resize.js"
+// Resize a specific column
+grid.resizeColumn('name', 300);
+
+// Auto-fit a column to its content
+grid.autoFitColumn('name');
+
+// Auto-fit all columns
+grid.autoFitAllColumns();
+
+// Set width constraints
+grid.setColumnConstraints('name', {
+  minWidth: 150,
+  maxWidth: 450
+});
+```
+
+<Callout type="tip">
+Use `autoFitColumn()` to automatically size columns based on content. This is especially useful after data changes.
+</Callout>
+
+### Resize Events
+
+```js title="resize-events.js"
+grid.on('column:resize', (event) => {
+  console.log('Column resized:', {
+    column: event.columnId,
+    oldWidth: event.oldWidth,
+    newWidth: event.newWidth
+  });
+});
+
+grid.on('column:resizeStart', (event) => {
+  console.log('Resize started:', event.columnId);
+});
+
+grid.on('column:resizeEnd', (event) => {
+  console.log('Resize ended:', event.columnId);
+});
+```
+
+## Column Reordering
+
+### Enable Reordering
+
+```js title="enable-reorder.js"
+const grid = new ZenGrid(container, {
+  enableColumnDrag: true,
+  columns: [
+    {
+      id: 'name',
+      field: 'name',
+      reorderable: true
+    }
+  ]
+});
+
+// Attach drag handles
+grid.attachColumnDrag(headerElement);
+```
+
+### Programmatic Reordering
+
+```js title="programmatic-reorder.js"
+// Move a column to a new position
+grid.moveColumn('name', 2); // Move to index 2
+
+// Swap two columns
+grid.swapColumns('name', 'age');
+
+// Get current column order
+const order = grid.getColumnOrder();
+// Returns: ['id', 'name', 'age', 'email']
+
+// Set column order
+grid.setColumnOrder(['email', 'name', 'id', 'age']);
+```
+
+<Callout type="warning">
+Column reordering does not modify the underlying data. It only changes the visual order of columns.
+</Callout>
+
+### Reorder Events
+
+```js title="reorder-events.js"
+grid.on('column:reorder', (event) => {
+  console.log('Column reordered:', {
+    column: event.columnId,
+    fromIndex: event.fromIndex,
+    toIndex: event.toIndex
+  });
+});
+```
+
+## Column Pinning
+
+Pin columns to the left or right side of the grid:
+
+```js title="column-pinning.js"
+// Pin a column to the left
+grid.pinColumn('name', 'left');
+
+// Pin a column to the right
+grid.pinColumn('actions', 'right');
+
+// Unpin a column
+grid.unpinColumn('name');
+
+// Check if a column is pinned
+const isPinned = grid.isColumnPinned('name');
+const pinSide = grid.getColumnPinSide('name'); // 'left' | 'right' | null
+
+// Get all pinned columns
+const leftPinned = grid.getPinnedColumns('left');
+const rightPinned = grid.getPinnedColumns('right');
+```
+
+<Callout type="tip">
+Pinned columns remain visible during horizontal scrolling, making them ideal for key identifier columns or action buttons.
+</Callout>
+
+## Column Visibility
+
+Show and hide columns dynamically:
+
+```js title="column-visibility.js"
+// Hide a column
+grid.hideColumn('email');
+
+// Show a column
+grid.showColumn('email');
+
+// Toggle column visibility
+grid.toggleColumn('email');
+
+// Check if a column is visible
+const isVisible = grid.isColumnVisible('email');
+
+// Get all visible columns
+const visibleColumns = grid.getVisibleColumns();
+
+// Get all hidden columns
+const hiddenColumns = grid.getHiddenColumns();
+
+// Set multiple columns' visibility at once
+grid.setColumnsVisible(['name', 'age'], true);
+grid.setColumnsVisible(['internal_id', 'debug_field'], false);
+```
+
+## Column State Management
+
+Save and restore complete column state:
+
+```js title="column-state.js"
+// Get column state snapshot
+const columnState = grid.getColumnState();
+// Returns: [
+//   { id: 'name', width: 200, visible: true, order: 0, pinned: 'left' },
+//   { id: 'age', width: 100, visible: true, order: 1, pinned: null },
+//   ...
+// ]
+
+// Apply column state
+grid.applyColumnState(columnState, {
+  applyWidth: true,
+  applyVisibility: true,
+  applyOrder: true,
+  applyPinned: true
+});
+
+// Persist to localStorage
+localStorage.setItem('gridColumnState', JSON.stringify(columnState));
+
+// Restore from localStorage
+const savedState = JSON.parse(localStorage.getItem('gridColumnState'));
+if (savedState) {
+  grid.applyColumnState(savedState);
+}
+```
+
+<Callout type="tip">
+Use column state management to preserve user preferences across sessions.
+</Callout>
+
+### ColumnStateSnapshot Interface
+
+```typescript title="column-state.ts"
+interface ColumnStateSnapshot {
+  id: string;
+  width: number;
+  visible: boolean;
+  order: number;
+  pinned: 'left' | 'right' | null;
+}
+```
+
+## Full Grid State
+
+Save and restore complete grid state including columns, sorting, and filtering:
+
+```js title="grid-state.js"
+// Get complete grid state
+const gridState = grid.getStateSnapshot();
+// {
+//   columns: [...],
+//   sort: [...],
+//   filters: {...},
+//   pagination: {...}
+// }
+
+// Apply complete grid state
+grid.applyStateSnapshot(gridState);
+
+// Persist complete state
+localStorage.setItem('gridState', JSON.stringify(gridState));
+
+// Restore complete state
+const savedGridState = JSON.parse(localStorage.getItem('gridState'));
+if (savedGridState) {
+  grid.applyStateSnapshot(savedGridState);
+}
+```
+
+## Example: Column Chooser
+
+Create a column visibility chooser:
+
+```js title="column-chooser.js"
+function createColumnChooser(grid) {
+  const allColumns = grid.getColumns();
+  const container = document.createElement('div');
+  container.className = 'column-chooser';
+
+  allColumns.forEach(col => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = grid.isColumnVisible(col.id);
+
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        grid.showColumn(col.id);
+      } else {
+        grid.hideColumn(col.id);
+      }
+    });
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(col.header));
+    container.appendChild(label);
+  });
+
+  return container;
+}
+
+// Add to UI
+document.getElementById('column-chooser-container')
+  .appendChild(createColumnChooser(grid));
+```
+
+## Example: Responsive Columns
+
+Adjust columns based on viewport size:
+
+```js title="responsive-columns.js"
+function adjustColumnsForViewport() {
+  const width = window.innerWidth;
+
+  if (width < 768) {
+    // Mobile: show only essential columns
+    grid.hideColumn('description');
+    grid.hideColumn('created_date');
+    grid.hideColumn('modified_date');
+  } else if (width < 1024) {
+    // Tablet: show more columns
+    grid.showColumn('description');
+    grid.hideColumn('modified_date');
+  } else {
+    // Desktop: show all columns
+    grid.showColumn('description');
+    grid.showColumn('created_date');
+    grid.showColumn('modified_date');
+  }
+}
+
+window.addEventListener('resize', adjustColumnsForViewport);
+adjustColumnsForViewport();
+```
+
+<Callout type="tip">
+Combine column visibility with media queries to create responsive grid layouts that adapt to different screen sizes.
+</Callout>

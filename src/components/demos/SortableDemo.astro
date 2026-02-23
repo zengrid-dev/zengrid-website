@@ -1,0 +1,95 @@
+---
+import DemoContainer from './DemoContainer.astro';
+---
+
+<DemoContainer id="sortable-demo-grid" height="380px">
+  <div slot="controls" class="sort-controls">
+    <span class="sort-hint">Click a column header to sort. Shift+click for multi-sort.</span>
+    <span id="sortable-demo-status" class="sort-status"></span>
+  </div>
+</DemoContainer>
+
+<script>
+  import { Grid } from '@zengrid/core';
+  import '@zengrid/core/dist/styles.css';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('sortable-demo-grid');
+    if (!container) return;
+
+    const firstNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack'];
+    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Wilson', 'Moore'];
+    const roles = ['Admin', 'Editor', 'Viewer', 'Manager', 'Developer'];
+    const statuses = ['Active', 'Inactive', 'Pending'];
+    const priorities = ['High', 'Medium', 'Low'];
+    const rowCount = 50;
+
+    const data = Array.from({ length: rowCount }, (_, i) => [
+      i + 1,
+      `${firstNames[i % firstNames.length]} ${lastNames[(i * 3) % lastNames.length]}`,
+      roles[i % roles.length],
+      statuses[i % statuses.length],
+      priorities[i % priorities.length],
+    ]);
+
+    const columns = [
+      { field: 'id', header: 'ID', width: 60, sortable: true },
+      { field: 'name', header: 'Name', width: 200, sortable: true },
+      { field: 'role', header: 'Role', width: 140, sortable: true },
+      { field: 'status', header: 'Status', width: 120, sortable: true },
+      { field: 'priority', header: 'Priority', width: 120, sortable: true },
+    ];
+
+    const grid = new Grid(container, {
+      rowCount,
+      colCount: columns.length,
+      rowHeight: 32,
+      colWidth: columns.map(c => c.width),
+      columns,
+      enableSelection: true,
+    });
+
+    grid.setData(data);
+    grid.render();
+
+    const statusEl = document.getElementById('sortable-demo-status');
+    grid.on('sort:change', () => {
+      const sortState = grid.getSortState();
+      if (statusEl) {
+        if (sortState.length === 0) {
+          statusEl.textContent = '';
+        } else {
+          statusEl.textContent = sortState
+            .map(s => `${columns[s.column].header} ${s.direction === 'asc' ? '↑' : '↓'}`)
+            .join(', ');
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  .sort-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    gap: 1rem;
+  }
+
+  .sort-hint {
+    opacity: 0.7;
+  }
+
+  .sort-status {
+    color: #10b981;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .sort-controls { flex-direction: column; align-items: flex-start; }
+  }
+</style>

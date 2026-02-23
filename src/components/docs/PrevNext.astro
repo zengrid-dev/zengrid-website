@@ -1,0 +1,27 @@
+---
+import { getPrevNext } from '../../config/sidebar';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const { prev, next } = getPrevNext(slug);
+---
+
+{(prev || next) && (
+  <nav class="prev-next" aria-label="Page navigation">
+    {prev && (
+      <a href={`/docs/${prev.slug}`} class="prev-next-card prev">
+        <span class="prev-next-label">&larr; Previous</span>
+        <span class="prev-next-title">{prev.title}</span>
+      </a>
+    )}
+    {next && (
+      <a href={`/docs/${next.slug}`} class="prev-next-card next">
+        <span class="prev-next-label">Next &rarr;</span>
+        <span class="prev-next-title">{next.title}</span>
+      </a>
+    )}
+  </nav>
+)}

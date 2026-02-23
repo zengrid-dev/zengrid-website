@@ -1,0 +1,45 @@
+---
+import { sidebar } from '../../config/sidebar';
+
+interface Props {
+  currentSlug: string;
+}
+
+const { currentSlug } = Astro.props;
+---
+
+<aside class="docs-sidebar">
+  {sidebar.map((section) => {
+    const hasActive = section.items.some((item) => item.slug === currentSlug);
+    return (
+      <div class={`sidebar-section ${hasActive ? '' : ''}`}>
+        <div class="sidebar-section-title">
+          <span>{section.title}</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <ul class="sidebar-items">
+          {section.items.map((item) => (
+            <li>
+              <a
+                href={`/docs/${item.slug}`}
+                class={`sidebar-link ${item.slug === currentSlug ? 'active' : ''}`}
+              >
+                {item.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  })}
+</aside>
+
+<script>
+  document.querySelectorAll('.sidebar-section-title').forEach((title) => {
+    title.addEventListener('click', () => {
+      title.parentElement?.classList.toggle('collapsed');
+    });
+  });
+</script>

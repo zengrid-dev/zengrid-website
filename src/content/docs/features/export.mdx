@@ -1,0 +1,285 @@
+---
+title: Export
+description: Export grid data to CSV or TSV format with configurable row and column selection.
+order: 14
+category: Features
+tags: [export, csv, tsv]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides built-in data export functionality to CSV and TSV formats with flexible options for selecting rows and columns.
+
+## Basic Export
+
+Export the entire grid data:
+
+```js title="basic-export.js"
+// Export all data to CSV
+const csvData = grid.exportCSV();
+
+// Export all data to TSV (Tab-Separated Values)
+const tsvData = grid.exportTSV();
+```
+
+<Callout type="info">
+CSV uses commas as delimiters, while TSV uses tabs. TSV is useful when your data contains commas.
+</Callout>
+
+## Export Options
+
+Customize what data to export:
+
+```js title="export-options.js"
+const options = {
+  rows: 'all',        // 'all' | 'filtered' | 'selected' | number[]
+  columns: 'visible', // 'all' | 'visible' | number[]
+  includeHeaders: true
+};
+
+const csvData = grid.exportCSV(options);
+```
+
+### GridExportOptions Interface
+
+```typescript title="export-options.ts"
+interface GridExportOptions {
+  rows?: 'all' | 'filtered' | 'selected' | number[];
+  columns?: 'all' | 'visible' | number[];
+  includeHeaders?: boolean;
+}
+```
+
+## Row Selection
+
+Choose which rows to export:
+
+```js title="row-export.js"
+// Export all rows
+grid.exportCSV({ rows: 'all' });
+
+// Export only filtered rows
+grid.setFilter('status', 'equals', 'active');
+grid.exportCSV({ rows: 'filtered' });
+
+// Export only selected rows
+grid.selectRows(0, 10);
+grid.exportCSV({ rows: 'selected' });
+
+// Export specific rows by index
+grid.exportCSV({ rows: [0, 5, 10, 15, 20] });
+```
+
+<Callout type="tip">
+Use `rows: 'filtered'` to export the current view of the grid, respecting any active filters.
+</Callout>
+
+## Column Selection
+
+Choose which columns to export:
+
+```js title="column-export.js"
+// Export all columns
+grid.exportCSV({ columns: 'all' });
+
+// Export only visible columns (respects column visibility)
+grid.exportCSV({ columns: 'visible' });
+
+// Export specific columns by index
+grid.exportCSV({ columns: [0, 2, 4] });
+```
+
+## Headers
+
+Control whether to include column headers:
+
+```js title="headers.js"
+// Include headers (default)
+grid.exportCSV({ includeHeaders: true });
+
+// Exclude headers
+grid.exportCSV({ includeHeaders: false });
+```
+
+## Data Escaping
+
+ZenGrid automatically handles special characters:
+
+- Quotes are escaped as double-quotes (`""`)
+- Values containing delimiters are wrapped in quotes
+- Newlines within values are preserved
+- Proper UTF-8 encoding
+
+```js title="escaping-example.js"
+// Data with special characters
+const data = [
+  ['Name', 'Description'],
+  ['Product A', 'Contains "quotes" and, commas'],
+  ['Product B', 'Multi-line\ndescription']
+];
+
+// Exported correctly:
+// Name,Description
+// "Product A","Contains ""quotes"" and, commas"
+// "Product B","Multi-line
+// description"
+```
+
+<Callout type="info">
+You don't need to handle escaping manually. ZenGrid ensures all special characters are properly escaped according to CSV/TSV standards.
+</Callout>
+
+## Download as File
+
+Create a downloadable file from exported data:
+
+```js title="download-file.js"
+function downloadCSV() {
+  const csvData = grid.exportCSV({
+    rows: 'filtered',
+    columns: 'visible',
+    includeHeaders: true
+  });
+
+  // Create blob
+  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+
+  // Create download link
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'grid-data.csv');
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // Clean up
+  URL.revokeObjectURL(url);
+}
+
+// Trigger download
+downloadCSV();
+```
+
+## Example: Export Button
+
+Add an export button to your UI:
+
+```js title="export-button.js"
+const exportButton = document.getElementById('export-btn');
+
+exportButton.addEventListener('click', () => {
+  const csvData = grid.exportCSV({
+    rows: 'all',
+    columns: 'visible',
+    includeHeaders: true
+  });
+
+  // Create and trigger download
+  const blob = new Blob([csvData], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = `export-${new Date().toISOString()}.csv`;
+  a.click();
+
+  URL.revokeObjectURL(url);
+});
+```
+
+## Example: Export Filtered Data
+
+Export the current filtered view:
+
+```js title="export-filtered.js"
+// Apply filters
+grid.setFilter('status', 'equals', 'active');
+grid.setFilter('category', 'in', ['Electronics', 'Computers']);
+
+// Export only the filtered results
+const filteredCSV = grid.exportCSV({
+  rows: 'filtered',
+  columns: 'visible',
+  includeHeaders: true
+});
+
+console.log(`Exported ${grid.getFilteredRowCount()} filtered rows`);
+```
+
+<Callout type="tip">
+Combine export with filtering to let users export exactly what they see on screen.
+</Callout>
+
+## Example: Export Selected Rows
+
+Export user-selected data:
+
+```js title="export-selected.js"
+// User selects some rows
+grid.selectRows(5, 15);
+grid.selectRows(20, 25, true); // Add to selection
+
+// Export only selected rows
+const selectedCSV = grid.exportCSV({
+  rows: 'selected',
+  columns: 'all',
+  includeHeaders: true
+});
+
+console.log(`Exported ${grid.getSelectedRows().length} selected rows`);
+```
+
+## TSV Export
+
+Use TSV when your data contains commas:
+
+```js title="tsv-export.js"
+// Export to TSV format
+const tsvData = grid.exportTSV({
+  rows: 'all',
+  columns: 'visible',
+  includeHeaders: true
+});
+
+// Download as .tsv file
+const blob = new Blob([tsvData], { type: 'text/tab-separated-values' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+
+a.href = url;
+a.download = 'data.tsv';
+a.click();
+
+URL.revokeObjectURL(url);
+```
+
+<Callout type="tip">
+TSV is ideal for data that frequently contains commas, such as addresses or descriptions, as it avoids quote escaping.
+</Callout>
+
+## Custom Export Format
+
+For custom export formats, use the grid data directly:
+
+```js title="custom-export.js"
+function exportToJSON() {
+  const data = grid.getData();
+  const columns = grid.getColumns();
+
+  const jsonData = data.map(row => {
+    const obj = {};
+    columns.forEach((col, idx) => {
+      obj[col.field] = row[idx];
+    });
+    return obj;
+  });
+
+  return JSON.stringify(jsonData, null, 2);
+}
+
+// Or export to Excel-compatible XML, etc.
+```

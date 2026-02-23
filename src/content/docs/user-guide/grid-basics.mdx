@@ -1,0 +1,251 @@
+---
+title: Grid Basics
+description: Learn the fundamentals of container sizing, row/column configuration, and grid lifecycle.
+order: 5
+category: User Guide
+tags: [basics, container, lifecycle]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Grid Basics
+
+This guide covers the essential concepts for setting up and working with ZenGrid, including container requirements, data configuration, and lifecycle management.
+
+## Container Requirements
+
+ZenGrid requires an explicit container size to render properly. The container element must have defined `width` and `height` in CSS.
+
+```html title="index.html"
+<div id="grid-container" style="width: 800px; height: 600px;"></div>
+```
+
+```css title="styles.css"
+#grid-container {
+  width: 100%;
+  height: 100vh;
+  /* or use specific dimensions */
+}
+```
+
+<Callout type="warning">
+Without explicit dimensions, the grid cannot calculate the viewport and virtual scrolling will not work correctly.
+</Callout>
+
+## Row and Column Configuration
+
+Configure the grid dimensions using `rowCount` and `colCount`:
+
+```ts title="basic-config.ts"
+import { createGrid } from '@zengrid/core';
+
+const grid = createGrid({
+  container: document.getElementById('grid-container')!,
+  rowCount: 1000,
+  colCount: 10,
+  data: (row, col) => `Cell ${row},${col}`,
+  columns: [
+    { field: 'id', header: 'ID', width: 80 },
+    { field: 'name', header: 'Name', width: 150 },
+    { field: 'value', header: 'Value', width: 120 }
+  ]
+});
+```
+
+## Data Callback
+
+The `data` callback provides cell values on-demand during rendering:
+
+```ts title="data-callback.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 5000,
+  colCount: 8,
+  data: (row, col) => {
+    // Return cell value for the given row and column
+    if (col === 0) return row + 1; // ID column
+    if (col === 1) return `Item ${row}`; // Name column
+    return Math.random() * 100; // Other columns
+  }
+});
+```
+
+<Callout type="tip">
+The data callback is invoked only for visible cells, making it efficient for large datasets.
+</Callout>
+
+## Column Definitions
+
+Define columns with the `ColumnDef` interface:
+
+```ts title="column-config.ts"
+import { ColumnDef } from '@zengrid/core';
+
+const columns: ColumnDef[] = [
+  {
+    field: 'id',
+    header: 'ID',
+    width: 80,
+    type: 'number'
+  },
+  {
+    field: 'name',
+    header: 'Name',
+    width: 200,
+    type: 'text'
+  },
+  {
+    field: 'active',
+    header: 'Active',
+    width: 100,
+    type: 'checkbox'
+  }
+];
+```
+
+## Built-in Renderers
+
+ZenGrid includes several built-in cell renderers:
+
+- **text** - Plain text display (default)
+- **number** - Formatted number display
+- **checkbox** - Interactive checkbox
+- **button** - Clickable button
+- **link** - Hyperlink with URL
+- **progress-bar** - Progress indicator (0-100)
+- **chip** - Tag/badge display
+- **select** - Dropdown selection
+- **dropdown** - Autocomplete dropdown
+- **date** - Formatted date display
+
+```ts title="renderer-config.ts"
+const columns: ColumnDef[] = [
+  { field: 'status', header: 'Status', type: 'chip', width: 120 },
+  { field: 'progress', header: 'Progress', type: 'progress-bar', width: 150 },
+  { field: 'action', header: 'Action', type: 'button', width: 100 },
+  { field: 'url', header: 'Link', type: 'link', width: 180 },
+  { field: 'created', header: 'Created', type: 'date', width: 140 }
+];
+```
+
+## Grid Lifecycle
+
+### Rendering
+
+Call `render()` to initially render or re-render the entire grid:
+
+```ts title="lifecycle.ts"
+grid.render();
+```
+
+### Refreshing
+
+Use `refresh()` to update the grid after data changes:
+
+```ts title="refresh.ts"
+// Update data
+grid.setData(newData);
+
+// Refresh the grid
+grid.refresh();
+```
+
+### Dynamic Configuration
+
+Update grid options dynamically with `updateOptions()`:
+
+```ts title="update-options.ts"
+grid.updateOptions({
+  rowCount: 2000,
+  colCount: 12,
+  overscanRows: 20
+});
+```
+
+### Cache Management
+
+Clear the renderer cache when changing renderers or resetting state:
+
+```ts title="cache.ts"
+grid.clearCache();
+```
+
+<Callout type="info">
+The renderer cache stores renderer instances for reuse. Clear it when switching renderer types or resetting the grid state.
+</Callout>
+
+### Grid Inspection
+
+Get current grid dimensions and statistics:
+
+```ts title="inspection.ts"
+// Get dimensions
+const dimensions = grid.getDimensions();
+console.log(dimensions); // { width: 800, height: 600 }
+
+// Get statistics
+const stats = grid.getStats();
+console.log(stats);
+// {
+//   totalRows: 1000,
+//   totalCols: 10,
+//   visibleRows: 15,
+//   visibleCols: 8,
+//   renderedCells: 120
+// }
+```
+
+### Cleanup
+
+Always call `destroy()` when removing the grid to clean up event listeners and resources:
+
+```ts title="cleanup.ts"
+// Clean up when done
+grid.destroy();
+```
+
+<Callout type="danger">
+Failing to call `destroy()` can lead to memory leaks from retained event listeners and DOM references.
+</Callout>
+
+## Complete Example
+
+```ts title="complete-example.ts"
+import { createGrid, ColumnDef } from '@zengrid/core';
+
+const container = document.getElementById('grid')!;
+
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80, type: 'number' },
+  { field: 'name', header: 'Name', width: 200, type: 'text' },
+  { field: 'status', header: 'Status', width: 120, type: 'chip' },
+  { field: 'progress', header: 'Progress', width: 150, type: 'progress-bar' }
+];
+
+const grid = createGrid({
+  container,
+  rowCount: 10000,
+  colCount: 4,
+  columns,
+  data: (row, col) => {
+    if (col === 0) return row + 1;
+    if (col === 1) return `Item ${row}`;
+    if (col === 2) return row % 2 === 0 ? 'Active' : 'Inactive';
+    if (col === 3) return (row % 100);
+    return '';
+  }
+});
+
+grid.render();
+
+// Update later
+setTimeout(() => {
+  grid.updateOptions({ rowCount: 20000 });
+  grid.refresh();
+}, 5000);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  grid.destroy();
+});
+```

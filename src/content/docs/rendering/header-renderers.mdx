@@ -1,0 +1,405 @@
+---
+title: Header Renderers
+description: Built-in header renderers for text, sortable, filterable, checkbox, and icon headers.
+order: 30
+category: Rendering
+tags: [renderers, headers, built-in]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides built-in header renderers for common header types including sortable and filterable columns. Header renderers control how column headers are displayed and interact with user input.
+
+## HeaderRenderer Interface
+
+All header renderers implement the `HeaderRenderer` interface:
+
+```ts title="HeaderRenderer Interface"
+interface HeaderRenderer {
+  render(element: HTMLElement, params: HeaderRenderParams): void;
+  update(element: HTMLElement, params: HeaderRenderParams): void;
+  destroy(element: HTMLElement): void;
+  getHeaderClass?(params: HeaderRenderParams): string | undefined;
+}
+```
+
+### Methods
+
+- **render()** - Called once when header is first created, set up DOM structure
+- **update()** - Called when header needs to refresh (e.g., sort direction changes)
+- **destroy()** - Called when header is removed, cleanup event listeners
+- **getHeaderClass()** - Optional method to return CSS class for header styling
+
+## HeaderRenderParams
+
+Header renderers receive parameters containing header context:
+
+```ts title="HeaderRenderParams Interface"
+interface HeaderRenderParams {
+  columnIndex: number;      // Column index
+  column?: ColumnDef;       // Column definition
+  config: HeaderConfig;     // Header configuration
+  width: number;            // Header width
+  height: number;           // Header height
+  isHovered?: boolean;      // Hover state
+  isFocused?: boolean;      // Focus state
+  isResizing?: boolean;     // Resize state
+  emit?: EventEmitter;      // Event emitter for header events
+}
+```
+
+## TextHeaderRenderer
+
+Plain text header renderer for simple column headers.
+
+```ts title="Using TextHeaderRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'name',
+      header: 'Name'
+    }
+  ]
+});
+```
+
+### With Icon
+
+```ts title="Text Header with Icon"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'email',
+      header: {
+        text: 'Email Address',
+        icon: 'envelope',
+        className: 'email-header'
+      }
+    }
+  ]
+});
+```
+
+<Callout type="info">
+When using string shorthand for headers, ZenGrid automatically uses TextHeaderRenderer.
+</Callout>
+
+## SortableHeaderRenderer
+
+Interactive header renderer with sort indicators and click-to-sort functionality.
+
+```ts title="Using SortableHeaderRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'price',
+      header: {
+        text: 'Price',
+        renderer: 'sortable'
+      }
+    }
+  ]
+});
+```
+
+### Sort Indicators
+
+The sortable header automatically displays sort direction indicators:
+
+- **Unsorted** - No indicator or neutral icon
+- **Ascending** - Up arrow icon
+- **Descending** - Down arrow icon
+
+```ts title="Sortable Header with Custom Icons"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'quantity',
+      header: {
+        text: 'Quantity',
+        renderer: 'sortable',
+        sortIcons: {
+          asc: 'arrow-up',
+          desc: 'arrow-down',
+          none: 'arrows-vertical'
+        }
+      }
+    }
+  ]
+});
+```
+
+<Callout type="tip">
+Click a sortable header once to sort ascending, click again to sort descending, and a third click to clear sorting.
+</Callout>
+
+## FilterableHeaderRenderer
+
+Header renderer with integrated filter UI and dropdown controls.
+
+```ts title="Using FilterableHeaderRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'status',
+      header: {
+        text: 'Status',
+        renderer: 'filterable'
+      }
+    }
+  ]
+});
+```
+
+### Filter Dropdown Integration
+
+FilterableHeaderRenderer automatically integrates with ZenGrid's filtering system:
+
+```ts title="Filterable Header with Options"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'category',
+      header: {
+        text: 'Category',
+        renderer: 'filterable',
+        filterOptions: {
+          type: 'dropdown',
+          options: ['Electronics', 'Clothing', 'Food', 'Books']
+        }
+      }
+    }
+  ]
+});
+```
+
+### Filter Types
+
+- **text** - Text input filter
+- **number** - Numeric range filter
+- **dropdown** - Dropdown selection filter
+- **date** - Date range filter
+
+```ts title="Multiple Filter Types"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'name',
+      header: {
+        text: 'Name',
+        renderer: 'filterable',
+        filterOptions: { type: 'text' }
+      }
+    },
+    {
+      field: 'price',
+      header: {
+        text: 'Price',
+        renderer: 'filterable',
+        filterOptions: { type: 'number', min: 0, max: 1000 }
+      }
+    },
+    {
+      field: 'date',
+      header: {
+        text: 'Date',
+        renderer: 'filterable',
+        filterOptions: { type: 'date' }
+      }
+    }
+  ]
+});
+```
+
+<Callout type="warning">
+FilterableHeaderRenderer requires the filtering feature to be enabled in your grid configuration.
+</Callout>
+
+## CheckboxHeaderRenderer
+
+Select-all checkbox header renderer for row selection.
+
+```ts title="Using CheckboxHeaderRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'select',
+      header: {
+        text: '',
+        renderer: 'checkbox'
+      },
+      width: 50
+    }
+  ]
+});
+```
+
+### Tri-State Behavior
+
+The checkbox header automatically handles three states:
+
+- **Unchecked** - No rows selected
+- **Checked** - All rows selected
+- **Indeterminate** - Some rows selected
+
+```ts title="Checkbox Header Events"
+grid.on('headerCheckboxChange', (state) => {
+  if (state.checked) {
+    grid.selectAll();
+  } else {
+    grid.clearSelection();
+  }
+});
+```
+
+## IconHeaderRenderer
+
+Icon-based header renderer for compact column headers.
+
+```ts title="Using IconHeaderRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'favorite',
+      header: {
+        renderer: 'icon',
+        icon: 'star',
+        tooltip: 'Favorite'
+      },
+      width: 50
+    }
+  ]
+});
+```
+
+<Callout type="tip">
+IconHeaderRenderer is ideal for action columns or narrow columns where text headers would be too wide.
+</Callout>
+
+## Custom Header Registration
+
+Register custom header renderers globally:
+
+```ts title="Register Custom Header Renderer"
+class CustomHeaderRenderer implements HeaderRenderer {
+  render(element: HTMLElement, params: HeaderRenderParams): void {
+    element.innerHTML = `
+      <div class="custom-header">
+        <span>${params.config.text}</span>
+        <button class="custom-btn">Action</button>
+      </div>
+    `;
+  }
+
+  update(element: HTMLElement, params: HeaderRenderParams): void {
+    const span = element.querySelector('span');
+    if (span) span.textContent = params.config.text || '';
+  }
+
+  destroy(element: HTMLElement): void {
+    // Cleanup event listeners
+  }
+}
+
+grid.registerHeaderRenderer('custom', new CustomHeaderRenderer());
+```
+
+## HeaderConfig
+
+Configure headers using the `HeaderConfig` object:
+
+```ts title="HeaderConfig Interface"
+interface HeaderConfig {
+  text?: string;            // Header text
+  renderer?: string | HeaderRenderer;  // Renderer name or instance
+  icon?: string;            // Icon name
+  className?: string;       // Custom CSS class
+  tooltip?: string;         // Tooltip text
+}
+```
+
+### Simple Header
+
+```ts title="Simple Header Configuration"
+const grid = new Grid({
+  columns: [
+    { field: 'name', header: 'Name' }
+  ]
+});
+```
+
+### Advanced Header
+
+```ts title="Advanced Header Configuration"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'status',
+      header: {
+        text: 'Status',
+        renderer: 'filterable',
+        icon: 'filter',
+        className: 'status-header',
+        tooltip: 'Filter by status'
+      }
+    }
+  ]
+});
+```
+
+## Styling Headers
+
+Apply custom styles to headers using CSS classes:
+
+```css title="Custom Header Styles"
+.custom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-header:hover {
+  background-color: #f0f0f0;
+}
+
+.sort-icon {
+  margin-left: 4px;
+  font-size: 12px;
+}
+```
+
+## Header Events
+
+Listen to header-related events:
+
+```ts title="Header Event Listeners"
+grid.on('headerClick', ({ columnIndex, column }) => {
+  console.log('Header clicked', columnIndex, column);
+});
+
+grid.on('headerSort', ({ columnIndex, direction }) => {
+  console.log('Sort requested', columnIndex, direction);
+});
+
+grid.on('headerFilter', ({ columnIndex, filter }) => {
+  console.log('Filter applied', columnIndex, filter);
+});
+```
+
+<Callout type="info">
+Header events bubble up from header renderers through the event emitter system.
+</Callout>
+
+## Performance Tips
+
+- Header renderers are created once per column
+- Use `update()` method for dynamic header changes
+- Minimize DOM manipulation in render methods
+- Cache element references for efficient updates
+- Clean up event listeners in `destroy()` method

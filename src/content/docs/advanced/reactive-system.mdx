@@ -1,0 +1,540 @@
+---
+title: Reactive System Deep Dive
+description: Deep dive into ZenGrid's signal-based reactive system, computed values, and effects.
+order: 48
+category: Advanced
+tags: [advanced, reactive, signals]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid uses a signal-based reactive system built on `@preact/signals-core` for state management and automatic updates. This system powers the grid's efficient rendering and update mechanisms.
+
+## Overview
+
+The reactive system provides:
+
+- **Signals**: Reactive values that notify subscribers when changed
+- **Computed**: Derived values that automatically update when dependencies change
+- **Effects**: Side effects that run when dependencies change
+- **Async Computed**: Asynchronous computed values with loading states
+- **Phases**: Execution order control for predictable updates
+
+<Callout type="info">
+ZenGrid's reactive system is inspired by SolidJS signals and uses Preact Signals under the hood for maximum performance and minimal overhead.
+</Callout>
+
+## GridStore API
+
+The `GridStore` is the central reactive state container for a grid instance.
+
+### extend()
+
+Create a new signal in the store:
+
+```typescript title="extend.ts"
+import type { GridStore } from '@zengrid/core';
+
+// Create a signal
+store.extend('rowCount', 100, 'my-plugin', 10);
+
+// Parameters:
+// - key: string - unique identifier
+// - initial: any - initial value
+// - owner: string - plugin or component name (for cleanup)
+// - phase: number - execution order (0-130)
+```
+
+### computed()
+
+Create a computed signal that automatically updates:
+
+```typescript title="computed.ts"
+// Computed value based on other signals
+store.computed(
+  'visibleRowCount',
+  () => {
+    const rowCount = store.get('rowCount').value;
+    const filters = store.get('filters').value;
+    return applyFilters(rowCount, filters);
+  },
+  'my-plugin',
+  20
+);
+
+// The computed value updates automatically when dependencies change
+```
+
+### effect()
+
+Create a side effect that runs when dependencies change:
+
+```typescript title="effect.ts"
+// Effect for logging
+store.effect(
+  'log-row-count',
+  () => {
+    const rowCount = store.get('rowCount').value;
+    console.log('Row count changed:', rowCount);
+  },
+  'my-plugin',
+  100
+);
+
+// Effect with cleanup
+store.effect(
+  'setup-listener',
+  () => {
+    const element = document.getElementById('grid');
+    const handler = () => console.log('clicked');
+    element?.addEventListener('click', handler);
+
+    // Cleanup function
+    return () => {
+      element?.removeEventListener('click', handler);
+    };
+  },
+  'my-plugin',
+  100
+);
+```
+
+<Callout type="tip">
+Effects that return a function will call that function for cleanup when the effect is re-run or when the store is disposed.
+</Callout>
+
+### asyncComputed()
+
+Create an asynchronous computed value:
+
+```typescript title="async-computed.ts"
+import type { AsyncState } from '@zengrid/core';
+
+// Async computed for fetching data
+store.asyncComputed(
+  'userData',
+  async () => {
+    const userId = store.get('selectedUserId').value;
+    const response = await fetch(`/api/users/${userId}`);
+    return response.json();
+  },
+  'my-plugin',
+  30,
+  {
+    initialValue: null,
+    debounce: 300,  // Debounce requests by 300ms
+  }
+);
+
+// Access the async state
+const userData = store.get('userData').value as AsyncState<User>;
+
+console.log(userData.loading);  // boolean
+console.log(userData.error);    // Error | null
+console.log(userData.data);     // User | null
+```
+
+### get() and set()
+
+Read and write signal values:
+
+```typescript title="get-set.ts"
+// Get signal value
+const rowCount = store.get('rowCount').value;
+
+// Set signal value
+store.set('rowCount', 200);
+
+// Batch multiple updates
+store.set('rowCount', 200);
+store.set('colCount', 10);
+// Effects run once after all updates
+```
+
+<Callout type="info">
+Multiple `set()` calls are automatically batched. Effects run once after all updates in a batch complete.
+</Callout>
+
+## Signal Phases
+
+Phases control the execution order of computed values and effects. Lower phases run before higher phases.
+
+### Phase Ranges
+
+```typescript title="phases.ts"
+// Phase 0-10: Core state (row count, column definitions)
+store.extend('rowCount', 100, 'core', 0);
+store.extend('columns', [], 'core', 0);
+
+// Phase 10-20: Data transformations (sorting, filtering)
+store.computed('sortedData', () => { /* ... */ }, 'sort-plugin', 10);
+store.computed('filteredData', () => { /* ... */ }, 'filter-plugin', 20);
+
+// Phase 20-40: Layout calculations
+store.computed('columnWidths', () => { /* ... */ }, 'layout', 30);
+
+// Phase 40-100: Rendering
+store.computed('visibleRows', () => { /* ... */ }, 'viewport', 40);
+store.effect('render-cells', () => { /* ... */ }, 'renderer', 50);
+
+// Phase 100-130: Side effects, logging
+store.effect('log-changes', () => { /* ... */ }, 'logger', 110);
+```
+
+<Callout type="warning">
+Phases ensure predictable update order. A computed value at phase 20 can safely depend on signals from phase 10, but not from phase 30.
+</Callout>
+
+### Why Phases Matter
+
+```typescript title="phase-order.ts"
+// Without proper phases (unpredictable order):
+store.computed('total', () => {
+  return store.get('subtotal').value + store.get('tax').value;
+}, 'plugin', 0);
+
+store.computed('tax', () => {
+  return store.get('subtotal').value * 0.1;
+}, 'plugin', 0);  // Same phase - order undefined!
+
+// With proper phases (predictable order):
+store.computed('subtotal', () => {
+  return calculateSubtotal();
+}, 'plugin', 10);  // Runs first
+
+store.computed('tax', () => {
+  return store.get('subtotal').value * 0.1;
+}, 'plugin', 20);  // Runs second
+
+store.computed('total', () => {
+  return store.get('subtotal').value + store.get('tax').value;
+}, 'plugin', 30);  // Runs third
+```
+
+## Effect Batching
+
+Effects are batched and run via `requestAnimationFrame` for optimal performance:
+
+```typescript title="batching.ts"
+// Multiple updates in sequence
+store.set('rowCount', 100);
+store.set('colCount', 10);
+store.set('filterText', 'search');
+
+// All effects run once after all updates
+// in the next animation frame
+```
+
+### Manual Flush for Testing
+
+```typescript title="flush.ts"
+import { flushEffects } from '@zengrid/core';
+
+// In tests, flush effects synchronously
+store.set('rowCount', 100);
+flushEffects();  // Effects run immediately
+
+expect(renderCount).toBe(1);
+```
+
+<Callout type="tip">
+Use `flushEffects()` in unit tests to make effects run synchronously. This avoids timing issues with async effect execution.
+</Callout>
+
+## StoreKeys Type
+
+Use TypeScript types for type-safe store access:
+
+```typescript title="store-keys.ts"
+import type { GridStore, StoreKeys } from '@zengrid/core';
+
+// Define store keys
+interface MyStoreKeys extends StoreKeys {
+  rowCount: number;
+  colCount: number;
+  filterText: string;
+  sortedData: readonly Row[];
+}
+
+// Type-safe store
+const store: GridStore<MyStoreKeys> = createStore();
+
+// TypeScript knows the types
+const rowCount: number = store.get('rowCount').value;
+const sortedData: readonly Row[] = store.get('sortedData').value;
+
+// TypeScript error: Property 'foo' does not exist
+// store.get('foo');
+```
+
+## WrappedSignal and WrappedComputed
+
+Signals are wrapped for consistency:
+
+```typescript title="wrapped-signals.ts"
+import type { WrappedSignal, WrappedComputed } from '@zengrid/core';
+
+// WrappedSignal<T> - mutable signal
+const rowCountSignal: WrappedSignal<number> = store.get('rowCount');
+rowCountSignal.value;  // number (read)
+rowCountSignal.value = 200;  // write
+
+// WrappedComputed<T> - read-only computed
+const visibleRowsComputed: WrappedComputed<number> = store.get('visibleRows');
+visibleRowsComputed.value;  // number (read-only)
+// visibleRowsComputed.value = 100;  // Error: read-only!
+```
+
+<Callout type="info">
+`WrappedSignal` allows reading and writing, while `WrappedComputed` is read-only. This distinction helps prevent accidental mutations of computed values.
+</Callout>
+
+## AsyncState Type
+
+Async computed values have a specific state structure:
+
+```typescript title="async-state.ts"
+import type { AsyncState } from '@zengrid/core';
+
+interface User {
+  id: number;
+  name: string;
+}
+
+// Async computed value
+const userState = store.get('userData').value as AsyncState<User>;
+
+// Check state
+if (userState.loading) {
+  console.log('Loading user data...');
+}
+
+if (userState.error) {
+  console.error('Error loading user:', userState.error);
+}
+
+if (userState.data) {
+  console.log('User loaded:', userState.data.name);
+}
+
+// All states
+type AsyncState<T> = {
+  loading: boolean;
+  error: Error | null;
+  data: T | null;
+};
+```
+
+## Debug Tools
+
+Debug the reactive dependency graph:
+
+```typescript title="debug.ts"
+// Get dependency graph
+const graph = store.debugGraph();
+
+console.log('Signals:', graph.signals);
+console.log('Computed:', graph.computed);
+console.log('Effects:', graph.effects);
+console.log('Dependencies:', graph.dependencies);
+
+// Example output:
+// {
+//   signals: ['rowCount', 'colCount', 'filterText'],
+//   computed: ['filteredData', 'sortedData', 'visibleRows'],
+//   effects: ['render-cells', 'update-scrollbar'],
+//   dependencies: {
+//     'filteredData': ['rowCount', 'filterText'],
+//     'sortedData': ['filteredData', 'sortColumn'],
+//     'render-cells': ['visibleRows', 'colCount']
+//   }
+// }
+```
+
+<Callout type="tip">
+Use `store.debugGraph()` to visualize the reactive dependency graph. This is invaluable for debugging complex computed value chains and understanding update order.
+</Callout>
+
+## Cleanup and Disposal
+
+Cleanup signals and effects when no longer needed:
+
+```typescript title="cleanup.ts"
+// Dispose specific plugin's signals
+store.disposePlugin('my-plugin');
+
+// Dispose entire store
+store.dispose();
+```
+
+## Complete Example
+
+```typescript title="complete-reactive.ts"
+import { createStore } from '@zengrid/core';
+import type { GridStore, StoreKeys, AsyncState } from '@zengrid/core';
+
+// Define store schema
+interface MyStoreKeys extends StoreKeys {
+  // Core state
+  rowCount: number;
+  filterText: string;
+  sortColumn: string | null;
+
+  // Computed
+  filteredRowCount: number;
+  sortedIndices: readonly number[];
+
+  // Async
+  userData: AsyncState<User[]>;
+}
+
+// Create store
+const store: GridStore<MyStoreKeys> = createStore();
+
+// Core signals
+store.extend('rowCount', 1000, 'core', 0);
+store.extend('filterText', '', 'core', 0);
+store.extend('sortColumn', null, 'core', 0);
+
+// Filtering computed
+store.computed(
+  'filteredRowCount',
+  () => {
+    const rowCount = store.get('rowCount').value;
+    const filterText = store.get('filterText').value;
+
+    if (!filterText) return rowCount;
+
+    // Apply filter logic
+    return Math.floor(rowCount * 0.7);  // Example
+  },
+  'filter-plugin',
+  10
+);
+
+// Sorting computed
+store.computed(
+  'sortedIndices',
+  () => {
+    const rowCount = store.get('filteredRowCount').value;
+    const sortColumn = store.get('sortColumn').value;
+
+    if (!sortColumn) {
+      return Array.from({ length: rowCount }, (_, i) => i);
+    }
+
+    // Apply sort logic
+    return Array.from({ length: rowCount }, (_, i) => i).reverse();
+  },
+  'sort-plugin',
+  20
+);
+
+// Async data fetching
+store.asyncComputed(
+  'userData',
+  async () => {
+    const response = await fetch('/api/users');
+    return response.json();
+  },
+  'data-plugin',
+  30,
+  {
+    initialValue: null,
+    debounce: 500,
+  }
+);
+
+// Rendering effect
+store.effect(
+  'render',
+  () => {
+    const sortedIndices = store.get('sortedIndices').value;
+    const userData = store.get('userData').value;
+
+    console.log('Rendering', sortedIndices.length, 'rows');
+
+    if (userData.data) {
+      console.log('User data available:', userData.data.length, 'users');
+    }
+  },
+  'renderer',
+  100
+);
+
+// Update state
+store.set('filterText', 'search');
+store.set('sortColumn', 'name');
+
+// Debug
+console.log('Dependency graph:', store.debugGraph());
+
+// Cleanup
+store.dispose();
+```
+
+<Callout type="info">
+The reactive system automatically tracks dependencies. You don't need to manually declare which signals a computed value depends on - it's tracked automatically during execution.
+</Callout>
+
+## Best Practices
+
+### 1. Use Appropriate Phases
+
+Place signals in the correct phase based on their role in the update cycle.
+
+### 2. Keep Computed Functions Pure
+
+Computed functions should be pure - no side effects, only transformations.
+
+```typescript
+// Good: Pure computation
+store.computed('total', () => {
+  return store.get('a').value + store.get('b').value;
+}, 'plugin', 10);
+
+// Bad: Side effect in computed
+store.computed('total', () => {
+  console.log('Computing total');  // Side effect!
+  return store.get('a').value + store.get('b').value;
+}, 'plugin', 10);
+```
+
+### 3. Use Effects for Side Effects
+
+Put side effects (logging, DOM updates, network requests) in effects, not computed values.
+
+### 4. Batch Updates
+
+Group related updates together to minimize effect re-runs.
+
+```typescript
+// Good: Batched updates
+store.set('rowCount', 100);
+store.set('colCount', 10);
+// Effects run once
+
+// Less efficient: Sequential updates
+store.set('rowCount', 100);
+await nextFrame();
+store.set('colCount', 10);
+// Effects run twice
+```
+
+### 5. Clean Up Resources
+
+Return cleanup functions from effects that create resources.
+
+## Performance Characteristics
+
+- **Signal read**: O(1)
+- **Signal write**: O(1) + batched effect scheduling
+- **Computed**: Memoized, only recomputes when dependencies change
+- **Effect**: Runs asynchronously via `requestAnimationFrame`
+- **Memory**: Minimal overhead per signal (~40 bytes)
+
+## Next Steps
+
+- Learn about [plugin architecture](/advanced/plugin-architecture) that uses the reactive system
+- Explore [performance optimization](/advanced/performance-optimization) with reactive patterns
+- Read about [custom computed strategies](/advanced/custom-computed)

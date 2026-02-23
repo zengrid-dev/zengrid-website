@@ -1,0 +1,390 @@
+---
+title: Virtual Scrolling
+description: Understand how ZenGrid's virtual scrolling engine renders millions of rows efficiently.
+order: 7
+category: User Guide
+tags: [virtual-scrolling, performance, viewport]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Virtual Scrolling
+
+ZenGrid's virtual scrolling engine enables smooth rendering of massive datasets by only rendering visible cells plus a configurable overscan buffer. Learn how the system works and how to optimize it for your use case.
+
+## How Virtual Scrolling Works
+
+Virtual scrolling is a rendering optimization that only creates DOM elements for cells currently in the viewport plus a small buffer (overscan). As the user scrolls, cells are recycled and updated with new content.
+
+```
+Total Rows: 1,000,000
+Visible Rows: 20
+Rendered Rows: 30 (20 visible + 10 overscan)
+Memory Saved: 99.997%
+```
+
+### Key Benefits
+
+- **Constant memory usage** regardless of dataset size
+- **Fast initial render** - only visible cells are created
+- **Smooth scrolling** - overscan buffer prevents blank frames
+- **Scales to millions** - performance is based on viewport, not data size
+
+## VirtualScroller
+
+The `VirtualScroller` is the core component responsible for calculating which cells to render based on scroll position.
+
+### Calculate Visible Range
+
+The scroller determines which rows and columns are currently visible:
+
+```ts title="visible-range.ts"
+import { VirtualScroller } from '@zengrid/core';
+
+const scroller = new VirtualScroller({
+  heightProvider,
+  widthProvider,
+  overscanRows: 10,
+  overscanCols: 5
+});
+
+const range = scroller.calculateVisibleRange(
+  scrollTop,    // Current vertical scroll position
+  scrollLeft,   // Current horizontal scroll position
+  viewportHeight, // Container height
+  viewportWidth   // Container width
+);
+
+console.log(range);
+// {
+//   startRow: 100,
+//   endRow: 120,
+//   startCol: 0,
+//   endCol: 8
+// }
+```
+
+### Get Cell Position
+
+Calculate the absolute position of any cell:
+
+```ts title="cell-position.ts"
+const position = scroller.getCellPosition(rowIndex, colIndex);
+
+console.log(position);
+// {
+//   top: 2400,    // pixels from top
+//   left: 800,    // pixels from left
+//   width: 150,
+//   height: 32
+// }
+```
+
+## Overscan Configuration
+
+Overscan adds extra rows and columns beyond the visible viewport to prevent white space during scrolling.
+
+```ts title="overscan-config.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 100000,
+  colCount: 20,
+  overscanRows: 10,  // Render 10 extra rows above and below
+  overscanCols: 5,   // Render 5 extra columns left and right
+  data: (row, col) => `${row},${col}`
+});
+```
+
+### Default Values
+
+- **overscanRows**: `10` - Good balance for most use cases
+- **overscanCols**: `5` - Horizontal scrolling is typically less aggressive
+
+<Callout type="tip">
+Increase overscan for faster scrolling or slower hardware. Decrease it to reduce memory usage and improve initial render time.
+</Callout>
+
+### Trade-offs
+
+| Overscan | Memory Usage | Scroll Smoothness | Initial Render |
+|----------|-------------|-------------------|----------------|
+| Low (5)  | Lower       | May show blanks   | Faster         |
+| Medium (10) | Balanced | Smooth          | Balanced       |
+| High (20+) | Higher    | Very smooth       | Slower         |
+
+## Height Provider
+
+The `HeightProvider` interface abstracts row height calculations. ZenGrid includes two implementations.
+
+### Interface
+
+```ts title="height-provider.ts"
+interface HeightProvider {
+  getHeight(index: number): number;
+  getOffset(index: number): number;
+  getTotalHeight(): number;
+  findIndexAtOffset(offset: number): number;
+}
+```
+
+### UniformHeightProvider
+
+Optimized for fixed-height rows. Uses O(1) calculations without any lookups:
+
+```ts title="uniform-height.ts"
+import { UniformHeightProvider } from '@zengrid/core';
+
+const heightProvider = new UniformHeightProvider({
+  rowCount: 100000,
+  rowHeight: 32  // All rows are 32px tall
+});
+
+const height = heightProvider.getHeight(500);     // 32
+const offset = heightProvider.getOffset(500);     // 16000 (500 * 32)
+const total = heightProvider.getTotalHeight();    // 3200000
+const index = heightProvider.findIndexAtOffset(1600); // 50
+```
+
+<Callout type="info">
+UniformHeightProvider is the most efficient option. Use it whenever possible for best performance.
+</Callout>
+
+### VariableHeightProvider
+
+Supports different heights per row using `PrefixSumArray` for O(log n) lookups:
+
+```ts title="variable-height.ts"
+import { VariableHeightProvider } from '@zengrid/core';
+
+const heights = [32, 48, 32, 64, 32, 40]; // Custom height per row
+
+const heightProvider = new VariableHeightProvider({
+  heights,
+  defaultHeight: 32
+});
+
+const height = heightProvider.getHeight(1);      // 48
+const offset = heightProvider.getOffset(3);      // 112 (32+48+32)
+const index = heightProvider.findIndexAtOffset(80); // 2
+```
+
+## Width Provider
+
+The `WidthProvider` interface handles column width calculations.
+
+### Interface
+
+```ts title="width-provider.ts"
+interface WidthProvider {
+  getWidth(index: number): number;
+  getOffset(index: number): number;
+  getTotalWidth(): number;
+  findIndexAtOffset(offset: number): number;
+}
+```
+
+### UniformWidthProvider
+
+For equal-width columns:
+
+```ts title="uniform-width.ts"
+import { UniformWidthProvider } from '@zengrid/core';
+
+const widthProvider = new UniformWidthProvider({
+  colCount: 50,
+  colWidth: 120  // All columns are 120px wide
+});
+```
+
+### ColumnModelWidthProvider
+
+Integrates with the column model for individual column widths:
+
+```ts title="column-width.ts"
+import { ColumnModelWidthProvider } from '@zengrid/core';
+
+const columns = [
+  { field: 'id', width: 80 },
+  { field: 'name', width: 200 },
+  { field: 'email', width: 250 }
+];
+
+const widthProvider = new ColumnModelWidthProvider(columnModel);
+
+const width = widthProvider.getWidth(1);  // 200
+const offset = widthProvider.getOffset(2); // 280 (80+200)
+```
+
+## Programmatic Scrolling
+
+### Scroll to Cell
+
+Jump to a specific cell programmatically:
+
+```ts title="scroll-to-cell.ts"
+// Scroll row 500, column 5 into view
+grid.scrollToCell(500, 5);
+
+// With alignment options
+grid.scrollToCell(500, 5, {
+  align: 'center',  // 'start' | 'center' | 'end'
+  smooth: true      // Smooth scroll animation
+});
+```
+
+### Get Visible Range
+
+Retrieve the current visible cell range:
+
+```ts title="get-visible.ts"
+const range = grid.getVisibleRange();
+
+console.log(range);
+// {
+//   startRow: 100,
+//   endRow: 125,
+//   startCol: 0,
+//   endCol: 8
+// }
+```
+
+### Get Scroll Position
+
+Get the current scroll position in pixels:
+
+```ts title="get-scroll.ts"
+const position = grid.getScrollPosition();
+
+console.log(position);
+// {
+//   top: 3200,   // Vertical scroll position
+//   left: 480    // Horizontal scroll position
+// }
+```
+
+### Animated Scrolling
+
+Use `scrollThroughCells` for smooth animated scrolling through a sequence of cells:
+
+```ts title="scroll-through.ts"
+const abortController = new AbortController();
+
+await grid.scrollThroughCells(
+  [
+    { row: 0, col: 0 },
+    { row: 100, col: 0 },
+    { row: 100, col: 5 },
+    { row: 500, col: 5 }
+  ],
+  {
+    duration: 1000,      // Time per cell in ms
+    signal: abortController.signal  // Abort support
+  }
+);
+
+// Cancel animation
+abortController.abort();
+```
+
+<Callout type="tip">
+Use the abort signal to cancel long animations when the user interacts with the grid.
+</Callout>
+
+## Reactive Scroll State
+
+ZenGrid provides reactive models for scroll state management.
+
+### ScrollModel
+
+Tracks scroll position reactively:
+
+```ts title="scroll-model.ts"
+const scrollModel = grid.scrollModel;
+
+// Subscribe to scroll changes
+scrollModel.scrollTop.subscribe((top) => {
+  console.log('Scrolled to:', top);
+});
+
+scrollModel.scrollLeft.subscribe((left) => {
+  console.log('Horizontal scroll:', left);
+});
+
+// Get current values
+const currentTop = scrollModel.scrollTop.value;
+const currentLeft = scrollModel.scrollLeft.value;
+```
+
+### ViewportModel
+
+Provides reactive viewport dimensions:
+
+```ts title="viewport-model.ts"
+const viewportModel = grid.viewportModel;
+
+// Subscribe to viewport size changes
+viewportModel.width.subscribe((width) => {
+  console.log('Viewport width:', width);
+});
+
+viewportModel.height.subscribe((height) => {
+  console.log('Viewport height:', height);
+});
+
+// Get visible range as a reactive value
+const visibleRange = viewportModel.visibleRange;
+visibleRange.subscribe((range) => {
+  console.log('Visible:', range);
+});
+```
+
+## Complete Example
+
+```ts title="virtual-scroll-example.ts"
+import {
+  createGrid,
+  UniformHeightProvider,
+  ColumnModelWidthProvider
+} from '@zengrid/core';
+
+const grid = createGrid({
+  container: document.getElementById('grid')!,
+  rowCount: 1000000,
+  colCount: 20,
+
+  // Virtual scrolling config
+  overscanRows: 15,
+  overscanCols: 5,
+
+  columns: [
+    { field: 'id', header: 'ID', width: 80 },
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'email', header: 'Email', width: 250 },
+    { field: 'status', header: 'Status', width: 120 }
+  ],
+
+  data: (row, col) => {
+    if (col === 0) return row + 1;
+    if (col === 1) return `User ${row}`;
+    if (col === 2) return `user${row}@example.com`;
+    if (col === 3) return row % 2 === 0 ? 'active' : 'inactive';
+    return '';
+  }
+});
+
+grid.render();
+
+// Scroll to a specific cell
+setTimeout(() => {
+  grid.scrollToCell(50000, 2, { align: 'center', smooth: true });
+}, 2000);
+
+// Monitor visible range
+grid.viewportModel.visibleRange.subscribe((range) => {
+  console.log(`Showing rows ${range.startRow}-${range.endRow}`);
+});
+```
+
+<Callout type="info">
+With virtual scrolling, a grid of 1 million rows renders only 20-40 rows at a time, using the same memory as a 40-row grid.
+</Callout>

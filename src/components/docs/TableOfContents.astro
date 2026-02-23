@@ -1,0 +1,50 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { headings } = Astro.props;
+const filteredHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+{filteredHeadings.length > 0 && (
+  <nav class="docs-toc">
+    <div class="toc-title">On this page</div>
+    <ul class="toc-list">
+      {filteredHeadings.map((heading) => (
+        <li>
+          <a
+            href={`#${heading.slug}`}
+            class={`toc-link ${heading.depth === 3 ? 'depth-3' : ''}`}
+            data-slug={heading.slug}
+          >
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
+
+<script>
+  const tocLinks = document.querySelectorAll('.toc-link');
+  const headingEls = Array.from(tocLinks).map((link) => {
+    const slug = link.getAttribute('data-slug');
+    return slug ? document.getElementById(slug) : null;
+  }).filter(Boolean) as HTMLElement[];
+
+  function updateActive() {
+    let active = 0;
+    for (let i = 0; i < headingEls.length; i++) {
+      if (headingEls[i].getBoundingClientRect().top <= 100) {
+        active = i;
+      }
+    }
+    tocLinks.forEach((link, i) => {
+      link.classList.toggle('active', i === active);
+    });
+  }
+
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+</script>

@@ -1,0 +1,380 @@
+---
+title: Time Editor
+description: Time editor with 12/24 hour format and minute stepping.
+order: 37
+category: Cell Editors
+tags: [editors, time, picker]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `TimeEditor` provides a time picker with support for 12-hour and 24-hour formats, with customizable minute stepping.
+
+## Basic Usage
+
+```ts title="Basic Time Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'startTime',
+    header: 'Start Time',
+    editor: 'time'
+  }
+];
+```
+
+## Editor Options
+
+```ts title="TimeEditor Options"
+interface TimeEditorOptions {
+  format?: '12h' | '24h';
+  showSeconds?: boolean;
+  minuteStep?: number;
+  placeholder?: string;
+  className?: string;
+  theme?: 'light' | 'dark' | 'auto';
+  autoFocus?: boolean;
+  required?: boolean;
+  commitOnBlur?: boolean;
+  minTime?: string;
+  maxTime?: string;
+  validator?: (value: string) => boolean | string;
+}
+```
+
+## Time Formats
+
+### 12-Hour Format
+
+```ts title="12-Hour Format (AM/PM)"
+{
+  field: 'appointmentTime',
+  header: 'Appointment',
+  editor: 'time',
+  editorOptions: {
+    format: '12h', // 09:30 AM
+    placeholder: 'hh:mm AM/PM'
+  }
+}
+```
+
+### 24-Hour Format
+
+```ts title="24-Hour Format"
+{
+  field: 'departureTime',
+  header: 'Departure',
+  editor: 'time',
+  editorOptions: {
+    format: '24h', // 13:45
+    placeholder: 'HH:mm'
+  }
+}
+```
+
+<Callout type="info">
+The format affects both display and input parsing. Users can type times in either format and they'll be converted.
+</Callout>
+
+## Seconds Display
+
+Show or hide seconds:
+
+```ts title="Without Seconds (Default)"
+{
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    showSeconds: false // 14:30
+  }
+}
+```
+
+```ts title="With Seconds"
+{
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    showSeconds: true // 14:30:45
+  }
+}
+```
+
+## Minute Stepping
+
+Control minute increment granularity:
+
+```ts title="15-Minute Intervals"
+{
+  field: 'meetingTime',
+  header: 'Meeting Time',
+  editor: 'time',
+  editorOptions: {
+    format: '12h',
+    minuteStep: 15 // 09:00, 09:15, 09:30, 09:45
+  }
+}
+```
+
+```ts title="5-Minute Intervals"
+{
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    minuteStep: 5 // 14:00, 14:05, 14:10, etc.
+  }
+}
+```
+
+```ts title="30-Minute Intervals"
+{
+  editor: 'time',
+  editorOptions: {
+    format: '12h',
+    minuteStep: 30 // 09:00, 09:30, 10:00, etc.
+  }
+}
+```
+
+<Callout type="tip">
+Minute stepping helps users quickly select common time slots without typing exact times.
+</Callout>
+
+## Time Constraints
+
+### Min and Max Time
+
+Restrict selectable time range:
+
+```ts title="Business Hours Only"
+{
+  field: 'workTime',
+  header: 'Work Time',
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    minTime: '09:00',
+    maxTime: '17:00'
+  }
+}
+```
+
+```ts title="Morning Appointments"
+{
+  field: 'morningSlot',
+  header: 'Morning Slot',
+  editor: 'time',
+  editorOptions: {
+    format: '12h',
+    minTime: '08:00 AM',
+    maxTime: '12:00 PM',
+    minuteStep: 30
+  }
+}
+```
+
+## Keyboard Input
+
+Users can type times directly:
+
+```ts title="Keyboard Input Examples"
+// 12-hour format accepts:
+// "9:30 AM", "9:30AM", "9:30 am", "930am"
+
+// 24-hour format accepts:
+// "13:45", "1345", "13:45:00"
+```
+
+<Callout type="tip">
+The editor is smart about parsing - it accepts various input formats and normalizes them.
+</Callout>
+
+## Picker UI
+
+The time editor provides a picker UI with:
+- Hour selection
+- Minute selection (based on `minuteStep`)
+- Second selection (if `showSeconds: true`)
+- AM/PM toggle (if `format: '12h'`)
+
+## Validation
+
+Add custom time validation:
+
+```ts title="Business Hours Validation"
+{
+  field: 'startTime',
+  header: 'Start Time',
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    validator: (value: string) => {
+      const [hours] = value.split(':').map(Number);
+      if (hours < 9 || hours >= 17) {
+        return 'Time must be between 09:00 and 17:00';
+      }
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Required Time"
+{
+  editor: 'time',
+  editorOptions: {
+    required: true,
+    validator: (value: string) => {
+      return value ? true : 'Time is required';
+    }
+  }
+}
+```
+
+## Keyboard Shortcuts
+
+The time editor supports these keyboard shortcuts:
+
+- **Arrow Up/Down**: Adjust hours/minutes
+- **Tab**: Move between hour/minute/second fields
+- **Enter**: Commit and close editor
+- **Escape**: Cancel and close editor
+
+## Theming
+
+Customize the picker appearance:
+
+```ts title="Theme Options"
+{
+  editor: 'time',
+  editorOptions: {
+    theme: 'dark' // 'light', 'dark', or 'auto'
+  }
+}
+```
+
+## Complete Examples
+
+### Appointment Time Picker
+
+```ts title="Appointment Scheduler"
+{
+  field: 'appointmentTime',
+  header: 'Appointment Time',
+  editor: 'time',
+  editorOptions: {
+    format: '12h',
+    minuteStep: 15,
+    minTime: '08:00 AM',
+    maxTime: '06:00 PM',
+    required: true,
+    placeholder: 'Select time'
+  }
+}
+```
+
+### Shift Start Time
+
+```ts title="Employee Shift"
+{
+  field: 'shiftStart',
+  header: 'Shift Start',
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    minuteStep: 30,
+    minTime: '06:00',
+    maxTime: '22:00',
+    commitOnBlur: true
+  }
+}
+```
+
+### Precise Timing
+
+```ts title="High Precision Time"
+{
+  field: 'eventTime',
+  header: 'Event Time',
+  editor: 'time',
+  editorOptions: {
+    format: '24h',
+    showSeconds: true,
+    minuteStep: 1,
+    placeholder: 'HH:mm:ss'
+  }
+}
+```
+
+### Meeting Time with Validation
+
+```ts title="Meeting Scheduler"
+{
+  field: 'meetingTime',
+  header: 'Meeting Time',
+  editor: 'time',
+  editorOptions: {
+    format: '12h',
+    minuteStep: 30,
+    minTime: '09:00 AM',
+    maxTime: '05:00 PM',
+    validator: (value: string) => {
+      // Ensure not during lunch hour (12:00-13:00)
+      const time = new Date(`2000-01-01 ${value}`);
+      const hours = time.getHours();
+      if (hours === 12) {
+        return 'Cannot schedule during lunch hour (12:00-1:00 PM)';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## Time Parsing
+
+The editor handles various input formats:
+
+```ts title="Flexible Input Parsing"
+// 12-hour format examples:
+"9:30 AM"   → 09:30 AM
+"9:30am"    → 09:30 AM
+"930am"     → 09:30 AM
+"9am"       → 09:00 AM
+"2:45 PM"   → 02:45 PM
+
+// 24-hour format examples:
+"13:45"     → 13:45
+"1345"      → 13:45
+"9:30"      → 09:30
+"930"       → 09:30
+```
+
+<Callout type="info">
+The editor normalizes all inputs to a consistent format based on the `format` option.
+</Callout>
+
+## Best Practices
+
+1. **Choose appropriate format**: Use 12h for general use, 24h for technical/international contexts
+2. **Set reasonable step sizes**: 15 or 30 minutes for appointments, smaller for precise timing
+3. **Enforce business constraints**: Use minTime/maxTime for business hours
+4. **Show seconds when needed**: Only enable for precise timing requirements
+5. **Provide clear placeholders**: Help users understand expected format
+
+```ts title="Well-Configured Time Editor"
+{
+  field: 'deliveryTime',
+  header: 'Delivery Time',
+  editor: 'time',
+  editorOptions: {
+    format: '12h',
+    minuteStep: 15,
+    minTime: '08:00 AM',
+    maxTime: '08:00 PM',
+    required: true,
+    placeholder: 'hh:mm AM/PM',
+    commitOnBlur: true,
+    theme: 'auto'
+  }
+}
+```

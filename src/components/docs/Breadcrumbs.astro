@@ -1,0 +1,25 @@
+---
+import { getBreadcrumbs } from '../../config/sidebar';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const crumbs = getBreadcrumbs(slug);
+---
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  {crumbs.map((crumb, i) => (
+    <>
+      {i > 0 && <span class="breadcrumb-separator">/</span>}
+      {crumb.slug ? (
+        <a href={crumb.slug} class="breadcrumb-link">{crumb.title}</a>
+      ) : i === crumbs.length - 1 ? (
+        <span class="breadcrumb-current">{crumb.title}</span>
+      ) : (
+        <span class="breadcrumb-link">{crumb.title}</span>
+      )}
+    </>
+  ))}
+</nav>

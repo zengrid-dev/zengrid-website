@@ -1,0 +1,158 @@
+---
+interface Props {
+  id: string;
+  height?: string;
+  caption?: string;
+}
+
+const { id, height = '400px', caption } = Astro.props;
+---
+
+<div class="demo-wrapper">
+  <div class="demo-chrome">
+    <div class="mac-buttons">
+      <span class="mac-btn red"></span>
+      <span class="mac-btn yellow"></span>
+      <span class="mac-btn green"></span>
+    </div>
+    <button class="theme-toggle" data-grid-id={id} aria-label="Toggle theme">
+      <span class="theme-icon theme-icon--light">&#9788;</span>
+      <span class="theme-icon theme-icon--dark">&#9790;</span>
+    </button>
+  </div>
+  <div class="demo-body">
+    <slot name="controls" />
+    <div class="demo-grid-area">
+      <div id={id} class="demo-grid-container" style={`height: ${height};`}></div>
+    </div>
+    <slot name="status" />
+  </div>
+  {caption && <div class="demo-caption">{caption}</div>}
+</div>
+
+<style>
+  .demo-wrapper {
+    max-width: 100%;
+    width: 100%;
+    margin: 1.5rem 0;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255,255,255,0.05);
+    overflow: hidden;
+  }
+
+  .demo-chrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .mac-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .mac-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .mac-btn.red { background: #ef4444; }
+  .mac-btn.yellow { background: #f59e0b; }
+  .mac-btn.green { background: #10b981; }
+
+  .demo-body {
+    background: rgba(15, 23, 42, 0.9);
+  }
+
+  .demo-grid-area {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .demo-grid-container {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .demo-caption {
+    padding: 0.75rem 1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.8rem;
+  }
+
+  .demo-caption :global(strong) {
+    color: #10b981;
+  }
+
+  .theme-toggle {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+  }
+
+  .theme-toggle:hover {
+    background: rgba(255,255,255,0.14);
+    color: #e2e8f0;
+  }
+
+  .theme-icon--light { display: none; }
+  .theme-icon--dark { display: inline; }
+
+  .theme-toggle.is-light .theme-icon--light { display: inline; }
+  .theme-toggle.is-light .theme-icon--dark { display: none; }
+
+  @media (max-width: 768px) {
+    .demo-wrapper { border-radius: 8px; }
+  }
+</style>
+
+<script>
+  // Apply dark theme by default — runs after Grid init adds .zg-grid
+  function applyDefaultDarkTheme() {
+    document.querySelectorAll('.demo-grid-container').forEach(el => {
+      if (!el.classList.contains('zg-theme-dark') && !el.hasAttribute('data-theme-set')) {
+        el.classList.add('zg-theme-dark');
+        el.setAttribute('data-theme-set', '');
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(applyDefaultDarkTheme));
+  } else {
+    requestAnimationFrame(applyDefaultDarkTheme);
+  }
+
+  document.querySelectorAll('.theme-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const gridId = (btn as HTMLElement).dataset.gridId;
+      if (!gridId) return;
+      const container = document.getElementById(gridId);
+      if (!container) return;
+
+      const isDark = container.classList.contains('zg-theme-dark');
+      if (isDark) {
+        container.classList.remove('zg-theme-dark');
+        btn.classList.add('is-light');
+      } else {
+        container.classList.add('zg-theme-dark');
+        btn.classList.remove('is-light');
+      }
+    });
+  });
+</script>

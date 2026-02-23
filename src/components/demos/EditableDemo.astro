@@ -1,0 +1,64 @@
+---
+import DemoContainer from './DemoContainer.astro';
+---
+
+<DemoContainer id="editable-demo-grid" height="380px">
+  <div slot="controls" class="edit-controls">
+    <span class="edit-hint">Double-click a cell to edit. Press Enter to commit, Escape to cancel.</span>
+  </div>
+</DemoContainer>
+
+<script>
+  import { Grid } from '@zengrid/core';
+  import '@zengrid/core/dist/styles.css';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('editable-demo-grid');
+    if (!container) return;
+
+    const roles = ['Admin', 'Editor', 'Viewer', 'Manager'];
+    const rowCount = 20;
+
+    const data = Array.from({ length: rowCount }, (_, i) => [
+      i + 1,
+      `User ${i + 1}`,
+      `user${i + 1}@example.com`,
+      25 + (i % 40),
+      roles[i % roles.length],
+      i % 3 !== 0 ? 'Yes' : 'No',
+    ]);
+
+    const columns = [
+      { field: 'id', header: 'ID', width: 60 },
+      { field: 'name', header: 'Name', width: 180, editable: true, editor: 'text' },
+      { field: 'email', header: 'Email', width: 220, editable: true, editor: 'text' },
+      { field: 'age', header: 'Age', width: 80, editable: true, editor: 'number' },
+      { field: 'role', header: 'Role', width: 130, editable: true, editor: 'select', editorOptions: { options: ['Admin', 'Editor', 'Viewer', 'Manager'] } },
+      { field: 'active', header: 'Active', width: 80, editable: true, editor: 'checkbox' },
+    ];
+
+    const grid = new Grid(container, {
+      rowCount,
+      colCount: columns.length,
+      rowHeight: 32,
+      colWidth: columns.map(c => c.width),
+      columns,
+      enableSelection: true,
+    });
+
+    grid.setData(data);
+    grid.render();
+  });
+</script>
+
+<style>
+  .edit-controls {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+
+  .edit-hint {
+    opacity: 0.7;
+  }
+</style>

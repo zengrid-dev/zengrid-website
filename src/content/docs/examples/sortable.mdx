@@ -1,0 +1,300 @@
+---
+title: Sortable Grid
+description: Grid with sorting enabled, multi-column sort, and custom comparators.
+order: 44
+category: Examples
+tags: [examples, sorting, multi-sort]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+import SortableDemo from '../../../components/demos/SortableDemo.astro';
+
+This example demonstrates how to enable sorting on columns, handle single and multi-column sorting, use custom comparators, and respond to sort events.
+
+<SortableDemo />
+
+## Enable Column Sorting
+
+Add `sortable: true` to column definitions to enable sorting:
+
+```typescript title="sortable-columns.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+const columns: Column[] = [
+  {
+    id: 'id',
+    header: 'ID',
+    width: 60,
+    sortable: true,  // Enable sorting
+  },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    sortable: true,
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+    sortable: true,
+  },
+  {
+    id: 'role',
+    header: 'Role',
+    width: 150,
+    sortable: true,
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    width: 120,
+    sortable: true,
+  },
+];
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: 100,
+  rowHeight: 40,
+  data: (rowIndex, colId) => {
+    // Data callback implementation
+    return `Cell ${rowIndex}-${colId}`;
+  },
+});
+```
+
+<Callout type="info">
+Clicking a sortable column header cycles through ascending, descending, and no sort states.
+</Callout>
+
+## Single-Column Sort
+
+Sort by a single column programmatically:
+
+```typescript title="single-sort.ts"
+// Sort by name ascending
+grid.sort('name', 'asc');
+
+// Sort by name descending
+grid.sort('name', 'desc');
+
+// Clear sort
+grid.sort('name', null);
+
+// Get current sort state
+const sortState = grid.getSortState();
+console.log('Current sort:', sortState);
+// Output: [{ colId: 'name', direction: 'asc' }]
+```
+
+## Multi-Column Sort
+
+Hold `Shift` and click column headers for multi-column sorting, or use the API:
+
+```typescript title="multi-sort.ts"
+import type { SortState } from '@zengrid/core';
+
+// Sort by role (ascending), then by name (descending)
+const sortState: SortState = [
+  { colId: 'role', direction: 'asc' },
+  { colId: 'name', direction: 'desc' },
+];
+
+grid.setSortState(sortState);
+
+// Clear all sorting
+grid.setSortState([]);
+```
+
+<Callout type="tip">
+Multi-column sorting applies sorts in order. In the example above, rows are first sorted by role, then within each role group, sorted by name descending.
+</Callout>
+
+## Custom Comparators
+
+Define custom sorting logic for specific columns:
+
+```typescript title="custom-comparator.ts"
+import type { Column } from '@zengrid/core';
+
+const columns: Column[] = [
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    sortable: true,
+    comparator: (a: string, b: string) => {
+      // Case-insensitive sort
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    },
+  },
+  {
+    id: 'priority',
+    header: 'Priority',
+    width: 120,
+    sortable: true,
+    comparator: (a: string, b: string) => {
+      // Custom priority order
+      const priorities = { High: 3, Medium: 2, Low: 1 };
+      return priorities[a] - priorities[b];
+    },
+  },
+  {
+    id: 'date',
+    header: 'Date',
+    width: 150,
+    sortable: true,
+    comparator: (a: string, b: string) => {
+      // Date comparison
+      return new Date(a).getTime() - new Date(b).getTime();
+    },
+  },
+];
+```
+
+<Callout type="info">
+The comparator function receives two cell values and should return a negative number if a < b, positive if a > b, or 0 if equal.
+</Callout>
+
+## Sort Icons Customization
+
+Customize sort indicator icons using CSS:
+
+```css title="sort-icons.css"
+/* Default sort icon (unsorted) */
+.zengrid-header-sort-icon::before {
+  content: '⇅';
+  opacity: 0.3;
+}
+
+/* Ascending sort icon */
+.zengrid-header-sort-icon.asc::before {
+  content: '↑';
+  opacity: 1;
+  color: #0066cc;
+}
+
+/* Descending sort icon */
+.zengrid-header-sort-icon.desc::before {
+  content: '↓';
+  opacity: 1;
+  color: #0066cc;
+}
+
+/* Multi-sort index indicator */
+.zengrid-header-sort-index {
+  font-size: 10px;
+  margin-left: 2px;
+  color: #666;
+}
+```
+
+## Sort Events
+
+Listen to sort events to update external state or analytics:
+
+```typescript title="sort-events.ts"
+// Listen for sort state changes
+grid.on('sort:changed', (event) => {
+  console.log('Sort changed:', event.sortState);
+
+  // Update URL or external state
+  const params = new URLSearchParams();
+  event.sortState.forEach((sort, index) => {
+    params.append(`sort${index}`, `${sort.colId}:${sort.direction}`);
+  });
+
+  // Update browser URL without reload
+  window.history.replaceState(
+    null,
+    '',
+    `?${params.toString()}`
+  );
+});
+
+// Listen for column header clicks
+grid.on('header:click', (event) => {
+  console.log('Header clicked:', event.colId);
+});
+```
+
+## Complete Sortable Example
+
+```typescript title="complete-sortable.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+// Sample data
+const data = [
+  { id: 1, name: 'Alice', role: 'Admin', status: 'Active', priority: 'High' },
+  { id: 2, name: 'Bob', role: 'Editor', status: 'Inactive', priority: 'Medium' },
+  { id: 3, name: 'Charlie', role: 'Viewer', status: 'Active', priority: 'Low' },
+  // ... more rows
+];
+
+const columns: Column[] = [
+  { id: 'id', header: 'ID', width: 60, sortable: true },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    sortable: true,
+    comparator: (a, b) => a.toLowerCase().localeCompare(b.toLowerCase()),
+  },
+  { id: 'role', header: 'Role', width: 150, sortable: true },
+  { id: 'status', header: 'Status', width: 120, sortable: true },
+  {
+    id: 'priority',
+    header: 'Priority',
+    width: 120,
+    sortable: true,
+    comparator: (a, b) => {
+      const priorities = { High: 3, Medium: 2, Low: 1 };
+      return priorities[a] - priorities[b];
+    },
+  },
+];
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: data.length,
+  rowHeight: 40,
+  data: (rowIndex, colId) => {
+    return data[rowIndex]?.[colId] ?? '';
+  },
+});
+
+// Enable multi-sort by default
+grid.setSortState([
+  { colId: 'role', direction: 'asc' },
+  { colId: 'name', direction: 'asc' },
+]);
+
+// Log sort changes
+grid.on('sort:changed', (event) => {
+  console.log('Sort state:', event.sortState);
+});
+```
+
+<Callout type="warning">
+When using custom comparators, ensure they return consistent results. Inconsistent comparators can lead to unpredictable sort order.
+</Callout>
+
+## Performance Considerations
+
+- Sorting is performed on the full dataset, not just visible rows
+- For large datasets (>100k rows), consider server-side sorting
+- Custom comparators should be optimized for performance
+- ZenGrid uses Timsort algorithm for stable, efficient sorting
+
+<Callout type="tip">
+Use `grid.getStats()` to monitor sorting performance. The stats object includes timing information for sort operations.
+</Callout>
+
+## Next Steps
+
+- Add [filtering](/examples/filterable) to combine with sorting
+- Enable [editing](/examples/editable) on sorted grids
+- Learn about [multi-column sorting strategies](/advanced/sorting-strategies)

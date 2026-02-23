@@ -1,0 +1,172 @@
+---
+title: Cell Editors Overview
+description: Overview of ZenGrid's cell editing system, editor lifecycle, and keyboard handling.
+order: 32
+category: Cell Editors
+tags: [editors, overview, lifecycle]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides a flexible cell editing system that allows users to modify cell values using various built-in editors or custom implementations.
+
+## CellEditor Interface
+
+All editors implement the `CellEditor` interface:
+
+```ts title="CellEditor Interface"
+interface CellEditor<T = any> {
+  init(container: HTMLElement, value: T, params: EditorParams): void;
+  getValue(): T;
+  focus(): void;
+  destroy(): void;
+  isValid?(): boolean | { valid: boolean; message: string };
+  onKeyDown?(event: KeyboardEvent): boolean;
+}
+```
+
+### EditorParams
+
+The `EditorParams` object provides context and utilities to the editor:
+
+```ts title="EditorParams"
+interface EditorParams {
+  cell: { row: number; col: number };
+  column?: ColumnDef;
+  rowData?: any;
+  onComplete?: (value: any) => void;
+  onChange?: (value: any) => void;
+  options?: any;
+  registerPopup?: (element: HTMLElement) => void;
+  unregisterPopup?: (element: HTMLElement) => void;
+  scrollContainer?: HTMLElement;
+}
+```
+
+<Callout type="info">
+The `registerPopup` and `unregisterPopup` functions are essential for editors with popup UI (like date pickers) to handle click-outside behavior correctly.
+</Callout>
+
+## Editor Lifecycle
+
+The editor lifecycle follows these stages:
+
+1. **Trigger**: User double-clicks cell or presses Enter/F2
+2. **Initialize**: `init()` is called with container, current value, and params
+3. **Edit**: Editor renders UI and user interacts with it
+4. **Commit**: User presses Enter, calling `getValue()` to retrieve the value
+5. **Save**: EditorManager calls `commitEdit` to save the value
+6. **Cleanup**: `destroy()` is called to remove DOM and detach events
+
+```ts title="Lifecycle Example"
+class MyEditor implements CellEditor<string> {
+  private input: HTMLInputElement;
+
+  init(container: HTMLElement, value: string, params: EditorParams) {
+    this.input = document.createElement('input');
+    this.input.value = value || '';
+    container.appendChild(this.input);
+  }
+
+  getValue(): string {
+    return this.input.value;
+  }
+
+  focus() {
+    this.input.focus();
+  }
+
+  destroy() {
+    this.input.remove();
+  }
+}
+```
+
+## Keyboard Handling
+
+ZenGrid editors support standard keyboard interactions:
+
+- **Enter**: Commits the edit and saves the value
+- **Escape**: Cancels the edit without saving
+- **Tab**: Commits the edit and moves to the next cell
+- **Shift+Tab**: Commits the edit and moves to the previous cell
+
+<Callout type="tip">
+Implement `onKeyDown()` to customize keyboard behavior. Return `true` to prevent the default action.
+</Callout>
+
+```ts title="Custom Keyboard Handling"
+onKeyDown(event: KeyboardEvent): boolean {
+  if (event.key === 'Enter' && event.ctrlKey) {
+    // Custom behavior for Ctrl+Enter
+    return true; // Prevent default
+  }
+  return false; // Allow default behavior
+}
+```
+
+## Editor Registration
+
+### Global Registration
+
+Register custom editors globally:
+
+```ts title="Global Registration"
+grid.registerEditor('myEditor', MyEditor);
+```
+
+### Column Configuration
+
+Specify the editor in column definitions:
+
+```ts title="Column Configuration"
+const columns: ColumnDef[] = [
+  {
+    field: 'name',
+    header: 'Name',
+    editor: 'text',
+    editorOptions: {
+      placeholder: 'Enter name...',
+      maxLength: 50
+    }
+  },
+  {
+    field: 'age',
+    header: 'Age',
+    editor: 'number',
+    editorOptions: {
+      min: 0,
+      max: 120
+    }
+  }
+];
+```
+
+## EditorManager
+
+The `EditorManager` coordinates the editor lifecycle:
+
+- Handles editor activation and deactivation
+- Manages keyboard events
+- Coordinates commit and cancel operations
+- Integrates with the grid's focus and selection systems
+
+<Callout type="info">
+You typically don't interact with EditorManager directly. It's used internally by the grid to manage editing state.
+</Callout>
+
+## Built-in Editors
+
+ZenGrid provides these built-in editors:
+
+- **text**: Basic text input with validation
+- **number**: Numeric input with bounds and precision
+- **checkbox**: Boolean toggle with tri-state support
+- **date**: Date picker with calendar popup
+- **time**: Time picker with 12/24 hour format
+- **datetime**: Combined date and time picker
+- **date-range**: Dual calendar for date ranges
+- **select**: Native select dropdown
+- **dropdown**: Advanced searchable dropdown with multi-select
+
+Each editor is covered in detail in its own documentation page.

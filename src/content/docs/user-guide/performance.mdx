@@ -1,0 +1,448 @@
+---
+title: Performance Optimization
+description: Optimize ZenGrid performance with cell pooling, caching, batch updates, and async processing.
+order: 8
+category: User Guide
+tags: [performance, optimization, pooling]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Performance Optimization
+
+ZenGrid is built for high-performance rendering of massive datasets. This guide covers optimization techniques to ensure your grid stays fast and responsive, even with millions of cells.
+
+## Cell Pooling
+
+Cell pooling reuses DOM elements instead of creating and destroying them during scrolling, dramatically reducing garbage collection pressure and improving scroll performance.
+
+### Enable Cell Pooling
+
+```ts title="enable-pooling.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 100000,
+  colCount: 20,
+  enableCellPooling: true,  // Enable DOM element reuse
+  data: (row, col) => `Cell ${row},${col}`
+});
+```
+
+### How It Works
+
+```
+Without Pooling:
+  Scroll down → Create 200 new cells → Destroy 200 old cells
+  Memory churn: High
+  GC pressure: High
+
+With Pooling:
+  Scroll down → Reuse 200 existing cells → Update content
+  Memory churn: Minimal
+  GC pressure: Low
+```
+
+<Callout type="tip">
+Cell pooling is enabled by default and should remain enabled unless you have a specific reason to disable it.
+</Callout>
+
+### Pool Statistics
+
+Monitor pool efficiency:
+
+```ts title="pool-stats.ts"
+const stats = grid.cellPool.getStats();
+
+console.log(stats);
+// {
+//   poolSize: 250,
+//   activeElements: 180,
+//   availableElements: 70,
+//   totalCreated: 250,
+//   totalReused: 15420
+// }
+```
+
+## Renderer Cache
+
+ZenGrid caches renderer instances to avoid recreating them for each cell. This is especially important for complex renderers with significant initialization overhead.
+
+### How It Works
+
+Renderers are cached by type and reused across cells:
+
+```ts title="renderer-cache.ts"
+// First cell with 'button' renderer: Creates new instance
+// Subsequent cells: Reuse cached instance
+
+const columns = [
+  { field: 'action', type: 'button', width: 100 }, // Cached
+  { field: 'status', type: 'chip', width: 120 },   // Cached
+  { field: 'value', type: 'number', width: 100 }   // Cached
+];
+```
+
+### Clear Cache
+
+Clear the renderer cache when changing renderer configurations or resetting state:
+
+```ts title="clear-cache.ts"
+// After changing renderer types
+grid.updateOptions({
+  columns: newColumns
+});
+grid.clearCache();
+
+// Force recreation of all renderers
+grid.clearCache();
+grid.refresh();
+```
+
+<Callout type="warning">
+Only clear the renderer cache when necessary. Frequent cache clearing negates the performance benefits.
+</Callout>
+
+## Overscan Tuning
+
+Overscan controls how many extra rows and columns are rendered beyond the visible viewport. Tuning this value balances smoothness against memory usage.
+
+### Configuration
+
+```ts title="overscan-tuning.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 500000,
+  colCount: 30,
+
+  // Conservative (lower memory, potential blanks)
+  overscanRows: 5,
+  overscanCols: 2,
+
+  // Balanced (default, good for most cases)
+  // overscanRows: 10,
+  // overscanCols: 5,
+
+  // Aggressive (smoother scroll, higher memory)
+  // overscanRows: 20,
+  // overscanCols: 10
+});
+```
+
+### Recommendations by Device
+
+| Device Type | overscanRows | overscanCols | Reasoning |
+|-------------|--------------|--------------|-----------|
+| Desktop     | 10-15        | 5-8          | Fast scroll, ample memory |
+| Tablet      | 8-12         | 4-6          | Medium speed, moderate memory |
+| Mobile      | 5-8          | 2-4          | Slower scroll, limited memory |
+| Low-end     | 3-5          | 1-3          | Minimal memory footprint |
+
+<Callout type="info">
+Monitor scroll performance and adjust overscan dynamically based on device capabilities and user feedback.
+</Callout>
+
+## Batch Updates
+
+When updating multiple cells, use batch operations instead of individual updates to minimize reflows and repaints.
+
+### updateCells for Targeted Updates
+
+Update specific cells without re-rendering the entire grid:
+
+```ts title="batch-updates.ts"
+// Bad: Multiple individual updates
+for (let i = 0; i < 100; i++) {
+  grid.updateCell(i, 0, newValue);  // Triggers 100 reflows
+}
+
+// Good: Single batch update
+const updates = [];
+for (let i = 0; i < 100; i++) {
+  updates.push({ row: i, col: 0, value: newValue });
+}
+grid.updateCells(updates);  // Single reflow
+```
+
+### Full Refresh vs Targeted Update
+
+```ts title="update-strategies.ts"
+// Full refresh: Re-render entire visible viewport
+grid.refresh();  // Use when many cells changed
+
+// Targeted update: Update specific cells only
+grid.updateCells([
+  { row: 10, col: 2, value: 'Updated' },
+  { row: 15, col: 3, value: 'Changed' }
+]);  // Use for sparse updates
+```
+
+<Callout type="tip">
+Use `updateCells()` when less than 10% of visible cells changed. Use `refresh()` for larger changes.
+</Callout>
+
+## Sliding Window for Infinite Scroll
+
+For infinite scrolling scenarios, use a sliding window to maintain a fixed memory footprint regardless of scroll position.
+
+```ts title="sliding-window.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 0,  // Dynamic
+  colCount: 10,
+  dataMode: 'backend',
+
+  // Sliding window configuration
+  windowSize: 1000,      // Keep 1000 rows in memory
+  pruneThreshold: 1500,  // Prune when exceeding 1500 rows
+
+  onDataRequest: async (request) => {
+    const { startRow, endRow } = request;
+    const data = await fetchDataFromServer(startRow, endRow);
+    return { data };
+  }
+});
+```
+
+### How It Works
+
+```
+User scrolls to row 5000:
+  1. Load rows 4900-5100 (visible + overscan)
+  2. Memory contains rows 4500-5500 (window)
+  3. Prune rows 0-4000 (outside window)
+  4. Memory usage stays constant
+```
+
+## Async Processing
+
+For heavy computations or large dataset processing, use async utilities to prevent blocking the main thread.
+
+### yieldToMain
+
+Periodically yield control back to the browser to maintain responsiveness:
+
+```ts title="yield-to-main.ts"
+import { yieldToMain } from '@zengrid/core';
+
+async function processLargeDataset(data: any[]) {
+  const batchSize = 100;
+
+  for (let i = 0; i < data.length; i += batchSize) {
+    // Process batch
+    const batch = data.slice(i, i + batchSize);
+    processBatch(batch);
+
+    // Yield to browser every 100 items
+    await yieldToMain();
+  }
+}
+```
+
+<Callout type="info">
+`yieldToMain()` uses `scheduler.yield()` when available, falling back to `setTimeout(0)` for broader compatibility.
+</Callout>
+
+### processInChunks
+
+Process large arrays in chunks without blocking the UI:
+
+```ts title="process-chunks.ts"
+import { processInChunks } from '@zengrid/core';
+
+async function transformLargeDataset(data: any[]) {
+  const results = [];
+
+  await processInChunks(
+    data,
+    (item) => {
+      // Process each item
+      results.push(transformItem(item));
+    },
+    {
+      chunkSize: 100,     // Process 100 items per chunk
+      yieldInterval: 10   // Yield every 10 chunks
+    }
+  );
+
+  return results;
+}
+
+// Use in grid initialization
+async function loadGrid() {
+  const rawData = await fetchLargeDataset();
+  const processedData = await transformLargeDataset(rawData);
+
+  grid.setData(processedData);
+  grid.refresh();
+}
+```
+
+## PrefixSumArray
+
+For variable-height rows or complex offset calculations, use `PrefixSumArray` from `@zengrid/shared` for O(1) range sum and O(log n) binary search operations.
+
+```ts title="prefix-sum.ts"
+import { PrefixSumArray } from '@zengrid/shared';
+
+// Row heights array
+const heights = [32, 48, 32, 64, 32, 40, 32, 56];
+
+const prefixSum = new PrefixSumArray(heights);
+
+// O(1) range sum: Get total height from row 0 to row 4
+const totalHeight = prefixSum.getRangeSum(0, 4);  // 32+48+32+64+32 = 208
+
+// O(log n) search: Find row at offset 150
+const rowIndex = prefixSum.findIndexByOffset(150);  // Row 3
+
+// Get offset for specific row
+const offset = prefixSum.getPrefixSum(3);  // 112 (32+48+32)
+```
+
+### Performance Impact
+
+```
+Without PrefixSumArray:
+  Get offset for row 10,000: O(n) = iterate 10,000 rows
+  Performance: ~10ms per lookup
+
+With PrefixSumArray:
+  Get offset for row 10,000: O(1) = direct array access
+  Performance: <0.01ms per lookup
+```
+
+<Callout type="tip">
+Always use PrefixSumArray for variable-height or variable-width scenarios with more than 1000 rows/columns.
+</Callout>
+
+## Performance Tips
+
+### 1. Avoid Full Re-renders
+
+```ts title="avoid-rerender.ts"
+// Bad: Full re-render for small change
+grid.setData(newData);
+grid.render();
+
+// Good: Targeted update
+grid.setData(newData);
+grid.updateCells(changedCells);
+```
+
+### 2. Use Explicit Dimensions
+
+```ts title="explicit-dimensions.ts"
+// Bad: Grid has to measure container
+<div id="grid"></div>
+
+// Good: Explicit dimensions
+<div id="grid" style="width: 100%; height: 600px;"></div>
+```
+
+### 3. Optimize Data Callbacks
+
+```ts title="optimize-callback.ts"
+// Bad: Heavy computation per cell
+data: (row, col) => {
+  return expensiveComputation(row, col);  // Called 1000s of times
+}
+
+// Good: Pre-compute or memoize
+const cache = new Map();
+data: (row, col) => {
+  const key = `${row},${col}`;
+  if (!cache.has(key)) {
+    cache.set(key, expensiveComputation(row, col));
+  }
+  return cache.get(key);
+}
+```
+
+### 4. Minimize Renderer Complexity
+
+```ts title="simple-renderers.ts"
+// Bad: Complex DOM in renderer
+class HeavyRenderer {
+  render(cell, value) {
+    cell.innerHTML = `
+      <div class="complex">
+        <img src="${value.image}" />
+        <div class="nested">
+          <span>${value.title}</span>
+          <span>${value.subtitle}</span>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Good: Minimal DOM
+class LightRenderer {
+  render(cell, value) {
+    cell.textContent = value.title;
+    cell.className = value.status;
+  }
+}
+```
+
+### 5. Use Uniform Heights When Possible
+
+```ts title="uniform-heights.ts"
+// Best performance: Uniform heights
+const grid = createGrid({
+  rowHeight: 32,  // All rows same height = O(1) calculations
+  // ...
+});
+
+// Slower: Variable heights (requires PrefixSumArray)
+const grid = createGrid({
+  heightProvider: new VariableHeightProvider(heights),
+  // ...
+});
+```
+
+## Performance Checklist
+
+- ✅ Enable cell pooling (default: enabled)
+- ✅ Set explicit container dimensions
+- ✅ Use appropriate overscan for your device
+- ✅ Batch updates with `updateCells()`
+- ✅ Use `refresh()` only when necessary
+- ✅ Implement sliding window for infinite scroll
+- ✅ Process large datasets with `processInChunks()`
+- ✅ Use PrefixSumArray for variable dimensions
+- ✅ Optimize/memoize data callbacks
+- ✅ Keep renderers simple
+- ✅ Prefer uniform heights over variable
+
+## Measuring Performance
+
+```ts title="measure-performance.ts"
+// Measure render time
+console.time('grid-render');
+grid.render();
+console.timeEnd('grid-render');
+
+// Measure scroll performance
+let scrollCount = 0;
+grid.scrollModel.scrollTop.subscribe(() => {
+  scrollCount++;
+  console.log(`Scroll ${scrollCount}: ${performance.now()}`);
+});
+
+// Get performance stats
+const stats = grid.getStats();
+console.log('Grid stats:', stats);
+// {
+//   totalRows: 100000,
+//   visibleRows: 20,
+//   renderedCells: 600,
+//   poolSize: 650,
+//   cacheHits: 15420,
+//   renderTime: 8.4
+// }
+```
+
+<Callout type="tip">
+Use Chrome DevTools Performance panel to profile your grid and identify bottlenecks. Look for long tasks, excessive layouts, and memory growth.
+</Callout>

@@ -1,0 +1,759 @@
+---
+title: Grid Options
+description: Complete reference for all GridOptions configuration properties with types and defaults.
+order: 18
+category: API Reference
+tags: [api, options, configuration]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Grid Options
+
+The `GridOptions` interface defines all configuration options available when creating a Grid instance.
+
+## Core Options
+
+### rowCount
+
+Number of rows in the grid.
+
+```typescript title="Setting row count"
+const grid = new Grid(container, {
+  rowCount: 1000
+});
+```
+
+**Type:** `number`
+**Required:** Yes (unless using data callback)
+
+### colCount
+
+Number of columns in the grid.
+
+```typescript title="Setting column count"
+const grid = new Grid(container, {
+  colCount: 10
+});
+```
+
+**Type:** `number`
+**Required:** Yes (unless using columns array)
+
+### rowHeight
+
+Height of rows in pixels. Can be a single value or an array of heights per row.
+
+```typescript title="Row height options"
+// Fixed height
+const grid1 = new Grid(container, { rowHeight: 40 });
+
+// Variable heights
+const grid2 = new Grid(container, { rowHeight: [30, 40, 50, 40] });
+```
+
+**Type:** `number | number[]`
+**Default:** `32`
+
+### colWidth
+
+Width of columns in pixels. Can be a single value or an array of widths per column.
+
+```typescript title="Column width options"
+// Fixed width
+const grid1 = new Grid(container, { colWidth: 120 });
+
+// Variable widths
+const grid2 = new Grid(container, { colWidth: [100, 150, 200, 100] });
+```
+
+**Type:** `number | number[]`
+**Default:** `100`
+
+### columns
+
+Column definitions with metadata.
+
+```typescript title="Defining columns"
+const grid = new Grid(container, {
+  columns: [
+    { field: 'name', header: 'Name', width: 150, sortable: true },
+    { field: 'age', header: 'Age', width: 80, editable: true },
+    { field: 'email', header: 'Email', width: 200 }
+  ]
+});
+```
+
+**Type:** `ColumnDef[]`
+**Default:** `undefined`
+
+<Callout type="info">
+When `columns` is provided, `colCount` is automatically derived from the array length.
+</Callout>
+
+### data
+
+Data callback function for providing cell values.
+
+```typescript title="Data callback"
+const grid = new Grid(container, {
+  rowCount: 1000,
+  colCount: 5,
+  data: (row, col) => {
+    return `R${row}C${col}`;
+  }
+});
+```
+
+**Type:** `(row: number, col: number) => any`
+**Default:** `undefined`
+
+## Selection Options
+
+### enableSelection
+
+Enables cell/row/column selection.
+
+```typescript title="Enabling selection"
+const grid = new Grid(container, {
+  enableSelection: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `false`
+
+### enableMultiSelection
+
+Allows multiple selections with Ctrl/Cmd key.
+
+```typescript title="Enabling multi-selection"
+const grid = new Grid(container, {
+  enableSelection: true,
+  enableMultiSelection: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `false`
+
+### selectionType
+
+Type of selection allowed.
+
+```typescript title="Selection types"
+// Cell selection
+const grid1 = new Grid(container, { selectionType: 'cell' });
+
+// Row selection
+const grid2 = new Grid(container, { selectionType: 'row' });
+
+// Column selection
+const grid3 = new Grid(container, { selectionType: 'column' });
+
+// Range selection
+const grid4 = new Grid(container, { selectionType: 'range' });
+```
+
+**Type:** `'cell' | 'row' | 'column' | 'range'`
+**Default:** `'cell'`
+
+## Feature Options
+
+### enableKeyboardNavigation
+
+Enables keyboard navigation (arrow keys, Tab, Enter).
+
+```typescript title="Enabling keyboard navigation"
+const grid = new Grid(container, {
+  enableKeyboardNavigation: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `true`
+
+### enableA11y
+
+Enables accessibility features (ARIA attributes, screen reader support).
+
+```typescript title="Enabling accessibility"
+const grid = new Grid(container, {
+  enableA11y: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `true`
+
+### enableCellPooling
+
+Enables cell pooling for improved performance with large datasets.
+
+```typescript title="Enabling cell pooling"
+const grid = new Grid(container, {
+  enableCellPooling: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `true`
+
+### enableColumnResize
+
+Enables column resizing.
+
+```typescript title="Enabling column resize"
+const grid = new Grid(container, {
+  enableColumnResize: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `false`
+
+### enableColumnDrag
+
+Enables column reordering via drag and drop.
+
+```typescript title="Enabling column drag"
+const grid = new Grid(container, {
+  enableColumnDrag: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `false`
+
+## Rendering Options
+
+### overscanRows
+
+Number of rows to render outside the visible viewport.
+
+```typescript title="Setting overscan rows"
+const grid = new Grid(container, {
+  overscanRows: 10
+});
+```
+
+**Type:** `number`
+**Default:** `10`
+
+### overscanCols
+
+Number of columns to render outside the visible viewport.
+
+```typescript title="Setting overscan columns"
+const grid = new Grid(container, {
+  overscanCols: 5
+});
+```
+
+**Type:** `number`
+**Default:** `5`
+
+### rendererCache
+
+Configuration for renderer caching.
+
+```typescript title="Renderer cache config"
+const grid = new Grid(container, {
+  rendererCache: {
+    maxSize: 1000,
+    enabled: true
+  }
+});
+```
+
+**Type:** `object`
+**Default:** `{ maxSize: 500, enabled: true }`
+
+### sortIcons
+
+Custom icons for sort indicators.
+
+```typescript title="Custom sort icons"
+const grid = new Grid(container, {
+  sortIcons: {
+    asc: '↑',
+    desc: '↓',
+    none: '⇅'
+  }
+});
+```
+
+**Type:** `{ asc: string, desc: string, none: string }`
+**Default:** Built-in Unicode arrows
+
+### autoResize
+
+Automatically resize the grid when the container size changes.
+
+```typescript title="Auto resize"
+const grid = new Grid(container, {
+  autoResize: true
+});
+```
+
+**Type:** `boolean`
+**Default:** `true`
+
+## Data Mode Options
+
+### dataMode
+
+Controls where data operations are performed.
+
+```typescript title="Data modes"
+// Frontend mode - all operations in browser
+const grid1 = new Grid(container, { dataMode: 'frontend' });
+
+// Backend mode - operations delegated to server
+const grid2 = new Grid(container, { dataMode: 'backend' });
+
+// Auto mode - automatically choose based on dataset size
+const grid3 = new Grid(container, { dataMode: 'auto' });
+```
+
+**Type:** `'frontend' | 'backend' | 'auto'`
+**Default:** `'auto'`
+
+### sortMode
+
+Controls where sorting is performed.
+
+```typescript title="Sort mode"
+const grid = new Grid(container, {
+  sortMode: 'backend',
+  onSortRequest: async (sortState) => {
+    // Fetch sorted data from server
+  }
+});
+```
+
+**Type:** `'frontend' | 'backend' | 'auto'`
+**Default:** Inherits from `dataMode`
+
+### filterMode
+
+Controls where filtering is performed.
+
+```typescript title="Filter mode"
+const grid = new Grid(container, {
+  filterMode: 'backend',
+  onFilterRequest: async (filterState) => {
+    // Fetch filtered data from server
+  }
+});
+```
+
+**Type:** `'frontend' | 'backend' | 'auto'`
+**Default:** Inherits from `dataMode`
+
+## Callback Options
+
+### onDataRequest
+
+Called when data is needed (for virtual/infinite scrolling).
+
+```typescript title="Data request callback"
+const grid = new Grid(container, {
+  onDataRequest: async (startRow, endRow) => {
+    const response = await fetch(`/api/data?start=${startRow}&end=${endRow}`);
+    return response.json();
+  }
+});
+```
+
+**Type:** `(startRow: number, endRow: number) => Promise<any[][]>`
+**Default:** `undefined`
+
+### onSortRequest
+
+Called when sorting is requested in backend mode.
+
+```typescript title="Sort request callback"
+const grid = new Grid(container, {
+  sortMode: 'backend',
+  onSortRequest: async (sortState) => {
+    const response = await fetch('/api/data/sort', {
+      method: 'POST',
+      body: JSON.stringify({ sortState })
+    });
+    return response.json();
+  }
+});
+```
+
+**Type:** `(sortState: SortState[]) => Promise<any[][]>`
+**Default:** `undefined`
+
+### onFilterRequest
+
+Called when filtering is requested in backend mode.
+
+```typescript title="Filter request callback"
+const grid = new Grid(container, {
+  filterMode: 'backend',
+  onFilterRequest: async (filterState) => {
+    const response = await fetch('/api/data/filter', {
+      method: 'POST',
+      body: JSON.stringify({ filterState })
+    });
+    return response.json();
+  }
+});
+```
+
+**Type:** `(filterState: FilterModel[]) => Promise<any[][]>`
+**Default:** `undefined`
+
+### onScroll
+
+Called when the grid is scrolled.
+
+```typescript title="Scroll callback"
+const grid = new Grid(container, {
+  onScroll: (event) => {
+    console.log('Scrolled to:', event.scrollTop, event.scrollLeft);
+  }
+});
+```
+
+**Type:** `(event: { scrollTop: number, scrollLeft: number, visibleRange: VisibleRange }) => void`
+**Default:** `undefined`
+
+### onCellClick
+
+Called when a cell is clicked.
+
+```typescript title="Cell click callback"
+const grid = new Grid(container, {
+  onCellClick: (event) => {
+    console.log('Cell clicked:', event.cell, event.value);
+  }
+});
+```
+
+**Type:** `(event: { cell: CellRef, value: any, nativeEvent: MouseEvent }) => void`
+**Default:** `undefined`
+
+### onCellDoubleClick
+
+Called when a cell is double-clicked.
+
+```typescript title="Cell double-click callback"
+const grid = new Grid(container, {
+  onCellDoubleClick: (event) => {
+    console.log('Cell double-clicked:', event.cell);
+  }
+});
+```
+
+**Type:** `(event: { cell: CellRef, value: any, nativeEvent: MouseEvent }) => void`
+**Default:** `undefined`
+
+### onCellContextMenu
+
+Called when a cell is right-clicked.
+
+```typescript title="Cell context menu callback"
+const grid = new Grid(container, {
+  onCellContextMenu: (event) => {
+    event.nativeEvent.preventDefault();
+    // Show custom context menu
+  }
+});
+```
+
+**Type:** `(event: { cell: CellRef, value: any, nativeEvent: MouseEvent }) => void`
+**Default:** `undefined`
+
+### onSelectionChange
+
+Called when the selection changes.
+
+```typescript title="Selection change callback"
+const grid = new Grid(container, {
+  onSelectionChange: (event) => {
+    console.log('Selection changed:', event.ranges);
+  }
+});
+```
+
+**Type:** `(event: { ranges: CellRange[], previousRanges: CellRange[] }) => void`
+**Default:** `undefined`
+
+### onPageChange
+
+Called when the current page changes.
+
+```typescript title="Page change callback"
+const grid = new Grid(container, {
+  onPageChange: (event) => {
+    console.log('Page changed to:', event.currentPage);
+  }
+});
+```
+
+**Type:** `(event: PaginationState) => void`
+**Default:** `undefined`
+
+### onColumnWidthsChange
+
+Called when column widths change.
+
+```typescript title="Column widths change callback"
+const grid = new Grid(container, {
+  onColumnWidthsChange: (widths) => {
+    console.log('Column widths:', widths);
+    // Save to localStorage
+  }
+});
+```
+
+**Type:** `(widths: number[]) => void`
+**Default:** `undefined`
+
+### onLoadMoreRows
+
+Called when more rows need to be loaded (infinite scrolling).
+
+```typescript title="Load more rows callback"
+const grid = new Grid(container, {
+  onLoadMoreRows: async (startRow, endRow) => {
+    const response = await fetch(`/api/data?start=${startRow}&end=${endRow}`);
+    return response.json();
+  }
+});
+```
+
+**Type:** `(startRow: number, endRow: number) => Promise<any[][]>`
+**Default:** `undefined`
+
+## Pagination Options
+
+### pagination
+
+Pagination configuration object.
+
+```typescript title="Pagination configuration"
+const grid = new Grid(container, {
+  pagination: {
+    enabled: true,
+    pageSize: 50,
+    template: 'Page {current} of {total}',
+    position: 'bottom',
+    pageSizes: [10, 25, 50, 100]
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `enabled: boolean` - Enable pagination (default: `false`)
+- `pageSize: number` - Rows per page (default: `50`)
+- `template: string` - Display template (default: `'Page {current} of {total}'`)
+- `position: 'top' | 'bottom' | 'both'` - Position (default: `'bottom'`)
+- `pageSizes: number[]` - Available page sizes (default: `[10, 25, 50, 100]`)
+
+## Loading Options
+
+### loading
+
+Loading indicator configuration.
+
+```typescript title="Loading configuration"
+const grid = new Grid(container, {
+  loading: {
+    enabled: true,
+    spinner: 'dots',
+    message: 'Loading data...',
+    overlay: true
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `enabled: boolean` - Show loading indicator (default: `false`)
+- `spinner: string` - Spinner type (default: `'dots'`)
+- `message: string` - Loading message (default: `'Loading...'`)
+- `overlay: boolean` - Show overlay (default: `true`)
+
+## Infinite Scroll Options
+
+### infiniteScrolling
+
+Infinite scrolling configuration.
+
+```typescript title="Infinite scrolling configuration"
+const grid = new Grid(container, {
+  infiniteScrolling: {
+    enabled: true,
+    threshold: 100,
+    initialRowCount: 100,
+    enableSlidingWindow: true,
+    windowSize: 1000,
+    pruneThreshold: 2000,
+    onDataPruned: (startRow, endRow) => {
+      console.log('Rows pruned:', startRow, 'to', endRow);
+    }
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `enabled: boolean` - Enable infinite scrolling (default: `false`)
+- `threshold: number` - Rows from bottom to trigger load (default: `100`)
+- `initialRowCount: number` - Initial rows to display (default: `100`)
+- `enableSlidingWindow: boolean` - Enable sliding window optimization (default: `false`)
+- `windowSize: number` - Size of sliding window (default: `1000`)
+- `pruneThreshold: number` - Threshold to prune rows (default: `2000`)
+- `onDataPruned: (startRow: number, endRow: number) => void` - Callback when data is pruned
+
+<Callout type="tip">
+Enable sliding window for very large datasets (100k+ rows) to maintain performance.
+</Callout>
+
+## Row Height Options
+
+### rowHeightMode
+
+Controls how row heights are calculated.
+
+```typescript title="Row height modes"
+// Fixed height for all rows
+const grid1 = new Grid(container, { rowHeightMode: 'fixed' });
+
+// Auto-calculate from content
+const grid2 = new Grid(container, { rowHeightMode: 'auto' });
+
+// Content-aware optimization
+const grid3 = new Grid(container, { rowHeightMode: 'content-aware' });
+```
+
+**Type:** `'fixed' | 'auto' | 'content-aware'`
+**Default:** `'fixed'`
+
+### rowHeightConfig
+
+Additional configuration for row height calculation.
+
+```typescript title="Row height configuration"
+const grid = new Grid(container, {
+  rowHeightMode: 'auto',
+  rowHeightConfig: {
+    minHeight: 30,
+    maxHeight: 200,
+    padding: 8
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `minHeight: number` - Minimum row height
+- `maxHeight: number` - Maximum row height
+- `padding: number` - Padding to add to calculated height
+
+## Cell Overflow Options
+
+### cellOverflow
+
+Controls how cell content overflow is handled.
+
+```typescript title="Cell overflow configuration"
+const grid = new Grid(container, {
+  cellOverflow: {
+    mode: 'ellipsis',
+    showTooltip: true,
+    wrapText: false
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `mode: 'ellipsis' | 'clip' | 'wrap'` - Overflow handling mode
+- `showTooltip: boolean` - Show tooltip on hover
+- `wrapText: boolean` - Wrap text to multiple lines
+
+## Column Resize Options
+
+### columnResize
+
+Column resize configuration.
+
+```typescript title="Column resize configuration"
+const grid = new Grid(container, {
+  enableColumnResize: true,
+  columnResize: {
+    resizeZoneWidth: 5,
+    defaultMinWidth: 50,
+    defaultMaxWidth: 500,
+    autoFitSampleSize: 100,
+    autoFitPadding: 10,
+    skipHeaderOnAutoSize: false,
+    showHandles: true,
+    showPreview: true,
+    autoFitOnLoad: false
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `resizeZoneWidth: number` - Width of resize zone in pixels (default: `5`)
+- `defaultMinWidth: number` - Default minimum column width (default: `50`)
+- `defaultMaxWidth: number` - Default maximum column width (default: `Infinity`)
+- `autoFitSampleSize: number` - Rows to sample for auto-fit (default: `100`)
+- `autoFitPadding: number` - Padding for auto-fit (default: `10`)
+- `skipHeaderOnAutoSize: boolean` - Skip header in auto-fit (default: `false`)
+- `showHandles: boolean` - Show resize handles (default: `true`)
+- `showPreview: boolean` - Show preview line while resizing (default: `true`)
+- `autoFitOnLoad: boolean` - Auto-fit all columns on load (default: `false`)
+
+## Column Drag Options
+
+### columnDrag
+
+Column drag and reorder configuration.
+
+```typescript title="Column drag configuration"
+const grid = new Grid(container, {
+  enableColumnDrag: true,
+  columnDrag: {
+    dragThreshold: 5,
+    showGhost: true,
+    showDropIndicator: true,
+    showAdjacentHighlights: true,
+    enableTouch: true,
+    touchLongPressDuration: 300,
+    enableKeyboard: true
+  }
+});
+```
+
+**Type:** `object`
+
+**Properties:**
+- `dragThreshold: number` - Pixels to move before drag starts (default: `5`)
+- `showGhost: boolean` - Show ghost image while dragging (default: `true`)
+- `showDropIndicator: boolean` - Show drop indicator (default: `true`)
+- `showAdjacentHighlights: boolean` - Highlight adjacent columns (default: `true`)
+- `enableTouch: boolean` - Enable touch drag (default: `true`)
+- `touchLongPressDuration: number` - Touch long press duration in ms (default: `300`)
+- `enableKeyboard: boolean` - Enable keyboard reordering (default: `true`)
+
+<Callout type="info">
+All configuration options are optional and have sensible defaults. Start with minimal configuration and add options as needed.
+</Callout>

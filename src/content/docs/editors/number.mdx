@@ -1,0 +1,317 @@
+---
+title: Number Editor
+description: Number editor with min/max bounds, step increments, and precision control.
+order: 34
+category: Cell Editors
+tags: [editors, number, numeric]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `NumberEditor` provides a specialized editor for numeric input with validation, bounds checking, and precision control.
+
+## Basic Usage
+
+```ts title="Basic Number Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'age',
+    header: 'Age',
+    editor: 'number'
+  }
+];
+```
+
+## Editor Options
+
+```ts title="NumberEditor Options"
+interface NumberEditorOptions {
+  min?: number;
+  max?: number;
+  step?: number;
+  precision?: number;
+  allowNegative?: boolean;
+  placeholder?: string;
+}
+```
+
+## Bounds and Constraints
+
+### Min and Max Values
+
+Enforce minimum and maximum bounds:
+
+```ts title="Age with Bounds"
+{
+  field: 'age',
+  header: 'Age',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    max: 120,
+    placeholder: '0-120'
+  }
+}
+```
+
+```ts title="Temperature Range"
+{
+  field: 'temperature',
+  header: 'Temperature (°C)',
+  editor: 'number',
+  editorOptions: {
+    min: -50,
+    max: 50,
+    allowNegative: true
+  }
+}
+```
+
+<Callout type="info">
+Values outside the min/max range will be rejected when the user attempts to commit the edit.
+</Callout>
+
+### Negative Numbers
+
+Control whether negative numbers are allowed:
+
+```ts title="Positive Numbers Only"
+{
+  field: 'quantity',
+  header: 'Quantity',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    allowNegative: false // Prevents negative input
+  }
+}
+```
+
+## Step Increments
+
+Define step increments for arrow key navigation and spinner controls:
+
+```ts title="Decimal Steps"
+{
+  field: 'price',
+  header: 'Price',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    step: 0.5,
+    precision: 2,
+    placeholder: '0.00'
+  }
+}
+```
+
+```ts title="Integer Steps"
+{
+  field: 'quantity',
+  header: 'Quantity',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    step: 1,
+    precision: 0
+  }
+}
+```
+
+<Callout type="tip">
+Use arrow keys (Up/Down) to increment or decrement the value by the specified step amount.
+</Callout>
+
+## Precision Control
+
+Control the number of decimal places:
+
+```ts title="Currency (2 decimals)"
+{
+  field: 'price',
+  header: 'Price ($)',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    precision: 2,
+    step: 0.01
+  }
+}
+```
+
+```ts title="Percentage (1 decimal)"
+{
+  field: 'percentage',
+  header: 'Completion %',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    max: 100,
+    precision: 1,
+    step: 0.1
+  }
+}
+```
+
+```ts title="Integer Only"
+{
+  field: 'count',
+  header: 'Count',
+  editor: 'number',
+  editorOptions: {
+    precision: 0, // No decimals
+    step: 1
+  }
+}
+```
+
+## Keyboard Controls
+
+The number editor supports these keyboard shortcuts:
+
+- **Arrow Up**: Increment by step amount
+- **Arrow Down**: Decrement by step amount
+- **Enter**: Commit and close editor
+- **Escape**: Cancel and close editor
+- **Tab**: Commit and move to next cell
+
+<Callout type="tip">
+Hold Shift while using arrow keys to multiply the step by 10 for faster adjustments.
+</Callout>
+
+## Validation
+
+The number editor automatically validates:
+
+- **Numeric input**: Non-numeric characters are rejected
+- **Min/Max bounds**: Values outside range are rejected
+- **Negative values**: Based on `allowNegative` setting
+- **Precision**: Values are rounded to specified precision
+
+```ts title="Example with Validation"
+{
+  field: 'score',
+  header: 'Score',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    max: 100,
+    precision: 1,
+    placeholder: 'Enter score (0-100)'
+  }
+}
+```
+
+## Complete Examples
+
+### Currency Editor
+
+```ts title="Currency Input"
+{
+  field: 'amount',
+  header: 'Amount',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    step: 0.01,
+    precision: 2,
+    placeholder: '0.00',
+    allowNegative: false
+  }
+}
+```
+
+### Percentage Editor
+
+```ts title="Percentage Input"
+{
+  field: 'completion',
+  header: 'Progress',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    max: 100,
+    step: 5,
+    precision: 1,
+    placeholder: '0-100%'
+  }
+}
+```
+
+### Scientific Notation
+
+```ts title="High Precision Numbers"
+{
+  field: 'measurement',
+  header: 'Measurement',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    step: 0.001,
+    precision: 4,
+    placeholder: '0.0000'
+  }
+}
+```
+
+### Integer Counter
+
+```ts title="Simple Counter"
+{
+  field: 'count',
+  header: 'Count',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    step: 1,
+    precision: 0,
+    allowNegative: false
+  }
+}
+```
+
+## Input Formatting
+
+The number editor automatically formats input based on precision:
+
+```ts title="Automatic Formatting"
+// User types: 123.456789
+// With precision: 2
+// Stored as: 123.46
+
+{
+  field: 'value',
+  editor: 'number',
+  editorOptions: {
+    precision: 2 // Rounds to 2 decimals
+  }
+}
+```
+
+<Callout type="warning">
+The precision setting affects both display and storage. The value is rounded when committed.
+</Callout>
+
+## Best Practices
+
+1. **Set appropriate bounds**: Always define min/max for bounded values
+2. **Match precision to use case**: Currency (2), percentages (1), counts (0)
+3. **Configure step wisely**: Match step to expected user adjustments
+4. **Disable negatives when appropriate**: Use `allowNegative: false` for quantities
+5. **Provide clear placeholders**: Help users understand expected format
+
+```ts title="Well-Configured Number Column"
+{
+  field: 'unitPrice',
+  header: 'Unit Price',
+  editor: 'number',
+  editorOptions: {
+    min: 0,
+    max: 9999.99,
+    step: 0.01,
+    precision: 2,
+    allowNegative: false,
+    placeholder: '$0.00'
+  }
+}
+```

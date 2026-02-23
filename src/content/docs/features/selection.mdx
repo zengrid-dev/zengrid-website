@@ -1,0 +1,170 @@
+---
+title: Selection
+description: Configure cell, row, column, and range selection with single or multiple modes.
+order: 9
+category: Features
+tags: [selection, range, cell]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The SelectionManager provides comprehensive selection capabilities for cells, rows, columns, and ranges with support for both single and multiple selection modes.
+
+## Selection Modes
+
+ZenGrid supports two selection modes:
+
+- **single**: Only one cell, row, column, or range can be selected at a time
+- **multiple**: Multiple selections can be active simultaneously
+
+## Selection Types
+
+Configure the type of selection allowed in your grid:
+
+- **cell**: Select individual cells
+- **row**: Select entire rows
+- **column**: Select entire columns
+- **range**: Select rectangular ranges of cells
+
+## Configuration
+
+```js title="grid-config.js"
+const grid = new ZenGrid(container, {
+  enableSelection: true,
+  enableMultiSelection: true,
+  selectionType: 'range' // 'cell' | 'row' | 'column' | 'range'
+});
+```
+
+<Callout type="tip">
+Use range selection for spreadsheet-like behavior, or row selection for table-like interactions.
+</Callout>
+
+## API Methods
+
+### Selecting Cells
+
+```js title="cell-selection.js"
+// Select a single cell
+grid.selectCell(row, col);
+
+// Add to existing selection (additive mode)
+grid.selectCell(row, col, true);
+```
+
+### Selecting Rows
+
+```js title="row-selection.js"
+// Select a range of rows
+grid.selectRows(startRow, endRow);
+
+// Add rows to existing selection
+grid.selectRows(startRow, endRow, true);
+```
+
+### Selecting Columns
+
+```js title="column-selection.js"
+// Select a range of columns
+grid.selectColumns(startCol, endCol);
+
+// Add columns to existing selection
+grid.selectColumns(startCol, endCol, true);
+```
+
+### Selecting Ranges
+
+```js title="range-selection.js"
+// Select a rectangular range
+grid.selectRange(startRow, startCol, endRow, endCol);
+
+// Add range to existing selection
+grid.selectRange(startRow, startCol, endRow, endCol, true);
+```
+
+## Querying Selection State
+
+```js title="query-selection.js"
+// Check if a cell is selected
+const isSelected = grid.isSelected(row, col);
+
+// Check if a row is selected
+const rowSelected = grid.isRowSelected(row);
+
+// Check if a column is selected
+const colSelected = grid.isColumnSelected(col);
+
+// Get all selected ranges
+const ranges = grid.getSelectedRanges();
+// Returns: [{ startRow, startCol, endRow, endCol }, ...]
+
+// Get selected rows
+const rows = grid.getSelectedRows();
+
+// Get selected columns
+const columns = grid.getSelectedColumns();
+
+// Check if any selection exists
+const hasSelection = grid.hasSelection();
+
+// Get selection count
+const count = grid.selectionCount;
+```
+
+## Managing Selection
+
+```js title="manage-selection.js"
+// Clear all selections
+grid.clearSelection();
+
+// Change selection mode dynamically
+grid.setMode('single'); // or 'multiple'
+```
+
+<Callout type="info">
+When switching from multiple to single mode, only the most recent selection is retained.
+</Callout>
+
+## Events
+
+Listen to selection changes with these events:
+
+```js title="selection-events.js"
+grid.on('selection:change', (event) => {
+  console.log('Selection changed:', event.ranges);
+});
+
+grid.on('selection:start', (event) => {
+  console.log('Selection started at:', event.cell);
+});
+
+grid.on('selection:end', (event) => {
+  console.log('Selection ended at:', event.cell);
+});
+```
+
+## Keyboard Navigation
+
+<Callout type="tip">
+Selection supports standard keyboard shortcuts: arrow keys for navigation, Shift+arrows for range extension, and Ctrl+A for select all.
+</Callout>
+
+## Example: Multi-Range Selection
+
+```js title="multi-range-example.js"
+const grid = new ZenGrid(container, {
+  enableSelection: true,
+  enableMultiSelection: true,
+  selectionType: 'range'
+});
+
+// Select first range
+grid.selectRange(0, 0, 2, 2);
+
+// Add second range (additive)
+grid.selectRange(5, 5, 7, 7, true);
+
+// Get all selections
+const ranges = grid.getSelectedRanges();
+console.log(ranges.length); // 2
+```

@@ -1,0 +1,962 @@
+---
+title: Events
+description: Complete reference for all grid events with payload types and usage examples.
+order: 19
+category: API Reference
+tags: [api, events, callbacks]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Events
+
+ZenGrid provides a comprehensive event system for responding to user interactions and grid state changes.
+
+## Event Registration
+
+```typescript title="Registering event listeners"
+// Register an event listener
+const unsubscribe = grid.on('cell:click', (event) => {
+  console.log('Cell clicked:', event.cell, event.value);
+});
+
+// Unregister when done
+unsubscribe();
+
+// Or use off()
+grid.off('cell:click', handler);
+```
+
+<Callout type="tip">
+All event listeners return an unsubscribe function for easy cleanup.
+</Callout>
+
+## Cell Events
+
+### cell:click
+
+Fired when a cell is clicked.
+
+```typescript title="Cell click event"
+grid.on('cell:click', (event) => {
+  console.log('Cell:', event.cell);
+  console.log('Value:', event.value);
+  console.log('Native event:', event.nativeEvent);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates `{ row, col }`
+- `value: any` - Cell value
+- `nativeEvent: MouseEvent` - Browser mouse event
+
+### cell:doubleClick
+
+Fired when a cell is double-clicked.
+
+```typescript title="Cell double-click event"
+grid.on('cell:doubleClick', (event) => {
+  console.log('Cell double-clicked:', event.cell);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `value: any` - Cell value
+- `nativeEvent: MouseEvent` - Browser mouse event
+
+### cell:contextMenu
+
+Fired when a cell is right-clicked.
+
+```typescript title="Cell context menu event"
+grid.on('cell:contextMenu', (event) => {
+  event.nativeEvent.preventDefault();
+  // Show custom context menu
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `value: any` - Cell value
+- `nativeEvent: MouseEvent` - Browser mouse event
+
+### cell:change
+
+Fired when a cell value changes.
+
+```typescript title="Cell change event"
+grid.on('cell:change', (event) => {
+  console.log('Cell changed:', event.cell);
+  console.log('Old value:', event.oldValue);
+  console.log('New value:', event.newValue);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `oldValue: any` - Previous value
+- `newValue: any` - New value
+
+### cell:beforeChange
+
+Fired before a cell value changes. Can be cancelled.
+
+```typescript title="Cell before change event"
+grid.on('cell:beforeChange', (event) => {
+  if (event.newValue < 0) {
+    event.cancel = true; // Cancel the change
+  }
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `oldValue: any` - Current value
+- `newValue: any` - Proposed new value
+- `cancel: boolean` - Set to `true` to cancel the change
+
+### cell:afterChange
+
+Fired after a cell value changes.
+
+```typescript title="Cell after change event"
+grid.on('cell:afterChange', (event) => {
+  console.log('Cell updated:', event.cell);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `oldValue: any` - Previous value
+- `newValue: any` - New value
+
+## Selection Events
+
+### selection:change
+
+Fired when the selection changes.
+
+```typescript title="Selection change event"
+grid.on('selection:change', (event) => {
+  console.log('Current selection:', event.ranges);
+  console.log('Previous selection:', event.previousRanges);
+});
+```
+
+**Payload:**
+- `ranges: CellRange[]` - Array of selected ranges
+- `previousRanges: CellRange[]` - Previous selection
+
+### selection:start
+
+Fired when a selection starts.
+
+```typescript title="Selection start event"
+grid.on('selection:start', (event) => {
+  console.log('Selection started at:', event.startCell);
+});
+```
+
+**Payload:**
+- `startCell: CellRef` - Starting cell
+
+### selection:end
+
+Fired when a selection ends.
+
+```typescript title="Selection end event"
+grid.on('selection:end', (event) => {
+  console.log('Final selection:', event.ranges);
+});
+```
+
+**Payload:**
+- `ranges: CellRange[]` - Final selection ranges
+
+## Editing Events
+
+### edit:start
+
+Fired when cell editing starts.
+
+```typescript title="Edit start event"
+grid.on('edit:start', (event) => {
+  console.log('Editing cell:', event.cell);
+  console.log('Current value:', event.value);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell being edited
+- `value: any` - Current cell value
+
+### edit:end
+
+Fired when cell editing ends.
+
+```typescript title="Edit end event"
+grid.on('edit:end', (event) => {
+  console.log('Editing ended:', event.cell);
+  console.log('Cancelled:', event.cancelled);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell that was edited
+- `value: any` - Final value
+- `cancelled: boolean` - Whether editing was cancelled
+
+### edit:commit
+
+Fired when an edit is committed.
+
+```typescript title="Edit commit event"
+grid.on('edit:commit', (event) => {
+  console.log('Value committed:', event.newValue);
+  // Send to server
+  saveToServer(event.cell, event.newValue);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `oldValue: any` - Previous value
+- `newValue: any` - Committed value
+
+### edit:cancel
+
+Fired when an edit is cancelled.
+
+```typescript title="Edit cancel event"
+grid.on('edit:cancel', (event) => {
+  console.log('Edit cancelled for:', event.cell);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Cell coordinates
+- `value: any` - Unchanged value
+
+## Scroll Events
+
+### scroll
+
+Fired when the grid is scrolled.
+
+```typescript title="Scroll event"
+grid.on('scroll', (event) => {
+  console.log('Scroll position:', event.scrollTop, event.scrollLeft);
+  console.log('Visible range:', event.visibleRange);
+});
+```
+
+**Payload:**
+- `scrollTop: number` - Vertical scroll position
+- `scrollLeft: number` - Horizontal scroll position
+- `visibleRange: VisibleRange` - Currently visible cell range
+
+### scroll:start
+
+Fired when scrolling starts.
+
+```typescript title="Scroll start event"
+grid.on('scroll:start', () => {
+  console.log('Scrolling started');
+});
+```
+
+**Payload:** None
+
+### scroll:end
+
+Fired when scrolling ends.
+
+```typescript title="Scroll end event"
+grid.on('scroll:end', () => {
+  console.log('Scrolling ended');
+});
+```
+
+**Payload:** None
+
+## Sort Events
+
+### sort:change
+
+Fired when the sort state changes.
+
+```typescript title="Sort change event"
+grid.on('sort:change', (event) => {
+  console.log('Current sort:', event.sortState);
+  console.log('Previous sort:', event.previousSortState);
+});
+```
+
+**Payload:**
+- `sortState: SortState[]` - Current sort state
+- `previousSortState: SortState[]` - Previous sort state
+
+### sort:beforeSort
+
+Fired before sorting is applied. Can be cancelled.
+
+```typescript title="Sort before sort event"
+grid.on('sort:beforeSort', (event) => {
+  if (event.sortState.length > 3) {
+    event.cancel = true; // Limit to 3 sort columns
+  }
+});
+```
+
+**Payload:**
+- `sortState: SortState[]` - Proposed sort state
+- `cancel: boolean` - Set to `true` to cancel sorting
+
+### sort:afterSort
+
+Fired after sorting is applied.
+
+```typescript title="Sort after sort event"
+grid.on('sort:afterSort', (event) => {
+  console.log('Sorting complete');
+  console.log('Rows affected:', event.rowsAffected);
+});
+```
+
+**Payload:**
+- `sortState: SortState[]` - Applied sort state
+- `rowsAffected: number` - Number of rows sorted
+
+## Filter Events
+
+### filter:change
+
+Fired when the filter state changes.
+
+```typescript title="Filter change event"
+grid.on('filter:change', (event) => {
+  console.log('Current filters:', event.filterState);
+  console.log('Previous filters:', event.previousFilterState);
+});
+```
+
+**Payload:**
+- `filterState: FilterModel[]` - Current filter state
+- `previousFilterState: FilterModel[]` - Previous filter state
+
+### filter:beforeFilter
+
+Fired before filtering is applied. Can be cancelled.
+
+```typescript title="Filter before filter event"
+grid.on('filter:beforeFilter', (event) => {
+  // Validate filter state
+  if (!isValidFilter(event.filterState)) {
+    event.cancel = true;
+  }
+});
+```
+
+**Payload:**
+- `filterState: FilterModel[]` - Proposed filter state
+- `cancel: boolean` - Set to `true` to cancel filtering
+
+### filter:afterFilter
+
+Fired after filtering is applied.
+
+```typescript title="Filter after filter event"
+grid.on('filter:afterFilter', (event) => {
+  console.log('Rows visible:', event.rowsVisible);
+  console.log('Rows hidden:', event.rowsHidden);
+});
+```
+
+**Payload:**
+- `filterState: FilterModel[]` - Applied filter state
+- `rowsVisible: number` - Number of visible rows
+- `rowsHidden: number` - Number of hidden rows
+
+### filter:export
+
+Fired when filter state is exported.
+
+```typescript title="Filter export event"
+grid.on('filter:export', (event) => {
+  console.log('SQL:', event.sql);
+  console.log('REST:', event.rest);
+  console.log('GraphQL:', event.graphql);
+});
+```
+
+**Payload:**
+- `state: FilterModel[]` - Current filter state
+- `rest: object` - REST API format
+- `graphql: object` - GraphQL format
+- `sql: string` - SQL WHERE clause
+- `previousState: FilterModel[]` - Previous filter state
+
+## Focus Events
+
+### focus:change
+
+Fired when focus moves to a different cell.
+
+```typescript title="Focus change event"
+grid.on('focus:change', (event) => {
+  console.log('Focus moved to:', event.cell);
+  console.log('Previous focus:', event.previousCell);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Newly focused cell
+- `previousCell: CellRef | null` - Previously focused cell
+
+### focus:in
+
+Fired when a cell receives focus.
+
+```typescript title="Focus in event"
+grid.on('focus:in', (event) => {
+  console.log('Cell focused:', event.cell);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Focused cell
+
+### focus:out
+
+Fired when a cell loses focus.
+
+```typescript title="Focus out event"
+grid.on('focus:out', (event) => {
+  console.log('Cell blurred:', event.cell);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Blurred cell
+
+## Keyboard Events
+
+### key:down
+
+Fired when a key is pressed while the grid has focus.
+
+```typescript title="Key down event"
+grid.on('key:down', (event) => {
+  if (event.key === 'Delete') {
+    event.preventDefault();
+    // Custom delete logic
+  }
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Focused cell
+- `key: string` - Key pressed
+- `nativeEvent: KeyboardEvent` - Browser keyboard event
+- `preventDefault: () => void` - Prevent default behavior
+
+### key:up
+
+Fired when a key is released.
+
+```typescript title="Key up event"
+grid.on('key:up', (event) => {
+  console.log('Key released:', event.key);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Focused cell
+- `key: string` - Key released
+- `nativeEvent: KeyboardEvent` - Browser keyboard event
+
+### key:press
+
+Fired when a key press produces a character.
+
+```typescript title="Key press event"
+grid.on('key:press', (event) => {
+  console.log('Character:', event.key);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Focused cell
+- `key: string` - Character produced
+- `nativeEvent: KeyboardEvent` - Browser keyboard event
+
+## Clipboard Events
+
+### copy
+
+Fired when content is copied.
+
+```typescript title="Copy event"
+grid.on('copy', (event) => {
+  console.log('Copied ranges:', event.ranges);
+  console.log('Data:', event.data);
+});
+```
+
+**Payload:**
+- `ranges: CellRange[]` - Copied ranges
+- `data: string` - Copied data (TSV format)
+
+### cut
+
+Fired when content is cut.
+
+```typescript title="Cut event"
+grid.on('cut', (event) => {
+  console.log('Cut ranges:', event.ranges);
+});
+```
+
+**Payload:**
+- `ranges: CellRange[]` - Cut ranges
+- `data: string` - Cut data (TSV format)
+
+### paste
+
+Fired when content is pasted.
+
+```typescript title="Paste event"
+grid.on('paste', (event) => {
+  console.log('Paste target:', event.cell);
+  console.log('Pasted data:', event.data);
+});
+```
+
+**Payload:**
+- `cell: CellRef` - Paste target cell
+- `data: string[][]` - Pasted data
+
+## Lifecycle Events
+
+### render:start
+
+Fired when rendering starts.
+
+```typescript title="Render start event"
+grid.on('render:start', () => {
+  console.log('Rendering started');
+});
+```
+
+**Payload:** None
+
+### render:end
+
+Fired when rendering completes.
+
+```typescript title="Render end event"
+grid.on('render:end', (event) => {
+  console.log('Render duration:', event.duration, 'ms');
+});
+```
+
+**Payload:**
+- `timestamp: number` - Completion timestamp
+- `duration: number` - Render duration in milliseconds
+
+### data:load
+
+Fired when data is loaded.
+
+```typescript title="Data load event"
+grid.on('data:load', (event) => {
+  console.log('Loaded:', event.rowCount, 'rows,', event.colCount, 'columns');
+});
+```
+
+**Payload:**
+- `rowCount: number` - Number of rows loaded
+- `colCount: number` - Number of columns loaded
+
+### data:change
+
+Fired when the underlying data changes.
+
+```typescript title="Data change event"
+grid.on('data:change', () => {
+  console.log('Data has changed');
+});
+```
+
+**Payload:** None
+
+### destroy
+
+Fired when the grid is destroyed.
+
+```typescript title="Destroy event"
+grid.on('destroy', () => {
+  console.log('Grid destroyed');
+});
+```
+
+**Payload:** None
+
+## Loading Events
+
+### loading:start
+
+Fired when a loading operation starts.
+
+```typescript title="Loading start event"
+grid.on('loading:start', () => {
+  console.log('Loading started');
+});
+```
+
+**Payload:** None
+
+### loading:end
+
+Fired when a loading operation completes.
+
+```typescript title="Loading end event"
+grid.on('loading:end', () => {
+  console.log('Loading completed');
+});
+```
+
+**Payload:** None
+
+### loading:progress
+
+Fired to report loading progress.
+
+```typescript title="Loading progress event"
+grid.on('loading:progress', (event) => {
+  console.log('Progress:', event.progress, '%');
+});
+```
+
+**Payload:**
+- `progress: number` - Progress percentage (0-100)
+
+## Column Events
+
+### column:resize
+
+Fired when a column is resized.
+
+```typescript title="Column resize event"
+grid.on('column:resize', (event) => {
+  console.log('Column', event.column, 'resized');
+  console.log('Old width:', event.oldWidth);
+  console.log('New width:', event.newWidth);
+});
+```
+
+**Payload:**
+- `column: number` - Column index
+- `oldWidth: number` - Previous width
+- `newWidth: number` - New width
+
+### column:move
+
+Fired when a column is moved.
+
+```typescript title="Column move event"
+grid.on('column:move', (event) => {
+  console.log('Column moved from', event.oldIndex, 'to', event.newIndex);
+});
+```
+
+**Payload:**
+- `column: number` - Column index
+- `oldIndex: number` - Previous position
+- `newIndex: number` - New position
+
+### column:hide
+
+Fired when a column is hidden.
+
+```typescript title="Column hide event"
+grid.on('column:hide', (event) => {
+  console.log('Column hidden:', event.column);
+});
+```
+
+**Payload:**
+- `column: number` - Column index
+
+### column:show
+
+Fired when a column is shown.
+
+```typescript title="Column show event"
+grid.on('column:show', (event) => {
+  console.log('Column shown:', event.column);
+});
+```
+
+**Payload:**
+- `column: number` - Column index
+
+### column:dragStart
+
+Fired when column drag starts.
+
+```typescript title="Column drag start event"
+grid.on('column:dragStart', (event) => {
+  console.log('Dragging column:', event.column);
+});
+```
+
+**Payload:**
+- `column: number` - Column being dragged
+
+### column:drag
+
+Fired during column drag.
+
+```typescript title="Column drag event"
+grid.on('column:drag', (event) => {
+  console.log('Drag position:', event.x, event.y);
+});
+```
+
+**Payload:**
+- `column: number` - Column being dragged
+- `x: number` - Current X position
+- `y: number` - Current Y position
+
+### column:dragEnd
+
+Fired when column drag ends successfully.
+
+```typescript title="Column drag end event"
+grid.on('column:dragEnd', (event) => {
+  console.log('Column dropped at:', event.newIndex);
+});
+```
+
+**Payload:**
+- `column: number` - Column that was dragged
+- `oldIndex: number` - Starting position
+- `newIndex: number` - Final position
+
+### column:dragCancel
+
+Fired when column drag is cancelled.
+
+```typescript title="Column drag cancel event"
+grid.on('column:dragCancel', (event) => {
+  console.log('Drag cancelled for column:', event.column);
+});
+```
+
+**Payload:**
+- `column: number` - Column that was being dragged
+
+## Header Events
+
+### header:click
+
+Fired when a header is clicked.
+
+```typescript title="Header click event"
+grid.on('header:click', (event) => {
+  console.log('Header clicked:', event.columnIndex);
+  console.log('Column definition:', event.column);
+});
+```
+
+**Payload:**
+- `columnIndex: number` - Column index
+- `column: ColumnDef` - Column definition
+- `nativeEvent: MouseEvent` - Browser mouse event
+
+### header:doubleClick
+
+Fired when a header is double-clicked.
+
+```typescript title="Header double-click event"
+grid.on('header:doubleClick', (event) => {
+  // Auto-fit column on double-click
+  grid.autoFitColumn(event.columnIndex);
+});
+```
+
+**Payload:**
+- `columnIndex: number` - Column index
+- `column: ColumnDef` - Column definition
+- `nativeEvent: MouseEvent` - Browser mouse event
+
+### header:contextMenu
+
+Fired when a header is right-clicked.
+
+```typescript title="Header context menu event"
+grid.on('header:contextMenu', (event) => {
+  event.nativeEvent.preventDefault();
+  // Show column menu
+});
+```
+
+**Payload:**
+- `columnIndex: number` - Column index
+- `column: ColumnDef` - Column definition
+- `nativeEvent: MouseEvent` - Browser mouse event
+
+### header:hover
+
+Fired when a header is hovered.
+
+```typescript title="Header hover event"
+grid.on('header:hover', (event) => {
+  console.log('Hovering column:', event.columnIndex);
+});
+```
+
+**Payload:**
+- `columnIndex: number` - Column index
+- `column: ColumnDef` - Column definition
+
+### header:sort:click
+
+Fired when a sort icon in the header is clicked.
+
+```typescript title="Header sort click event"
+grid.on('header:sort:click', (event) => {
+  console.log('Sort clicked for column:', event.columnIndex);
+});
+```
+
+**Payload:**
+- `columnIndex: number` - Column index
+
+### header:filter:click
+
+Fired when a filter icon in the header is clicked.
+
+```typescript title="Header filter click event"
+grid.on('header:filter:click', (event) => {
+  console.log('Filter clicked for column:', event.columnIndex);
+});
+```
+
+**Payload:**
+- `columnIndex: number` - Column index
+
+### header:checkbox:change
+
+Fired when a header checkbox changes (for row selection).
+
+```typescript title="Header checkbox change event"
+grid.on('header:checkbox:change', (event) => {
+  console.log('Select all:', event.checked);
+});
+```
+
+**Payload:**
+- `checked: boolean` - Checkbox state
+
+## Row Events
+
+### row:insert
+
+Fired when a row is inserted.
+
+```typescript title="Row insert event"
+grid.on('row:insert', (event) => {
+  console.log('Row inserted at:', event.rowIndex);
+});
+```
+
+**Payload:**
+- `rowIndex: number` - Inserted row index
+
+### row:delete
+
+Fired when a row is deleted.
+
+```typescript title="Row delete event"
+grid.on('row:delete', (event) => {
+  console.log('Row deleted:', event.rowIndex);
+});
+```
+
+**Payload:**
+- `rowIndex: number` - Deleted row index
+
+### row:move
+
+Fired when a row is moved.
+
+```typescript title="Row move event"
+grid.on('row:move', (event) => {
+  console.log('Row moved from', event.oldIndex, 'to', event.newIndex);
+});
+```
+
+**Payload:**
+- `oldIndex: number` - Previous position
+- `newIndex: number` - New position
+
+## Undo-Redo Events
+
+### undo-redo:change
+
+Fired when the undo/redo state changes.
+
+```typescript title="Undo-redo change event"
+grid.on('undo-redo:change', (event) => {
+  console.log('Can undo:', event.canUndo);
+  console.log('Can redo:', event.canRedo);
+  console.log('Undo stack size:', event.undoCount);
+  console.log('Redo stack size:', event.redoCount);
+});
+```
+
+**Payload:**
+- `canUndo: boolean` - Whether undo is available
+- `canRedo: boolean` - Whether redo is available
+- `undoCount: number` - Number of undo operations available
+- `redoCount: number` - Number of redo operations available
+
+## Error Events
+
+### error
+
+Fired when an error occurs.
+
+```typescript title="Error event"
+grid.on('error', (event) => {
+  console.error('Grid error:', event.message);
+  console.error('Error object:', event.error);
+  console.error('Context:', event.context);
+});
+```
+
+**Payload:**
+- `message: string` - Error message
+- `error: Error` - Error object
+- `context?: object` - Additional context
+
+### warning
+
+Fired when a warning occurs.
+
+```typescript title="Warning event"
+grid.on('warning', (event) => {
+  console.warn('Grid warning:', event.message);
+});
+```
+
+**Payload:**
+- `message: string` - Warning message
+- `context?: object` - Additional context
+
+<Callout type="info">
+All events support multiple listeners. Listeners are called in the order they were registered.
+</Callout>

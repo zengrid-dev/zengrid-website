@@ -1,0 +1,418 @@
+---
+title: Built-in Cell Renderers
+description: Built-in cell renderers for text, numbers, buttons, checkboxes, dates, and more.
+order: 29
+category: Rendering
+tags: [renderers, cells, built-in]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides a comprehensive set of built-in cell renderers for common data types and UI components. These renderers handle the display of cell values with formatting, styling, and interactive elements.
+
+## TextRenderer
+
+Plain text display renderer for string values.
+
+```ts title="Using TextRenderer"
+const grid = new Grid({
+  columns: [
+    { field: 'name', header: 'Name', renderer: 'text' }
+  ]
+});
+```
+
+## NumberRenderer
+
+Numeric formatting renderer with locale support and precision control.
+
+```ts title="Using NumberRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'price',
+      header: 'Price',
+      renderer: 'number',
+      format: {
+        decimals: 2,
+        locale: 'en-US',
+        prefix: '$'
+      }
+    }
+  ]
+});
+```
+
+## ButtonRenderer
+
+Interactive button renderer with multiple variants and sizes.
+
+```ts title="ButtonRenderer Configuration"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'action',
+      header: 'Action',
+      renderer: new ButtonRenderer({
+        label: 'Edit',
+        className: 'btn-edit',
+        onClick: (cell, event) => {
+          console.log('Button clicked', cell);
+        },
+        disabled: false,
+        icon: 'pencil',
+        variant: 'primary', // 'button' | 'primary' | 'secondary' | 'danger' | 'success' | 'warning'
+        size: 'medium' // 'small' | 'medium' | 'large'
+      })
+    }
+  ]
+});
+```
+
+<Callout type="tip">
+The `variant` option allows you to style buttons according to their purpose: primary actions, destructive operations (danger), or informational buttons.
+</Callout>
+
+## CheckboxRenderer
+
+Checkbox renderer for boolean values with tri-state support.
+
+```ts title="CheckboxRenderer Configuration"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'selected',
+      header: 'Select',
+      renderer: new CheckboxRenderer({
+        checkedValue: true,
+        uncheckedValue: false,
+        disabled: false,
+        indeterminate: false,
+        onChange: (cell, checked) => {
+          console.log('Checkbox changed', cell, checked);
+        },
+        className: 'custom-checkbox'
+      })
+    }
+  ]
+});
+```
+
+### Configuration Options
+
+- **checkedValue** - Value representing checked state (default: `true`)
+- **uncheckedValue** - Value representing unchecked state (default: `false`)
+- **disabled** - Disable checkbox interaction
+- **indeterminate** - Enable tri-state checkbox
+- **onChange** - Callback when checkbox state changes
+- **className** - Custom CSS class
+
+## ChipRenderer
+
+Tag or chip display renderer with color variants.
+
+```ts title="Using ChipRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'status',
+      header: 'Status',
+      renderer: 'chip',
+      chipColors: {
+        active: 'green',
+        pending: 'yellow',
+        inactive: 'gray'
+      }
+    }
+  ]
+});
+```
+
+## LinkRenderer
+
+Hyperlink renderer for clickable URLs.
+
+```ts title="Using LinkRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'website',
+      header: 'Website',
+      renderer: 'link',
+      linkTarget: '_blank',
+      linkText: (value) => `Visit ${value}`
+    }
+  ]
+});
+```
+
+## ProgressBarRenderer
+
+Progress bar renderer with percentage display.
+
+```ts title="Using ProgressBarRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'progress',
+      header: 'Progress',
+      renderer: 'progressbar',
+      progressOptions: {
+        min: 0,
+        max: 100,
+        showPercentage: true,
+        color: 'blue'
+      }
+    }
+  ]
+});
+```
+
+<Callout type="info">
+Progress bars automatically calculate percentage based on the value relative to the min/max range.
+</Callout>
+
+## SelectRenderer
+
+Select display renderer for dropdown values.
+
+```ts title="Using SelectRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'category',
+      header: 'Category',
+      renderer: 'select',
+      options: ['Electronics', 'Clothing', 'Food', 'Books']
+    }
+  ]
+});
+```
+
+## DropdownRenderer
+
+Dropdown display renderer with custom options.
+
+```ts title="Using DropdownRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'priority',
+      header: 'Priority',
+      renderer: 'dropdown',
+      dropdownOptions: {
+        options: [
+          { value: 1, label: 'Low' },
+          { value: 2, label: 'Medium' },
+          { value: 3, label: 'High' }
+        ]
+      }
+    }
+  ]
+});
+```
+
+## DateRenderer
+
+Date formatting renderer with locale support.
+
+```ts title="Using DateRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'createdAt',
+      header: 'Created',
+      renderer: 'date',
+      dateFormat: 'MM/DD/YYYY',
+      locale: 'en-US'
+    }
+  ]
+});
+```
+
+## DateTime Renderers
+
+Suite of datetime renderers for date, time, and datetime values.
+
+### DatePickerRenderer
+
+```ts title="Using DatePickerRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'dueDate',
+      header: 'Due Date',
+      renderer: 'datepicker',
+      dateOptions: {
+        format: 'YYYY-MM-DD',
+        minDate: new Date('2024-01-01')
+      }
+    }
+  ]
+});
+```
+
+### TimePickerRenderer
+
+```ts title="Using TimePickerRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'startTime',
+      header: 'Start Time',
+      renderer: 'timepicker',
+      timeOptions: {
+        format: '24h',
+        step: 15
+      }
+    }
+  ]
+});
+```
+
+### DateTimePickerRenderer
+
+```ts title="Using DateTimePickerRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'timestamp',
+      header: 'Timestamp',
+      renderer: 'datetimepicker',
+      dateTimeOptions: {
+        dateFormat: 'YYYY-MM-DD',
+        timeFormat: '24h'
+      }
+    }
+  ]
+});
+```
+
+## DateRangeRenderer
+
+Date range display renderer for start and end dates.
+
+```ts title="Using DateRangeRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'period',
+      header: 'Period',
+      renderer: 'daterange',
+      rangeFormat: 'MM/DD/YYYY',
+      separator: ' - '
+    }
+  ]
+});
+```
+
+## ImageRenderer
+
+Image display renderer with thumbnail support.
+
+```ts title="Using ImageRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'avatar',
+      header: 'Avatar',
+      renderer: 'image',
+      imageOptions: {
+        width: 40,
+        height: 40,
+        fallback: '/default-avatar.png',
+        alt: 'User avatar'
+      }
+    }
+  ]
+});
+```
+
+## AdvancedCellRenderer
+
+Multi-element cell renderer with flexible layout support.
+
+```ts title="Using AdvancedCellRenderer"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'user',
+      header: 'User',
+      renderer: new AdvancedCellRenderer({
+        template: (data) => `
+          <div class="user-cell">
+            <img src="${data.avatar}" alt="${data.name}" />
+            <div>
+              <div class="name">${data.name}</div>
+              <div class="email">${data.email}</div>
+            </div>
+          </div>
+        `,
+        className: 'advanced-user-cell'
+      })
+    }
+  ]
+});
+```
+
+<Callout type="tip">
+AdvancedCellRenderer is ideal for complex cell layouts that combine multiple data fields with custom HTML structure.
+</Callout>
+
+## Renderer Registration
+
+You can register renderers by name or provide renderer instances directly.
+
+### By Name
+
+```ts title="Register by Name"
+const grid = new Grid({
+  columns: [
+    { field: 'status', renderer: 'checkbox' }
+  ]
+});
+```
+
+### By Instance
+
+```ts title="Register by Instance"
+const grid = new Grid({
+  columns: [
+    {
+      field: 'status',
+      renderer: new CheckboxRenderer({
+        checkedValue: 'active',
+        uncheckedValue: 'inactive'
+      })
+    }
+  ]
+});
+```
+
+## RenderParams
+
+All renderers receive a `RenderParams` object containing:
+
+```ts title="RenderParams Interface"
+interface RenderParams {
+  cell: CellRef;           // Cell reference (row, col)
+  position: CellPosition;  // Cell position (x, y, width, height)
+  value: any;              // Cell value
+  column?: ColumnDef;      // Column definition
+  rowData?: any;           // Full row data object
+  isSelected: boolean;     // Selection state
+  isActive: boolean;       // Active cell state
+  isEditing: boolean;      // Editing state
+}
+```
+
+<Callout type="info">
+Use `RenderParams` to access cell context and conditionally style or modify rendering based on cell state.
+</Callout>
+
+## Performance Considerations
+
+- Built-in renderers are optimized for virtual scrolling
+- Renderers reuse DOM elements when cells scroll
+- Avoid heavy computations in render methods
+- Cache rendered elements when possible

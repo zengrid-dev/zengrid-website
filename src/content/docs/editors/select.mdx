@@ -1,0 +1,407 @@
+---
+title: Select Editor
+description: Select editor with dropdown option selection.
+order: 40
+category: Cell Editors
+tags: [editors, select, dropdown]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `SelectEditor` provides a native HTML select dropdown for choosing from a predefined list of options.
+
+## Basic Usage
+
+```ts title="Basic Select Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'status',
+    header: 'Status',
+    editor: 'select',
+    editorOptions: {
+      options: ['Active', 'Inactive', 'Pending']
+    }
+  }
+];
+```
+
+## Editor Options
+
+```ts title="SelectEditor Options"
+interface SelectEditorOptions {
+  options: Array<{ value: any; label: string }> | string[];
+  allowEmpty?: boolean;
+  placeholder?: string;
+}
+```
+
+## Option Formats
+
+### String Array
+
+The simplest format uses an array of strings:
+
+```ts title="String Options"
+{
+  field: 'status',
+  header: 'Status',
+  editor: 'select',
+  editorOptions: {
+    options: ['Active', 'Inactive', 'Pending']
+  }
+}
+// Value and label are the same
+```
+
+### Value-Label Objects
+
+Use objects when the stored value differs from the display label:
+
+```ts title="Value-Label Options"
+{
+  field: 'statusId',
+  header: 'Status',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: 1, label: 'Active' },
+      { value: 2, label: 'Inactive' },
+      { value: 3, label: 'Pending' }
+    ]
+  }
+}
+// Stores: 1, 2, or 3
+// Displays: Active, Inactive, or Pending
+```
+
+<Callout type="info">
+Use value-label objects when you need to store numeric IDs or codes while displaying user-friendly text.
+</Callout>
+
+## Empty Option
+
+Allow deselection with an empty option:
+
+```ts title="Allow Empty Selection"
+{
+  field: 'category',
+  header: 'Category',
+  editor: 'select',
+  editorOptions: {
+    options: ['Electronics', 'Clothing', 'Books'],
+    allowEmpty: true,
+    placeholder: '-- Select Category --'
+  }
+}
+```
+
+<Callout type="tip">
+When `allowEmpty` is true, a placeholder option is added at the top of the select list.
+</Callout>
+
+## Common Use Cases
+
+### Status Selection
+
+```ts title="Status Dropdown"
+{
+  field: 'orderStatus',
+  header: 'Order Status',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      'Pending',
+      'Processing',
+      'Shipped',
+      'Delivered',
+      'Cancelled'
+    ]
+  }
+}
+```
+
+### Priority Levels
+
+```ts title="Priority Selector"
+{
+  field: 'priority',
+  header: 'Priority',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: 1, label: 'Low' },
+      { value: 2, label: 'Medium' },
+      { value: 3, label: 'High' },
+      { value: 4, label: 'Critical' }
+    ]
+  }
+}
+```
+
+### Category Selection
+
+```ts title="Category Dropdown"
+{
+  field: 'category',
+  header: 'Category',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      'Technology',
+      'Finance',
+      'Healthcare',
+      'Education',
+      'Retail'
+    ],
+    allowEmpty: true,
+    placeholder: '-- No Category --'
+  }
+}
+```
+
+### Boolean as Select
+
+```ts title="Yes/No Dropdown"
+{
+  field: 'isApproved',
+  header: 'Approved',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: true, label: 'Yes' },
+      { value: false, label: 'No' }
+    ]
+  }
+}
+```
+
+## Keyboard Navigation
+
+The select editor supports native keyboard navigation:
+
+- **Arrow Up/Down**: Navigate through options
+- **Home/End**: Jump to first/last option
+- **Enter**: Commit selection and close
+- **Escape**: Cancel and close
+- **Tab**: Commit and move to next cell
+- **Type letters**: Jump to matching options
+
+<Callout type="tip">
+Users can quickly navigate by typing the first letter of an option repeatedly to cycle through matching options.
+</Callout>
+
+## Complete Examples
+
+### Task Status
+
+```ts title="Task Status Select"
+{
+  field: 'taskStatus',
+  header: 'Status',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      'To Do',
+      'In Progress',
+      'In Review',
+      'Done'
+    ]
+  }
+}
+```
+
+### Department Assignment
+
+```ts title="Department Select"
+{
+  field: 'departmentId',
+  header: 'Department',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: 'ENG', label: 'Engineering' },
+      { value: 'SAL', label: 'Sales' },
+      { value: 'MKT', label: 'Marketing' },
+      { value: 'HR', label: 'Human Resources' },
+      { value: 'FIN', label: 'Finance' }
+    ],
+    allowEmpty: true,
+    placeholder: '-- Unassigned --'
+  }
+}
+```
+
+### Severity Levels
+
+```ts title="Severity Select"
+{
+  field: 'severity',
+  header: 'Severity',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: 1, label: 'Minor' },
+      { value: 2, label: 'Moderate' },
+      { value: 3, label: 'Major' },
+      { value: 4, label: 'Critical' }
+    ]
+  }
+}
+```
+
+### Country Selection
+
+```ts title="Country Select"
+{
+  field: 'country',
+  header: 'Country',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: 'US', label: 'United States' },
+      { value: 'CA', label: 'Canada' },
+      { value: 'MX', label: 'Mexico' },
+      { value: 'UK', label: 'United Kingdom' },
+      { value: 'DE', label: 'Germany' },
+      { value: 'FR', label: 'France' }
+    ],
+    placeholder: '-- Select Country --',
+    allowEmpty: true
+  }
+}
+```
+
+## Dynamic Options
+
+Load options dynamically based on other data:
+
+```ts title="Dynamic Options Example"
+// Define column with function to generate options
+{
+  field: 'manager',
+  header: 'Manager',
+  editor: 'select',
+  editorOptions: {
+    options: getManagerOptions(), // Function returns option list
+    allowEmpty: true,
+    placeholder: '-- No Manager --'
+  }
+}
+
+function getManagerOptions() {
+  // Fetch or compute options dynamically
+  return [
+    { value: 1, label: 'John Smith' },
+    { value: 2, label: 'Jane Doe' },
+    { value: 3, label: 'Bob Johnson' }
+  ];
+}
+```
+
+## Styling
+
+The select editor uses native browser styling by default:
+
+```ts title="Custom Styling"
+{
+  editor: 'select',
+  editorOptions: {
+    options: ['Option 1', 'Option 2', 'Option 3']
+  }
+}
+```
+
+```css title="Custom CSS"
+/* Style the select element */
+.zengrid-cell-editor select {
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Style options */
+.zengrid-cell-editor select option {
+  padding: 8px;
+}
+```
+
+<Callout type="info">
+For advanced styling and features like search or multi-select, use the `DropdownEditor` instead.
+</Callout>
+
+## When to Use Select vs Dropdown
+
+### Use SelectEditor when:
+- You have a small number of options (< 20)
+- Options are static and simple
+- You want native browser behavior
+- You don't need search or multi-select
+- Mobile compatibility is important (native pickers)
+
+### Use DropdownEditor when:
+- You have many options (> 20)
+- You need search functionality
+- You need multi-select capability
+- You want custom styling
+- You need grouped options
+
+```ts title="Small List - Use Select"
+{
+  field: 'status',
+  editor: 'select',
+  editorOptions: {
+    options: ['Open', 'Closed', 'Pending']
+  }
+}
+```
+
+```ts title="Large List - Use Dropdown"
+{
+  field: 'country',
+  editor: 'dropdown',
+  editorOptions: {
+    options: [...195Countries],
+    searchable: true
+  }
+}
+```
+
+## Best Practices
+
+1. **Keep options concise**: Short, clear labels work best
+2. **Order logically**: Sort by frequency, importance, or alphabetically
+3. **Use value-label pairs**: When storing IDs but displaying names
+4. **Provide empty option**: When selection is optional
+5. **Use clear placeholders**: Help users understand the purpose
+6. **Limit option count**: Consider Dropdown editor for long lists
+
+```ts title="Well-Configured Select Editor"
+{
+  field: 'paymentStatus',
+  header: 'Payment Status',
+  editor: 'select',
+  editorOptions: {
+    options: [
+      { value: 'pending', label: 'Pending' },
+      { value: 'paid', label: 'Paid' },
+      { value: 'failed', label: 'Failed' },
+      { value: 'refunded', label: 'Refunded' }
+    ],
+    allowEmpty: false // Payment status is required
+  }
+}
+```
+
+## Accessibility
+
+The native select element provides built-in accessibility:
+
+- **Screen reader support**: Options are announced
+- **Keyboard navigation**: Full keyboard control
+- **Focus management**: Proper focus states
+- **ARIA attributes**: Native ARIA support
+
+<Callout type="tip">
+Native select elements are highly accessible out of the box, making them a good choice for simple dropdown needs.
+</Callout>

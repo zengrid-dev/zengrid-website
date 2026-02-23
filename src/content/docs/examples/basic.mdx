@@ -1,0 +1,170 @@
+---
+title: Basic Grid Example
+description: Minimal grid example with static data and column definitions.
+order: 43
+category: Examples
+tags: [examples, basic, getting-started]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+import BasicDemo from '../../../components/demos/BasicDemo.astro';
+
+This example shows how to create a minimal ZenGrid with static data and column definitions. This is the simplest way to get started with ZenGrid.
+
+<BasicDemo />
+
+## Complete Example
+
+```html title="index.html"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basic ZenGrid Example</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #grid-container {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="grid-container"></div>
+  <script type="module" src="main.ts"></script>
+</body>
+</html>
+```
+
+```typescript title="main.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+// Define column configuration
+const columns: Column[] = [
+  {
+    id: 'id',
+    header: 'ID',
+    width: 60,
+    frozen: true,
+  },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+  },
+  {
+    id: 'role',
+    header: 'Role',
+    width: 150,
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    width: 120,
+  },
+];
+
+// Grid configuration
+const options: GridOptions = {
+  columns,
+  rowCount: 100,
+  rowHeight: 40,
+  headerHeight: 44,
+
+  // Data callback - called for each visible cell
+  data: (rowIndex: number, colId: string) => {
+    switch (colId) {
+      case 'id':
+        return rowIndex + 1;
+      case 'name':
+        return `User ${rowIndex + 1}`;
+      case 'email':
+        return `user${rowIndex + 1}@example.com`;
+      case 'role':
+        return ['Admin', 'Editor', 'Viewer'][rowIndex % 3];
+      case 'status':
+        return ['Active', 'Inactive'][rowIndex % 2];
+      default:
+        return '';
+    }
+  },
+};
+
+// Create grid instance
+const container = document.getElementById('grid-container');
+if (!container) {
+  throw new Error('Grid container not found');
+}
+
+const grid = createGrid(container, options);
+
+// Optional: Log grid instance for debugging
+console.log('Grid created:', grid);
+```
+
+<Callout type="info">
+The `data` callback is called only for visible cells due to virtual scrolling. This ensures high performance even with millions of rows.
+</Callout>
+
+## Key Concepts
+
+### Column Definition
+
+Each column requires an `id` and `header`. The `width` property sets the initial column width in pixels.
+
+```typescript
+const column: Column = {
+  id: 'email',        // Unique identifier
+  header: 'Email',    // Display text
+  width: 250,         // Width in pixels
+};
+```
+
+### Data Callback
+
+The `data` function is called for each visible cell. It receives the row index and column ID, and returns the cell value.
+
+```typescript
+data: (rowIndex: number, colId: string) => {
+  if (colId === 'name') {
+    return `User ${rowIndex + 1}`;
+  }
+  return '';
+}
+```
+
+<Callout type="tip">
+Use the frozen property on columns to keep them visible during horizontal scrolling. This is useful for ID or name columns.
+</Callout>
+
+### Row Count
+
+The `rowCount` property tells ZenGrid how many rows exist. Only visible rows are rendered in the DOM.
+
+```typescript
+const options: GridOptions = {
+  rowCount: 100,  // Total number of rows
+  // ... other options
+};
+```
+
+## Next Steps
+
+- Add [sorting](/examples/sortable) to enable column sorting
+- Add [filtering](/examples/filterable) to filter data
+- Enable [editing](/examples/editable) for inline data editing
+- Scale to [millions of rows](/examples/million-rows) with virtual scrolling
+
+<Callout type="tip">
+Check the browser console for any errors. ZenGrid provides detailed error messages to help with debugging.
+</Callout>

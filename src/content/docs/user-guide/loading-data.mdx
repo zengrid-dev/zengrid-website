@@ -1,0 +1,329 @@
+---
+title: Loading Data
+description: Load data from arrays, callbacks, or backend APIs with ZenGrid's flexible data system.
+order: 6
+category: User Guide
+tags: [data, loading, backend, data-manager]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Loading Data
+
+ZenGrid provides flexible data loading strategies to handle various data sources, from in-memory arrays to backend APIs. Learn how to efficiently load and manage data in your grid.
+
+## Frontend Mode
+
+Frontend mode is ideal when you have all data available in memory. ZenGrid supports both array-based data and callback functions.
+
+### Array Data
+
+Use `setData()` to provide a 2D array of cell values:
+
+```ts title="array-data.ts"
+import { createGrid } from '@zengrid/core';
+
+const data = [
+  [1, 'Alice', 'active', 85],
+  [2, 'Bob', 'inactive', 42],
+  [3, 'Carol', 'active', 93]
+];
+
+const grid = createGrid({
+  container: document.getElementById('grid')!,
+  rowCount: data.length,
+  colCount: data[0].length,
+  columns: [
+    { field: 'id', header: 'ID', width: 80 },
+    { field: 'name', header: 'Name', width: 150 },
+    { field: 'status', header: 'Status', width: 120 },
+    { field: 'score', header: 'Score', width: 100 }
+  ]
+});
+
+grid.setData(data);
+grid.render();
+```
+
+### Data Callback
+
+For dynamic or computed values, use a callback function:
+
+```ts title="callback-data.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 10000,
+  colCount: 5,
+  data: (row, col) => {
+    // Compute value on-demand
+    switch (col) {
+      case 0: return row + 1;
+      case 1: return `User ${row}`;
+      case 2: return row % 2 === 0 ? 'active' : 'inactive';
+      case 3: return Math.floor(Math.random() * 100);
+      case 4: return new Date(Date.now() - row * 86400000);
+      default: return '';
+    }
+  }
+});
+```
+
+<Callout type="tip">
+The data callback is only invoked for visible cells, making it extremely efficient for large datasets with computed values.
+</Callout>
+
+## Backend Mode
+
+Backend mode is designed for server-side data sources where you fetch data on-demand based on the visible viewport.
+
+### Configuration
+
+Enable backend mode with `dataMode: 'backend'` and provide an `onDataRequest` handler:
+
+```ts title="backend-mode.ts"
+import { createGrid, DataLoadRequest, DataLoadResponse } from '@zengrid/core';
+
+const grid = createGrid({
+  container: element,
+  rowCount: 1000000, // Total rows on server
+  colCount: 10,
+  dataMode: 'backend',
+  onDataRequest: async (request: DataLoadRequest): Promise<DataLoadResponse> => {
+    const { startRow, endRow, startCol, endCol } = request;
+
+    // Fetch data from your API
+    const response = await fetch('/api/grid-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startRow,
+        endRow,
+        startCol,
+        endCol
+      })
+    });
+
+    const data = await response.json();
+
+    return {
+      data: data.rows, // 2D array of cell values
+      totalRows: data.totalCount
+    };
+  }
+});
+```
+
+### DataLoadRequest
+
+The request object contains viewport information:
+
+```ts title="data-request.ts"
+interface DataLoadRequest {
+  startRow: number;    // First visible row index
+  endRow: number;      // Last visible row index
+  startCol: number;    // First visible column index
+  endCol: number;      // Last visible column index
+  sortBy?: string;     // Optional sort column
+  sortDir?: 'asc' | 'desc'; // Optional sort direction
+  filters?: Filter[];  // Optional filter conditions
+}
+```
+
+### DataLoadResponse
+
+Return data and metadata from your handler:
+
+```ts title="data-response.ts"
+interface DataLoadResponse {
+  data: any[][];       // 2D array of cell values
+  totalRows?: number;  // Optional: update total row count
+  totalCols?: number;  // Optional: update total column count
+}
+```
+
+<Callout type="info">
+ZenGrid automatically manages request deduplication and cancellation. If the user scrolls quickly, pending requests are cancelled in favor of the latest viewport.
+</Callout>
+
+## Auto Mode
+
+Auto mode automatically detects the appropriate data mode based on your configuration:
+
+```ts title="auto-mode.ts"
+const grid = createGrid({
+  container: element,
+  rowCount: 5000,
+  colCount: 8,
+  dataMode: 'auto', // Auto-detect based on config
+  // If onDataRequest is provided, uses backend mode
+  // Otherwise uses frontend mode
+  onDataRequest: async (request) => {
+    // Backend data fetching
+    return { data: fetchedData };
+  }
+});
+```
+
+## DataManager
+
+The `DataManager` is ZenGrid's internal data controller that handles caching, request management, and data access.
+
+### Features
+
+- **Request deduplication** - Prevents duplicate requests for the same range
+- **Automatic cancellation** - Cancels obsolete requests when viewport changes
+- **Smart caching** - Caches loaded data for instant access
+- **Memory management** - Evicts old data based on cache policies
+
+### Manual Control
+
+Access the DataManager for advanced scenarios:
+
+```ts title="data-manager.ts"
+// Cancel all pending requests
+grid.dataManager.cancelPendingRequests();
+
+// Clear cached data
+grid.dataManager.clearCache();
+
+// Get current cache size
+const cacheSize = grid.dataManager.getCacheSize();
+```
+
+## Data Accessors
+
+ZenGrid uses data accessors to abstract different data storage formats. Choose the right accessor for your use case.
+
+### ArrayAccessor
+
+Default accessor for 2D array data:
+
+```ts title="array-accessor.ts"
+import { ArrayAccessor } from '@zengrid/core';
+
+const data = [
+  [1, 'Alice', 85],
+  [2, 'Bob', 92]
+];
+
+const accessor = new ArrayAccessor(data);
+const value = accessor.getValue(0, 1); // 'Alice'
+```
+
+### ColumnStoreAccessor
+
+Optimized for columnar data formats using `ColumnStore` from `@zengrid/shared`:
+
+```ts title="column-store.ts"
+import { ColumnStore } from '@zengrid/shared';
+import { ColumnStoreAccessor } from '@zengrid/core';
+
+const store = new ColumnStore({
+  id: [1, 2, 3, 4, 5],
+  name: ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
+  score: [85, 92, 78, 88, 95]
+});
+
+const accessor = new ColumnStoreAccessor(store);
+const value = accessor.getValue(1, 'name'); // 'Bob'
+```
+
+<Callout type="tip">
+ColumnStore provides better memory efficiency and cache locality for analytical workloads with many columns.
+</Callout>
+
+### SparseMatrixAccessor
+
+Efficient for sparse datasets where most cells are empty or default values:
+
+```ts title="sparse-matrix.ts"
+import { SparseMatrix } from '@zengrid/shared';
+import { SparseMatrixAccessor } from '@zengrid/core';
+
+const matrix = new SparseMatrix<number>(10000, 10000, 0); // default value: 0
+matrix.set(100, 50, 42);
+matrix.set(500, 200, 84);
+
+const accessor = new SparseMatrixAccessor(matrix);
+const value = accessor.getValue(100, 50); // 42
+const defaultValue = accessor.getValue(0, 0); // 0 (not stored)
+```
+
+<Callout type="info">
+SparseMatrix only stores non-default values, saving memory for datasets with low fill rates.
+</Callout>
+
+## Dynamic Row and Column Count
+
+Update the grid dimensions dynamically as data changes:
+
+```ts title="dynamic-size.ts"
+// Update row count
+grid.setRowCount(5000);
+
+// Update column count
+grid.setColCount(12);
+
+// Update both
+grid.updateOptions({
+  rowCount: 8000,
+  colCount: 15
+});
+
+grid.refresh();
+```
+
+## Complete Backend Example
+
+```ts title="backend-example.ts"
+import { createGrid, DataLoadRequest, DataLoadResponse } from '@zengrid/core';
+
+interface GridRow {
+  id: number;
+  name: string;
+  email: string;
+  status: string;
+  created: string;
+}
+
+const grid = createGrid({
+  container: document.getElementById('grid')!,
+  rowCount: 0, // Will be set by first response
+  colCount: 5,
+  dataMode: 'backend',
+  columns: [
+    { field: 'id', header: 'ID', width: 80, type: 'number' },
+    { field: 'name', header: 'Name', width: 150 },
+    { field: 'email', header: 'Email', width: 200 },
+    { field: 'status', header: 'Status', width: 120, type: 'chip' },
+    { field: 'created', header: 'Created', width: 140, type: 'date' }
+  ],
+  onDataRequest: async (request: DataLoadRequest): Promise<DataLoadResponse> => {
+    const { startRow, endRow } = request;
+
+    try {
+      const response = await fetch(`/api/users?start=${startRow}&end=${endRow}`);
+      const result = await response.json();
+
+      // Convert row objects to 2D array
+      const data = result.users.map((row: GridRow) => [
+        row.id,
+        row.name,
+        row.email,
+        row.status,
+        row.created
+      ]);
+
+      return {
+        data,
+        totalRows: result.totalCount
+      };
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      return { data: [] };
+    }
+  }
+});
+
+grid.render();
+```

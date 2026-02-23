@@ -1,0 +1,513 @@
+---
+title: Dropdown Editor
+description: Searchable dropdown editor with multi-select and LRU caching.
+order: 41
+category: Cell Editors
+tags: [editors, dropdown, searchable]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `DropdownEditor` provides an advanced searchable dropdown with multi-select support, grouped options, and LRU caching for optimal performance.
+
+## Basic Usage
+
+```ts title="Basic Dropdown Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'country',
+    header: 'Country',
+    editor: 'dropdown',
+    editorOptions: {
+      options: [
+        { value: 'US', label: 'United States' },
+        { value: 'CA', label: 'Canada' },
+        { value: 'MX', label: 'Mexico' }
+      ]
+    }
+  }
+];
+```
+
+## Editor Options
+
+```ts title="DropdownEditor Options"
+interface DropdownEditorOptions {
+  options: DropdownOption[];
+  searchable?: boolean;
+  multiSelect?: boolean;
+  allowCustom?: boolean;
+  placeholder?: string;
+  maxHeight?: number;
+  multiSelectDisplay?: 'tags' | 'count';
+  caseSensitiveSearch?: boolean;
+  maxVisibleOptions?: number;
+  required?: boolean;
+  className?: string;
+  autoFocus?: boolean;
+  selectAllOnFocus?: boolean;
+  validator?: (value: any) => boolean | string;
+  stopOnBlur?: boolean;
+}
+```
+
+## DropdownOption Interface
+
+```ts title="DropdownOption"
+interface DropdownOption {
+  value: any;
+  label: string;
+  group?: string; // Optional grouping
+}
+```
+
+## Searchable Dropdown
+
+Enable search to filter large option lists:
+
+```ts title="Searchable Dropdown"
+{
+  field: 'country',
+  header: 'Country',
+  editor: 'dropdown',
+  editorOptions: {
+    searchable: true,
+    options: [
+      { value: 'US', label: 'United States' },
+      { value: 'CA', label: 'Canada' },
+      { value: 'GB', label: 'United Kingdom' },
+      { value: 'DE', label: 'Germany' },
+      { value: 'FR', label: 'France' }
+      // ... more countries
+    ],
+    placeholder: 'Search countries...'
+  }
+}
+```
+
+### Case-Sensitive Search
+
+Control search sensitivity:
+
+```ts title="Case-Insensitive Search (Default)"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    searchable: true,
+    caseSensitiveSearch: false // "usa" matches "USA"
+  }
+}
+```
+
+```ts title="Case-Sensitive Search"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    searchable: true,
+    caseSensitiveSearch: true // "usa" does not match "USA"
+  }
+}
+```
+
+<Callout type="tip">
+Search results are cached using an LRU cache for improved performance when users repeatedly search the same terms.
+</Callout>
+
+## Multi-Select
+
+Enable selection of multiple values:
+
+```ts title="Multi-Select Dropdown"
+{
+  field: 'skills',
+  header: 'Skills',
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    options: [
+      { value: 'js', label: 'JavaScript' },
+      { value: 'ts', label: 'TypeScript' },
+      { value: 'py', label: 'Python' },
+      { value: 'java', label: 'Java' },
+      { value: 'go', label: 'Go' }
+    ],
+    placeholder: 'Select skills...'
+  }
+}
+```
+
+### Multi-Select Display Modes
+
+Control how selected items are displayed:
+
+```ts title="Display as Tags (Default)"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    multiSelectDisplay: 'tags', // Shows individual tags
+    options: [...]
+  }
+}
+// Displays: [JavaScript] [Python] [Go]
+```
+
+```ts title="Display as Count"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    multiSelectDisplay: 'count', // Shows count
+    options: [...]
+  }
+}
+// Displays: 3 items selected
+```
+
+<Callout type="info">
+Use `multiSelectDisplay: 'count'` when space is limited or when many items might be selected.
+</Callout>
+
+## Grouped Options
+
+Organize options into groups:
+
+```ts title="Grouped Options"
+{
+  field: 'technology',
+  header: 'Technology',
+  editor: 'dropdown',
+  editorOptions: {
+    searchable: true,
+    options: [
+      { value: 'react', label: 'React', group: 'Frontend' },
+      { value: 'vue', label: 'Vue', group: 'Frontend' },
+      { value: 'angular', label: 'Angular', group: 'Frontend' },
+      { value: 'node', label: 'Node.js', group: 'Backend' },
+      { value: 'django', label: 'Django', group: 'Backend' },
+      { value: 'spring', label: 'Spring', group: 'Backend' },
+      { value: 'postgres', label: 'PostgreSQL', group: 'Database' },
+      { value: 'mongo', label: 'MongoDB', group: 'Database' }
+    ]
+  }
+}
+```
+
+The dropdown displays groups as section headers.
+
+## Custom Values
+
+Allow users to enter custom values not in the option list:
+
+```ts title="Allow Custom Input"
+{
+  field: 'tags',
+  header: 'Tags',
+  editor: 'dropdown',
+  editorOptions: {
+    allowCustom: true,
+    multiSelect: true,
+    options: [
+      { value: 'important', label: 'Important' },
+      { value: 'urgent', label: 'Urgent' },
+      { value: 'review', label: 'Review' }
+    ],
+    placeholder: 'Select or type tags...'
+  }
+}
+```
+
+<Callout type="warning">
+When `allowCustom` is true, validate the input to ensure it meets your requirements.
+</Callout>
+
+## Dropdown Size
+
+Control the dropdown display:
+
+```ts title="Max Height"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    options: [...manyOptions],
+    maxHeight: 300, // Pixels
+    maxVisibleOptions: 10 // Number of visible options
+  }
+}
+```
+
+## Keyboard Navigation
+
+The dropdown editor supports extensive keyboard navigation:
+
+- **Arrow Up/Down**: Navigate through options
+- **Enter**: Select highlighted option (or commit if multi-select)
+- **Escape**: Close dropdown without selecting
+- **Tab**: Commit selection and move to next cell
+- **Type to search**: Filter options by typing
+- **Space**: Toggle selection (multi-select mode)
+- **Ctrl+A**: Select all (multi-select mode)
+
+<Callout type="tip">
+In multi-select mode, use Space to toggle individual items and Enter to commit all selections.
+</Callout>
+
+## Complete Examples
+
+### Country Selector
+
+```ts title="Country Dropdown"
+{
+  field: 'country',
+  header: 'Country',
+  editor: 'dropdown',
+  editorOptions: {
+    searchable: true,
+    options: [
+      { value: 'US', label: 'United States' },
+      { value: 'CA', label: 'Canada' },
+      { value: 'MX', label: 'Mexico' },
+      { value: 'GB', label: 'United Kingdom' },
+      { value: 'DE', label: 'Germany' },
+      { value: 'FR', label: 'France' },
+      { value: 'JP', label: 'Japan' },
+      { value: 'CN', label: 'China' }
+      // ... more countries
+    ],
+    placeholder: 'Search country...',
+    required: true,
+    maxVisibleOptions: 8
+  }
+}
+```
+
+### Skills Multi-Select
+
+```ts title="Skills Selector"
+{
+  field: 'skills',
+  header: 'Skills',
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    searchable: true,
+    multiSelectDisplay: 'tags',
+    options: [
+      { value: 'js', label: 'JavaScript', group: 'Programming' },
+      { value: 'ts', label: 'TypeScript', group: 'Programming' },
+      { value: 'py', label: 'Python', group: 'Programming' },
+      { value: 'react', label: 'React', group: 'Frameworks' },
+      { value: 'vue', label: 'Vue.js', group: 'Frameworks' },
+      { value: 'node', label: 'Node.js', group: 'Frameworks' },
+      { value: 'aws', label: 'AWS', group: 'Cloud' },
+      { value: 'azure', label: 'Azure', group: 'Cloud' }
+    ],
+    placeholder: 'Select skills...',
+    maxHeight: 400
+  }
+}
+```
+
+### Tag Editor with Custom Values
+
+```ts title="Flexible Tag Editor"
+{
+  field: 'tags',
+  header: 'Tags',
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    allowCustom: true,
+    searchable: true,
+    multiSelectDisplay: 'tags',
+    options: [
+      { value: 'bug', label: 'Bug' },
+      { value: 'feature', label: 'Feature' },
+      { value: 'enhancement', label: 'Enhancement' },
+      { value: 'documentation', label: 'Documentation' }
+    ],
+    placeholder: 'Select or create tags...',
+    validator: (value: string[]) => {
+      if (value.length === 0) {
+        return 'At least one tag is required';
+      }
+      return true;
+    }
+  }
+}
+```
+
+### Department Assignment
+
+```ts title="Department Dropdown"
+{
+  field: 'department',
+  header: 'Department',
+  editor: 'dropdown',
+  editorOptions: {
+    searchable: true,
+    options: [
+      { value: 'ENG', label: 'Engineering', group: 'Technical' },
+      { value: 'QA', label: 'Quality Assurance', group: 'Technical' },
+      { value: 'SAL', label: 'Sales', group: 'Business' },
+      { value: 'MKT', label: 'Marketing', group: 'Business' },
+      { value: 'HR', label: 'Human Resources', group: 'Operations' },
+      { value: 'FIN', label: 'Finance', group: 'Operations' }
+    ],
+    placeholder: 'Select department...',
+    required: true
+  }
+}
+```
+
+## LRU Cache
+
+The dropdown editor uses an LRU (Least Recently Used) cache for search results:
+
+- **Improves performance**: Caches filtered results
+- **Automatic management**: Evicts old entries when cache is full
+- **Transparent**: Works automatically without configuration
+
+```ts title="Cache Benefits"
+// First search for "United"
+// - Filters all options
+// - Caches result
+
+// Second search for "United"
+// - Returns cached result (faster)
+// - No re-filtering needed
+```
+
+<Callout type="info">
+The LRU cache is particularly beneficial for large option lists with frequent searches.
+</Callout>
+
+## Validation
+
+Add custom validation for dropdown values:
+
+```ts title="Single-Select Validation"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    options: [...],
+    required: true,
+    validator: (value: any) => {
+      if (!value) {
+        return 'Selection is required';
+      }
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Multi-Select Validation"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    options: [...],
+    validator: (value: any[]) => {
+      if (value.length === 0) {
+        return 'At least one option must be selected';
+      }
+      if (value.length > 5) {
+        return 'Maximum 5 selections allowed';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## Styling
+
+Customize the dropdown appearance:
+
+```ts title="Custom Styling"
+{
+  editor: 'dropdown',
+  editorOptions: {
+    options: [...],
+    className: 'custom-dropdown'
+  }
+}
+```
+
+```css title="Custom CSS"
+.custom-dropdown {
+  font-size: 14px;
+}
+
+.custom-dropdown .dropdown-option {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.custom-dropdown .dropdown-option:hover {
+  background-color: #f0f0f0;
+}
+
+.custom-dropdown .dropdown-option.selected {
+  background-color: #007bff;
+  color: white;
+}
+
+.custom-dropdown .dropdown-tag {
+  background-color: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 2px;
+}
+```
+
+## Best Practices
+
+1. **Enable search for long lists**: Use `searchable: true` for > 20 options
+2. **Group related options**: Use the `group` property for better organization
+3. **Set reasonable limits**: Use `maxVisibleOptions` to control dropdown height
+4. **Choose display mode wisely**: Use `count` for many selections, `tags` for few
+5. **Allow custom when needed**: Enable `allowCustom` for flexible user input
+6. **Validate multi-select**: Check min/max selection counts
+7. **Provide clear placeholders**: Help users understand the purpose
+
+```ts title="Well-Configured Dropdown Editor"
+{
+  field: 'assignees',
+  header: 'Assignees',
+  editor: 'dropdown',
+  editorOptions: {
+    multiSelect: true,
+    searchable: true,
+    multiSelectDisplay: 'tags',
+    options: getTeamMembers(), // Dynamic options
+    placeholder: 'Search team members...',
+    maxVisibleOptions: 8,
+    maxHeight: 320,
+    required: true,
+    validator: (value: any[]) => {
+      if (value.length === 0) {
+        return 'At least one assignee is required';
+      }
+      if (value.length > 3) {
+        return 'Maximum 3 assignees allowed';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## When to Use
+
+Use the Dropdown editor when you need:
+
+- **Search functionality**: Filter through many options
+- **Multi-select**: Select multiple values
+- **Grouped options**: Organize options by category
+- **Custom values**: Allow user-defined entries
+- **Advanced styling**: More control than native select
+
+For simple, small lists (< 20 options), consider using the `SelectEditor` instead for better performance and native mobile behavior.

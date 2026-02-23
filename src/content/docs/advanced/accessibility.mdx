@@ -1,0 +1,725 @@
+---
+title: Accessibility (A11y)
+description: ARIA attributes, keyboard navigation, focus management, and screen reader support.
+order: 50
+category: Advanced
+tags: [advanced, accessibility, a11y, keyboard]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides comprehensive accessibility support including ARIA attributes, keyboard navigation, focus management, and screen reader announcements.
+
+## Enable Accessibility
+
+Enable accessibility features via the `enableA11y` option:
+
+```typescript title="enable-a11y.ts"
+import { createGrid } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: 100,
+  enableA11y: true,  // Enable accessibility features
+  data: (rowIndex, colId) => `Cell ${rowIndex}-${colId}`,
+});
+```
+
+<Callout type="info">
+Accessibility is enabled by default. Disable it only if you have a specific reason and provide alternative accessibility support.
+</Callout>
+
+## FocusManager
+
+The `FocusManager` handles keyboard focus and navigation within the grid.
+
+### getActiveCell()
+
+Get the currently focused cell:
+
+```typescript title="get-active-cell.ts"
+const activeCell = grid.focusManager.getActiveCell();
+
+if (activeCell) {
+  console.log('Focused cell:', {
+    rowIndex: activeCell.rowIndex,
+    colId: activeCell.colId,
+  });
+} else {
+  console.log('No cell has focus');
+}
+```
+
+### setActiveCell()
+
+Programmatically set focus to a cell:
+
+```typescript title="set-active-cell.ts"
+// Set active cell without DOM focus
+grid.focusManager.setActiveCell({ rowIndex: 5, colId: 'name' });
+
+// Set active cell with DOM focus
+grid.focusManager.setActiveCell(
+  { rowIndex: 5, colId: 'name' },
+  true  // focus = true
+);
+```
+
+<Callout type="tip">
+Use `setActiveCell()` with `focus: true` to programmatically focus a cell and scroll it into view.
+</Callout>
+
+### moveFocus()
+
+Move focus in a direction:
+
+```typescript title="move-focus.ts"
+// Move focus down one cell
+grid.focusManager.moveFocus('down', rowCount, colCount);
+
+// Move focus up one cell
+grid.focusManager.moveFocus('up', rowCount, colCount);
+
+// Move focus right one cell
+grid.focusManager.moveFocus('right', rowCount, colCount);
+
+// Move focus left one cell
+grid.focusManager.moveFocus('left', rowCount, colCount);
+```
+
+### movePageFocus()
+
+Move focus by a page (viewport height):
+
+```typescript title="move-page-focus.ts"
+const pageSize = 20;  // Number of rows per page
+
+// Move focus down one page
+grid.focusManager.movePageFocus('down', pageSize, rowCount);
+
+// Move focus up one page
+grid.focusManager.movePageFocus('up', pageSize, rowCount);
+```
+
+### moveToRowStart()
+
+Move focus to the first cell in the current row:
+
+```typescript title="move-to-row-start.ts"
+grid.focusManager.moveToRowStart();
+```
+
+### moveToRowEnd()
+
+Move focus to the last cell in the current row:
+
+```typescript title="move-to-row-end.ts"
+grid.focusManager.moveToRowEnd(colCount);
+```
+
+### moveToGridStart()
+
+Move focus to the first cell in the grid (row 0, first column):
+
+```typescript title="move-to-grid-start.ts"
+grid.focusManager.moveToGridStart();
+```
+
+### moveToGridEnd()
+
+Move focus to the last cell in the grid (last row, last column):
+
+```typescript title="move-to-grid-end.ts"
+grid.focusManager.moveToGridEnd(rowCount, colCount);
+```
+
+### focusGrid()
+
+Focus the grid container:
+
+```typescript title="focus-grid.ts"
+// Focus the grid (not a specific cell)
+grid.focusManager.focusGrid();
+```
+
+### hasFocus()
+
+Check if the grid has focus:
+
+```typescript title="has-focus.ts"
+const focused = grid.focusManager.hasFocus();
+
+if (focused) {
+  console.log('Grid has focus');
+} else {
+  console.log('Grid does not have focus');
+}
+```
+
+### clearFocus()
+
+Clear focus from all cells:
+
+```typescript title="clear-focus.ts"
+grid.focusManager.clearFocus();
+```
+
+<Callout type="info">
+The FocusManager automatically handles scrolling to keep the focused cell visible when moving focus.
+</Callout>
+
+## Keyboard Navigation
+
+ZenGrid supports comprehensive keyboard navigation following WAI-ARIA grid patterns.
+
+### Arrow Keys
+
+Navigate between cells:
+
+```typescript
+// Arrow keys move focus between cells
+// ↑ Up Arrow: Move focus up one cell
+// ↓ Down Arrow: Move focus down one cell
+// ← Left Arrow: Move focus left one cell
+// → Right Arrow: Move focus right one cell
+```
+
+### Tab Key
+
+Move between cells:
+
+```typescript
+// Tab: Move focus to next cell (right, then down)
+// Shift+Tab: Move focus to previous cell (left, then up)
+```
+
+<Callout type="warning">
+Tab behavior can be customized via the `tabNavigationMode` option: `'cell'` (default) navigates between cells, `'row'` navigates between rows, and `'default'` uses browser default tab behavior.
+</Callout>
+
+### Home and End Keys
+
+Navigate to row/grid boundaries:
+
+```typescript
+// Home: Move focus to first cell in current row
+// End: Move focus to last cell in current row
+// Ctrl+Home: Move focus to first cell in grid
+// Ctrl+End: Move focus to last cell in grid
+```
+
+### Page Up and Page Down
+
+Navigate by pages:
+
+```typescript
+// Page Down: Move focus down one page
+// Page Up: Move focus up one page
+```
+
+### Enter and Escape
+
+Editing interaction:
+
+```typescript
+// Enter: Start editing the focused cell
+// Escape: Cancel editing and return focus to cell
+```
+
+### Complete Keyboard Navigation Example
+
+```typescript title="keyboard-navigation.ts"
+import { createGrid } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: 1000,
+  enableA11y: true,
+
+  // Configure tab navigation
+  tabNavigationMode: 'cell',  // 'cell' | 'row' | 'default'
+
+  data: (rowIndex, colId) => `Cell ${rowIndex}-${colId}`,
+});
+
+// Custom keyboard shortcuts
+container.addEventListener('keydown', (e) => {
+  // Ctrl+A: Select all
+  if (e.ctrlKey && e.key === 'a') {
+    e.preventDefault();
+    grid.api.exec('selection:selectAll');
+  }
+
+  // Ctrl+C: Copy
+  if (e.ctrlKey && e.key === 'c') {
+    e.preventDefault();
+    grid.api.exec('clipboard:copy');
+  }
+
+  // Ctrl+V: Paste
+  if (e.ctrlKey && e.key === 'v') {
+    e.preventDefault();
+    grid.api.exec('clipboard:paste');
+  }
+});
+```
+
+<Callout type="tip">
+All keyboard navigation automatically scrolls the focused cell into view. You don't need to manually handle scrolling.
+</Callout>
+
+## ARIA Attributes
+
+ZenGrid applies ARIA attributes automatically when accessibility is enabled.
+
+### Grid Role
+
+The grid container has `role="grid"`:
+
+```html
+<div role="grid" aria-rowcount="1000" aria-colcount="5">
+  <!-- Grid content -->
+</div>
+```
+
+### Row Role
+
+Each row has `role="row"`:
+
+```html
+<div role="row" aria-rowindex="1">
+  <!-- Row cells -->
+</div>
+```
+
+### Cell Role
+
+Each cell has `role="gridcell"`:
+
+```html
+<div role="gridcell" aria-colindex="1" tabindex="0">
+  Cell content
+</div>
+```
+
+### Selection State
+
+Selected cells have `aria-selected="true"`:
+
+```html
+<div role="gridcell" aria-selected="true" tabindex="0">
+  Selected cell
+</div>
+```
+
+### Sort State
+
+Sortable column headers have `aria-sort`:
+
+```html
+<!-- Not sorted -->
+<div role="columnheader" aria-sort="none">
+  Name
+</div>
+
+<!-- Sorted ascending -->
+<div role="columnheader" aria-sort="ascending">
+  Age ↑
+</div>
+
+<!-- Sorted descending -->
+<div role="columnheader" aria-sort="descending">
+  Age ↓
+</div>
+```
+
+### Labels
+
+Columns can have `aria-label` for better screen reader support:
+
+```typescript title="aria-labels.ts"
+const columns: Column[] = [
+  {
+    id: 'actions',
+    header: '',  // No visible text
+    width: 100,
+    ariaLabel: 'Actions',  // Screen reader label
+  },
+  {
+    id: 'status',
+    header: '●',  // Icon
+    width: 60,
+    ariaLabel: 'Status indicator',
+  },
+];
+```
+
+<Callout type="info">
+ARIA attributes are applied automatically based on grid state. You don't need to manually set them in most cases.
+</Callout>
+
+## Screen Reader Support
+
+ZenGrid provides screen reader announcements for state changes.
+
+### Sort Announcements
+
+```typescript
+// When sort state changes, screen readers announce:
+// "Column Name sorted ascending"
+// "Column Age sorted descending"
+// "Sort cleared"
+```
+
+### Filter Announcements
+
+```typescript
+// When filters change, screen readers announce:
+// "Filters applied, showing 42 of 100 rows"
+// "Quick filter applied, showing 15 of 100 rows"
+// "Filters cleared, showing all 100 rows"
+```
+
+### Selection Announcements
+
+```typescript
+// When selection changes, screen readers announce:
+// "Row 5 selected"
+// "Cell Name at row 5 selected"
+// "3 rows selected"
+// "Selection cleared"
+```
+
+### Edit Announcements
+
+```typescript
+// When editing starts/ends, screen readers announce:
+// "Editing cell Name at row 5"
+// "Edit saved"
+// "Edit cancelled"
+```
+
+### Custom Announcements
+
+Add custom screen reader announcements:
+
+```typescript title="custom-announcements.ts"
+import { announceToScreenReader } from '@zengrid/core';
+
+// Announce custom message
+announceToScreenReader('Data loaded successfully');
+
+// Announce with priority
+announceToScreenReader('Error: Failed to save', 'assertive');
+
+// Default is 'polite'
+announceToScreenReader('5 rows updated');
+```
+
+<Callout type="tip">
+Use `'polite'` for informational messages and `'assertive'` for urgent messages like errors.
+</Callout>
+
+## Focus Events
+
+Listen to focus events for custom behavior:
+
+```typescript title="focus-events.ts"
+// Focus changed
+grid.on('focus:change', (event) => {
+  console.log('Focus changed to:', event.cell);
+  // { rowIndex: 5, colId: 'name' }
+});
+
+// Focus entered grid
+grid.on('focus:in', () => {
+  console.log('Grid received focus');
+});
+
+// Focus left grid
+grid.on('focus:out', () => {
+  console.log('Grid lost focus');
+});
+
+// Cell focused
+grid.on('cell:focus', (event) => {
+  console.log('Cell focused:', event.rowIndex, event.colId);
+});
+
+// Cell blurred
+grid.on('cell:blur', (event) => {
+  console.log('Cell blurred:', event.rowIndex, event.colId);
+});
+```
+
+## Complete Accessibility Example
+
+```typescript title="complete-a11y.ts"
+import { createGrid, announceToScreenReader } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+// Column definitions with ARIA labels
+const columns: Column[] = [
+  {
+    id: 'id',
+    header: 'ID',
+    width: 60,
+    ariaLabel: 'User ID',
+  },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    sortable: true,
+    ariaLabel: 'User name',
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+    sortable: true,
+    ariaLabel: 'Email address',
+  },
+  {
+    id: 'status',
+    header: '●',
+    width: 60,
+    ariaLabel: 'Account status',
+  },
+  {
+    id: 'actions',
+    header: '',
+    width: 120,
+    ariaLabel: 'Available actions',
+  },
+];
+
+// Grid options with accessibility enabled
+const grid = createGrid(container, {
+  columns,
+  rowCount: 100,
+  enableA11y: true,
+  tabNavigationMode: 'cell',
+
+  // ARIA labels
+  ariaLabel: 'User management grid',
+  ariaDescription: 'Navigate with arrow keys, press Enter to edit',
+
+  data: (rowIndex, colId) => {
+    // Data implementation
+    return `Cell ${rowIndex}-${colId}`;
+  },
+});
+
+// Announce data load
+announceToScreenReader('100 users loaded');
+
+// Focus management
+grid.on('focus:change', (event) => {
+  if (event.cell) {
+    const { rowIndex, colId } = event.cell;
+    const value = grid.getCellValue(rowIndex, colId);
+
+    // Announce cell content
+    announceToScreenReader(
+      `${columns.find(c => c.id === colId)?.header}: ${value}`
+    );
+  }
+});
+
+// Sort announcements
+grid.on('sort:changed', (event) => {
+  const sortState = event.sortState;
+
+  if (sortState.length === 0) {
+    announceToScreenReader('Sort cleared');
+  } else {
+    const { colId, direction } = sortState[0];
+    const column = columns.find(c => c.id === colId);
+    announceToScreenReader(
+      `Sorted by ${column?.header} ${direction === 'asc' ? 'ascending' : 'descending'}`
+    );
+  }
+});
+
+// Filter announcements
+grid.on('filter:changed', (event) => {
+  const visibleCount = event.visibleRowCount;
+  const totalCount = grid.getRowCount();
+
+  announceToScreenReader(
+    `Filters applied, showing ${visibleCount} of ${totalCount} rows`
+  );
+});
+
+// Selection announcements
+grid.on('selection:changed', (event) => {
+  const count = event.selectedRows.length;
+
+  if (count === 0) {
+    announceToScreenReader('Selection cleared');
+  } else if (count === 1) {
+    announceToScreenReader(`Row ${event.selectedRows[0] + 1} selected`);
+  } else {
+    announceToScreenReader(`${count} rows selected`);
+  }
+});
+
+// Edit announcements
+grid.on('edit:start', (event) => {
+  const column = columns.find(c => c.id === event.colId);
+  announceToScreenReader(
+    `Editing ${column?.header} at row ${event.rowIndex + 1}`
+  );
+});
+
+grid.on('edit:commit', () => {
+  announceToScreenReader('Changes saved');
+});
+
+grid.on('edit:cancel', () => {
+  announceToScreenReader('Edit cancelled');
+});
+
+// Custom keyboard shortcuts
+container.addEventListener('keydown', (e) => {
+  // Slash to focus quick filter
+  if (e.key === '/') {
+    e.preventDefault();
+    document.getElementById('quick-filter')?.focus();
+    announceToScreenReader('Quick filter focused');
+  }
+
+  // Question mark for keyboard shortcuts help
+  if (e.key === '?') {
+    e.preventDefault();
+    showKeyboardShortcutsDialog();
+    announceToScreenReader('Keyboard shortcuts dialog opened');
+  }
+});
+
+// Keyboard shortcuts help
+function showKeyboardShortcutsDialog() {
+  const shortcuts = `
+    Arrow Keys: Navigate between cells
+    Tab: Move to next cell
+    Enter: Edit cell
+    Escape: Cancel edit
+    Home: First cell in row
+    End: Last cell in row
+    Ctrl+Home: First cell in grid
+    Ctrl+End: Last cell in grid
+    Page Up/Down: Scroll by page
+    Ctrl+A: Select all
+    /: Focus quick filter
+    ?: Show this help
+  `;
+
+  alert(shortcuts);
+}
+```
+
+<Callout type="info">
+This example provides comprehensive accessibility support including ARIA labels, keyboard navigation, screen reader announcements, and focus management.
+</Callout>
+
+## Testing Accessibility
+
+Test accessibility with screen readers and keyboard-only navigation:
+
+### Screen Reader Testing
+
+- **NVDA** (Windows): Free, open-source screen reader
+- **JAWS** (Windows): Professional screen reader
+- **VoiceOver** (macOS/iOS): Built-in Apple screen reader
+- **TalkBack** (Android): Built-in Android screen reader
+
+### Keyboard-Only Testing
+
+Navigate the grid using only the keyboard:
+
+1. Tab to grid container
+2. Use arrow keys to navigate cells
+3. Press Enter to edit
+4. Press Escape to cancel
+5. Use Home/End for row navigation
+6. Use Ctrl+Home/End for grid navigation
+7. Use Page Up/Down for page navigation
+
+### Automated Testing
+
+```typescript title="a11y-tests.ts"
+import { test, expect } from '@playwright/test';
+
+test('grid has proper ARIA attributes', async ({ page }) => {
+  await page.goto('/grid-page');
+
+  // Check grid role
+  const grid = page.locator('[role="grid"]');
+  await expect(grid).toBeVisible();
+
+  // Check row count
+  await expect(grid).toHaveAttribute('aria-rowcount', '100');
+
+  // Check column count
+  await expect(grid).toHaveAttribute('aria-colcount', '5');
+
+  // Check first cell
+  const firstCell = page.locator('[role="gridcell"]').first();
+  await expect(firstCell).toHaveAttribute('aria-colindex', '1');
+  await expect(firstCell).toHaveAttribute('tabindex', '0');
+});
+
+test('keyboard navigation works', async ({ page }) => {
+  await page.goto('/grid-page');
+
+  // Focus first cell
+  await page.keyboard.press('Tab');
+
+  // Navigate with arrows
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowRight');
+
+  // Check focused cell
+  const focused = page.locator('[role="gridcell"]:focus');
+  await expect(focused).toBeVisible();
+});
+```
+
+## Best Practices
+
+### 1. Always Enable Accessibility
+
+Keep `enableA11y: true` unless you have a specific reason to disable it.
+
+### 2. Provide ARIA Labels
+
+Add `ariaLabel` to columns without visible text (icons, actions).
+
+### 3. Announce State Changes
+
+Use `announceToScreenReader()` for important state changes.
+
+### 4. Support Keyboard Navigation
+
+Ensure all functionality is accessible via keyboard.
+
+### 5. Test with Screen Readers
+
+Regularly test with actual screen readers to ensure usability.
+
+### 6. Provide Skip Links
+
+Add skip links to allow bypassing the grid:
+
+```html
+<a href="#after-grid" class="skip-link">Skip to content after grid</a>
+<div id="grid-container"></div>
+<div id="after-grid">Content after grid</div>
+```
+
+## Next Steps
+
+- Learn about [keyboard shortcuts customization](/advanced/keyboard-shortcuts)
+- Explore [screen reader optimization](/advanced/screen-reader-optimization)
+- Read about [WCAG compliance](/advanced/wcag-compliance)

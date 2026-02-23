@@ -1,0 +1,453 @@
+---
+title: DateTime Editor
+description: Combined date and time editor with calendar and time picker.
+order: 38
+category: Cell Editors
+tags: [editors, datetime, combined]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `DateTimeEditor` combines date and time selection in a single editor, providing both calendar and time picker controls.
+
+## Basic Usage
+
+```ts title="Basic DateTime Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'createdAt',
+    header: 'Created At',
+    editor: 'datetime'
+  }
+];
+```
+
+## Editor Options
+
+```ts title="DateTimeEditor Options"
+interface DateTimeEditorOptions {
+  dateFormat?: string; // Default: 'YYYY-MM-DD'
+  timeFormat?: '12h' | '24h'; // Default: '24h'
+  showSeconds?: boolean;
+  placeholder?: string;
+  className?: string;
+  theme?: 'light' | 'dark' | 'auto';
+  autoFocus?: boolean;
+  required?: boolean;
+  minDate?: string;
+  maxDate?: string;
+  commitOnBlur?: boolean;
+  closeOnScroll?: boolean;
+  validator?: (value: string) => boolean | string;
+}
+```
+
+## Date and Time Formats
+
+### Date Format
+
+```ts title="Date Format Options"
+// ISO format (default)
+{
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'YYYY-MM-DD' // 2024-12-23 14:30
+  }
+}
+
+// US format
+{
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MM/DD/YYYY' // 12/23/2024 2:30 PM
+  }
+}
+
+// European format
+{
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'DD/MM/YYYY' // 23/12/2024 14:30
+  }
+}
+```
+
+### Time Format
+
+```ts title="Time Format Options"
+// 24-hour format
+{
+  editor: 'datetime',
+  editorOptions: {
+    timeFormat: '24h' // 14:30
+  }
+}
+
+// 12-hour format with AM/PM
+{
+  editor: 'datetime',
+  editorOptions: {
+    timeFormat: '12h' // 2:30 PM
+  }
+}
+```
+
+### Combined Format Example
+
+```ts title="US DateTime Format"
+{
+  field: 'timestamp',
+  header: 'Timestamp',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12h',
+    showSeconds: false
+  }
+}
+// Output: 12/23/2024 2:30 PM
+```
+
+<Callout type="info">
+The DateTime editor displays date and time as separate inputs but stores them as a single timestamp value.
+</Callout>
+
+## UI Components
+
+The DateTime editor combines two UI components:
+
+1. **Date Calendar**: Calendar popup for date selection (from DateEditor)
+2. **Time Picker**: Hour/minute/second controls (from TimeEditor)
+
+```ts title="Full UI Example"
+{
+  field: 'eventDateTime',
+  header: 'Event Date & Time',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MMMM DD, YYYY',
+    timeFormat: '12h',
+    showSeconds: false,
+    theme: 'auto'
+  }
+}
+```
+
+## Seconds Display
+
+Control whether seconds are shown:
+
+```ts title="Without Seconds (Default)"
+{
+  editor: 'datetime',
+  editorOptions: {
+    showSeconds: false // 2024-12-23 14:30
+  }
+}
+```
+
+```ts title="With Seconds"
+{
+  editor: 'datetime',
+  editorOptions: {
+    showSeconds: true // 2024-12-23 14:30:45
+  }
+}
+```
+
+## Date Constraints
+
+Restrict the selectable date range:
+
+```ts title="Future Dates Only"
+{
+  field: 'scheduledFor',
+  header: 'Scheduled For',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'YYYY-MM-DD',
+    timeFormat: '24h',
+    minDate: new Date().toISOString().split('T')[0]
+  }
+}
+```
+
+```ts title="Date Range"
+{
+  editor: 'datetime',
+  editorOptions: {
+    minDate: '2024-01-01',
+    maxDate: '2024-12-31',
+    dateFormat: 'YYYY-MM-DD'
+  }
+}
+```
+
+## Validation
+
+Add custom validation for date-time values:
+
+```ts title="Business Hours Validation"
+{
+  field: 'appointmentDateTime',
+  header: 'Appointment',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12h',
+    validator: (value: string) => {
+      const date = new Date(value);
+      const hours = date.getHours();
+      const day = date.getDay();
+
+      // Check weekday
+      if (day === 0 || day === 6) {
+        return 'Appointments only available on weekdays';
+      }
+
+      // Check business hours (9 AM - 5 PM)
+      if (hours < 9 || hours >= 17) {
+        return 'Appointments only between 9 AM and 5 PM';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Future Dates Validation"
+{
+  editor: 'datetime',
+  editorOptions: {
+    validator: (value: string) => {
+      const selected = new Date(value);
+      const now = new Date();
+      if (selected <= now) {
+        return 'Must select a future date and time';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## Popup Behavior
+
+The calendar popup closes:
+- When a date is selected
+- When Escape is pressed
+- When clicking outside (if configured)
+- When scrolling (if `closeOnScroll: true`)
+
+```ts title="Popup Configuration"
+{
+  editor: 'datetime',
+  editorOptions: {
+    closeOnScroll: true,  // Close on scroll
+    commitOnBlur: true    // Save on click outside
+  }
+}
+```
+
+<Callout type="tip">
+Use `closeOnScroll: true` to prevent the calendar from appearing misaligned when the grid is scrolled.
+</Callout>
+
+## Theming
+
+Customize the appearance:
+
+```ts title="Theme Options"
+{
+  editor: 'datetime',
+  editorOptions: {
+    theme: 'dark' // 'light', 'dark', or 'auto'
+  }
+}
+```
+
+## Keyboard Navigation
+
+The DateTime editor supports keyboard navigation:
+
+- **Tab**: Switch between date and time inputs
+- **Arrow keys**: Navigate calendar or adjust time
+- **Enter**: Commit and close editor
+- **Escape**: Cancel and close editor
+
+## Complete Examples
+
+### Event Scheduling
+
+```ts title="Event DateTime"
+{
+  field: 'eventStart',
+  header: 'Event Start',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MMMM DD, YYYY',
+    timeFormat: '12h',
+    showSeconds: false,
+    minDate: new Date().toISOString().split('T')[0],
+    theme: 'auto',
+    required: true,
+    placeholder: 'Select date and time'
+  }
+}
+```
+
+### Appointment Booking
+
+```ts title="Appointment DateTime"
+{
+  field: 'appointmentDateTime',
+  header: 'Appointment',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12h',
+    minDate: new Date().toISOString().split('T')[0],
+    commitOnBlur: true,
+    closeOnScroll: true,
+    validator: (value: string) => {
+      const dt = new Date(value);
+      const day = dt.getDay();
+      const hours = dt.getHours();
+
+      if (day === 0 || day === 6) {
+        return 'No appointments on weekends';
+      }
+
+      if (hours < 9 || hours >= 17) {
+        return 'Appointments from 9 AM to 5 PM';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+### Log Timestamp
+
+```ts title="Log Entry Timestamp"
+{
+  field: 'logTimestamp',
+  header: 'Timestamp',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'YYYY-MM-DD',
+    timeFormat: '24h',
+    showSeconds: true,
+    theme: 'dark',
+    commitOnBlur: true
+  }
+}
+```
+
+### Deadline Picker
+
+```ts title="Deadline DateTime"
+{
+  field: 'deadline',
+  header: 'Deadline',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'DD/MM/YYYY',
+    timeFormat: '24h',
+    minDate: new Date().toISOString().split('T')[0],
+    required: true,
+    validator: (value: string) => {
+      const deadline = new Date(value);
+      const now = new Date();
+      const hoursDiff = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      if (hoursDiff < 24) {
+        return 'Deadline must be at least 24 hours from now';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+## Value Format
+
+The DateTime editor returns ISO 8601 formatted strings:
+
+```ts title="ISO 8601 Output"
+// Example output
+"2024-12-23T14:30:00.000Z"
+
+// Parse in code
+const date = new Date(value);
+const formattedDate = date.toLocaleDateString();
+const formattedTime = date.toLocaleTimeString();
+```
+
+<Callout type="info">
+Internally, values are stored as ISO 8601 strings for consistent parsing and serialization.
+</Callout>
+
+## Integration with DateEditor and TimeEditor
+
+The DateTime editor reuses components from DateEditor and TimeEditor:
+
+```ts title="Component Reuse"
+// DateEditor provides:
+// - Calendar popup
+// - Date parsing and formatting
+// - Date validation
+
+// TimeEditor provides:
+// - Time picker UI
+// - Time parsing and formatting
+// - Time validation
+
+// DateTimeEditor combines both
+```
+
+## Best Practices
+
+1. **Match user locale**: Use appropriate date/time formats for your users
+2. **Validate business rules**: Check working hours, weekdays, lead times
+3. **Set appropriate constraints**: Use minDate/maxDate for valid ranges
+4. **Handle timezones**: Be aware of timezone implications for stored values
+5. **Provide clear feedback**: Use validation messages to guide users
+
+```ts title="Well-Configured DateTime Editor"
+{
+  field: 'meetingDateTime',
+  header: 'Meeting Time',
+  editor: 'datetime',
+  editorOptions: {
+    dateFormat: 'MM/DD/YYYY',
+    timeFormat: '12h',
+    showSeconds: false,
+    minDate: new Date().toISOString().split('T')[0],
+    theme: 'auto',
+    closeOnScroll: true,
+    commitOnBlur: true,
+    required: true,
+    placeholder: 'Select meeting time',
+    validator: (value: string) => {
+      if (!value) return 'Meeting time is required';
+      const dt = new Date(value);
+      const day = dt.getDay();
+      const hours = dt.getHours();
+
+      if (day === 0 || day === 6) {
+        return 'Meetings on weekdays only';
+      }
+
+      if (hours < 9 || hours >= 17) {
+        return 'Meetings between 9 AM and 5 PM';
+      }
+
+      return true;
+    }
+  }
+}
+```

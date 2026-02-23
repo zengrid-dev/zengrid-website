@@ -1,0 +1,378 @@
+---
+title: Date Editor
+description: Date editor with calendar popup and format options.
+order: 36
+category: Cell Editors
+tags: [editors, date, calendar]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `DateEditor` provides a date picker with calendar popup integration for selecting dates.
+
+## Basic Usage
+
+```ts title="Basic Date Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'birthDate',
+    header: 'Birth Date',
+    editor: 'date'
+  }
+];
+```
+
+## Editor Options
+
+```ts title="DateEditor Options"
+interface DateEditorOptions {
+  format?: string; // Default: 'DD/MM/YYYY'
+  type?: 'date' | 'time' | 'datetime-local';
+  minDate?: string;
+  maxDate?: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  theme?: 'light' | 'dark' | 'auto';
+  autoFocus?: boolean;
+  useCalendarPopup?: boolean;
+  commitOnBlur?: boolean;
+  closeOnScroll?: boolean;
+  validator?: (value: string) => boolean | string;
+}
+```
+
+## Date Formats
+
+Customize the date format using standard tokens:
+
+```ts title="Date Format Examples"
+// Day/Month/Year
+{
+  editor: 'date',
+  editorOptions: {
+    format: 'DD/MM/YYYY' // 23/12/2024
+  }
+}
+
+// Month/Day/Year (US format)
+{
+  editor: 'date',
+  editorOptions: {
+    format: 'MM/DD/YYYY' // 12/23/2024
+  }
+}
+
+// ISO format
+{
+  editor: 'date',
+  editorOptions: {
+    format: 'YYYY-MM-DD' // 2024-12-23
+  }
+}
+
+// Long format
+{
+  editor: 'date',
+  editorOptions: {
+    format: 'MMMM DD, YYYY' // December 23, 2024
+  }
+}
+```
+
+<Callout type="info">
+The format option controls both display and parsing. Users can type dates in the specified format.
+</Callout>
+
+## Calendar Popup
+
+The date editor uses vanilla-calendar for popup date selection:
+
+```ts title="Enable Calendar Popup"
+{
+  field: 'eventDate',
+  header: 'Event Date',
+  editor: 'date',
+  editorOptions: {
+    useCalendarPopup: true,
+    format: 'YYYY-MM-DD'
+  }
+}
+```
+
+### Popup Behavior
+
+The calendar popup:
+- Opens automatically when the editor is activated
+- Closes when a date is selected
+- Can be closed with Escape key
+- Handles click-outside detection via `registerPopup`
+
+```ts title="Popup Configuration"
+{
+  editor: 'date',
+  editorOptions: {
+    useCalendarPopup: true,
+    closeOnScroll: true, // Close popup when scrolling
+    commitOnBlur: true   // Save when clicking outside
+  }
+}
+```
+
+<Callout type="tip">
+Use `registerPopup` and `unregisterPopup` from EditorParams to properly handle click-outside behavior for the calendar.
+</Callout>
+
+## Date Constraints
+
+### Min and Max Dates
+
+Restrict selectable dates:
+
+```ts title="Date Range Constraints"
+{
+  field: 'startDate',
+  header: 'Start Date',
+  editor: 'date',
+  editorOptions: {
+    format: 'YYYY-MM-DD',
+    minDate: '2024-01-01',
+    maxDate: '2024-12-31'
+  }
+}
+```
+
+```ts title="Future Dates Only"
+{
+  field: 'appointmentDate',
+  header: 'Appointment',
+  editor: 'date',
+  editorOptions: {
+    minDate: new Date().toISOString().split('T')[0], // Today
+    format: 'MM/DD/YYYY'
+  }
+}
+```
+
+```ts title="Past Dates Only"
+{
+  field: 'birthDate',
+  header: 'Birth Date',
+  editor: 'date',
+  editorOptions: {
+    maxDate: new Date().toISOString().split('T')[0], // Today
+    format: 'MM/DD/YYYY'
+  }
+}
+```
+
+## Theming
+
+Customize the calendar appearance:
+
+```ts title="Theme Options"
+// Light theme
+{
+  editor: 'date',
+  editorOptions: {
+    theme: 'light'
+  }
+}
+
+// Dark theme
+{
+  editor: 'date',
+  editorOptions: {
+    theme: 'dark'
+  }
+}
+
+// Auto (follows system preference)
+{
+  editor: 'date',
+  editorOptions: {
+    theme: 'auto'
+  }
+}
+```
+
+## Validation
+
+Add custom date validation:
+
+```ts title="Weekday Validation"
+{
+  field: 'workDate',
+  header: 'Work Date',
+  editor: 'date',
+  editorOptions: {
+    format: 'YYYY-MM-DD',
+    validator: (value: string) => {
+      const date = new Date(value);
+      const day = date.getDay();
+      if (day === 0 || day === 6) {
+        return 'Please select a weekday';
+      }
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Required Date"
+{
+  field: 'dueDate',
+  header: 'Due Date',
+  editor: 'date',
+  editorOptions: {
+    required: true,
+    validator: (value: string) => {
+      if (!value) {
+        return 'Due date is required';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## Keyboard Shortcuts
+
+The date editor supports these keyboard shortcuts:
+
+- **Enter**: Commit and close editor
+- **Escape**: Cancel and close editor (closes popup if open)
+- **Tab**: Commit and move to next cell
+- **Arrow keys**: Navigate calendar (when popup is open)
+
+## Input Type
+
+Use different HTML input types for native pickers:
+
+```ts title="Native Date Picker"
+{
+  editor: 'date',
+  editorOptions: {
+    type: 'date' // Uses browser's native date picker
+  }
+}
+```
+
+<Callout type="warning">
+Native date pickers (`type: 'date'`) have limited styling options and vary across browsers. Use `useCalendarPopup: true` for consistent appearance.
+</Callout>
+
+## Complete Examples
+
+### Event Date Picker
+
+```ts title="Event Date"
+{
+  field: 'eventDate',
+  header: 'Event Date',
+  editor: 'date',
+  editorOptions: {
+    format: 'MMMM DD, YYYY',
+    useCalendarPopup: true,
+    minDate: new Date().toISOString().split('T')[0],
+    theme: 'auto',
+    placeholder: 'Select event date',
+    required: true
+  }
+}
+```
+
+### Birth Date Editor
+
+```ts title="Birth Date"
+{
+  field: 'birthDate',
+  header: 'Birth Date',
+  editor: 'date',
+  editorOptions: {
+    format: 'MM/DD/YYYY',
+    useCalendarPopup: true,
+    maxDate: new Date().toISOString().split('T')[0],
+    placeholder: 'MM/DD/YYYY',
+    validator: (value: string) => {
+      if (!value) return 'Birth date is required';
+      const age = Math.floor((Date.now() - new Date(value).getTime()) / 31536000000);
+      if (age < 18) return 'Must be 18 or older';
+      return true;
+    }
+  }
+}
+```
+
+### Deadline Picker
+
+```ts title="Deadline"
+{
+  field: 'deadline',
+  header: 'Deadline',
+  editor: 'date',
+  editorOptions: {
+    format: 'YYYY-MM-DD',
+    useCalendarPopup: true,
+    minDate: new Date().toISOString().split('T')[0],
+    theme: 'light',
+    commitOnBlur: true,
+    validator: (value: string) => {
+      const date = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (date < today) {
+        return 'Deadline cannot be in the past';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## Calendar Integration
+
+The DateEditor integrates with vanilla-calendar:
+
+```ts title="Calendar Setup (Internal)"
+// Inside DateEditor.init()
+if (params.registerPopup) {
+  // Register calendar popup for click-outside handling
+  params.registerPopup(calendarElement);
+}
+
+// Cleanup in destroy()
+if (params.unregisterPopup) {
+  params.unregisterPopup(calendarElement);
+}
+```
+
+<Callout type="info">
+The calendar popup automatically positions itself relative to the cell and adjusts for viewport boundaries.
+</Callout>
+
+## Best Practices
+
+1. **Choose appropriate format**: Match user expectations and locale
+2. **Set sensible constraints**: Use minDate/maxDate to prevent invalid selections
+3. **Enable calendar popup**: Provides better UX than text input alone
+4. **Handle scroll events**: Use `closeOnScroll: true` to prevent misaligned popups
+5. **Validate business rules**: Check weekdays, age requirements, etc.
+
+```ts title="Well-Configured Date Editor"
+{
+  field: 'appointmentDate',
+  header: 'Appointment',
+  editor: 'date',
+  editorOptions: {
+    format: 'MM/DD/YYYY',
+    useCalendarPopup: true,
+    minDate: new Date().toISOString().split('T')[0],
+    theme: 'auto',
+    closeOnScroll: true,
+    commitOnBlur: true,
+    required: true,
+    placeholder: 'Select date'
+  }
+}
+```

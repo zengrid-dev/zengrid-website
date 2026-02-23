@@ -1,0 +1,339 @@
+---
+title: FilterPlugin
+description: FilterPlugin and AsyncFilterPlugin integrate filtering with reactive state and export adapters.
+order: 24
+category: Plugins
+tags: [plugins, filter, reactive]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `FilterPlugin` integrates ZenGrid's filtering functionality with the reactive store system, supporting frontend filtering, backend delegation, and multiple export adapters.
+
+## Overview
+
+FilterPlugin runs at phase 20 and provides:
+
+- Reactive filter state management
+- Frontend in-memory filtering
+- Backend filter delegation
+- Export adapters (REST, GraphQL, SQL)
+- Filter caching and indexing
+- Column-based filtering
+
+<Callout type="info">
+FilterPlugin depends on CorePlugin and must be registered after it.
+</Callout>
+
+## Creation
+
+Create the FilterPlugin using factory functions:
+
+```ts title="Creating FilterPlugin"
+import { createFilterPlugin, createAsyncFilterPlugin } from '@zengrid/core';
+
+// Synchronous filtering
+const filterPlugin = createFilterPlugin();
+grid.usePlugin(filterPlugin);
+
+// Asynchronous filtering
+const asyncFilterPlugin = createAsyncFilterPlugin();
+grid.usePlugin(asyncFilterPlugin);
+```
+
+## Frontend Mode
+
+Frontend mode applies filters in-memory:
+
+```ts title="Frontend Filtering"
+import { createGrid, createFilterPlugin } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  columns: [
+    { id: 'name', field: 'name', filterable: true },
+    { id: 'age', field: 'age', filterable: true }
+  ],
+  data: users,
+  filtering: {
+    mode: 'frontend'
+  }
+});
+
+grid.usePlugin(createFilterPlugin());
+
+// Apply filters
+grid.api.filter.setFilters([
+  { field: 'age', operator: 'gt', value: 18 }
+]);
+```
+
+### Filter Operators
+
+Built-in operators for filtering:
+
+```ts title="Filter Operators"
+// String operators
+{ field: 'name', operator: 'contains', value: 'John' }
+{ field: 'name', operator: 'startsWith', value: 'J' }
+{ field: 'name', operator: 'endsWith', value: 'son' }
+{ field: 'name', operator: 'equals', value: 'John' }
+
+// Number operators
+{ field: 'age', operator: 'gt', value: 18 }
+{ field: 'age', operator: 'gte', value: 18 }
+{ field: 'age', operator: 'lt', value: 65 }
+{ field: 'age', operator: 'lte', value: 65 }
+{ field: 'age', operator: 'equals', value: 25 }
+
+// Array operators
+{ field: 'status', operator: 'in', value: ['active', 'pending'] }
+{ field: 'status', operator: 'notIn', value: ['deleted'] }
+
+// Range operators
+{ field: 'date', operator: 'between', value: [start, end] }
+```
+
+## Backend Mode
+
+Backend mode delegates filtering to a callback:
+
+```ts title="Backend Filtering"
+const grid = createGrid(container, {
+  columns: [
+    { id: 'name', field: 'name', filterable: true }
+  ],
+  filtering: {
+    mode: 'backend',
+    onFilterRequest: async (filters) => {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify({ filters })
+      });
+      const data = await response.json();
+      grid.api.data.setData(data);
+    }
+  }
+});
+
+grid.usePlugin(createFilterPlugin());
+```
+
+## Export Adapters
+
+FilterPlugin includes adapters for exporting filter state to different formats:
+
+### REST Adapter
+
+```ts title="REST Export Adapter"
+import { RESTFilterAdapter } from '@zengrid/core';
+
+const adapter = new RESTFilterAdapter();
+const filters = [
+  { field: 'age', operator: 'gt', value: 18 },
+  { field: 'status', operator: 'equals', value: 'active' }
+];
+
+const queryParams = adapter.export(filters);
+// Result: "?age_gt=18&status=active"
+
+const url = `/api/users${queryParams}`;
+```
+
+### GraphQL Adapter
+
+```ts title="GraphQL Export Adapter"
+import { GraphQLFilterAdapter } from '@zengrid/core';
+
+const adapter = new GraphQLFilterAdapter();
+const filters = [
+  { field: 'age', operator: 'gt', value: 18 }
+];
+
+const graphqlFilter = adapter.export(filters);
+// Result: { where: { age: { _gt: 18 } } }
+
+const query = `
+  query GetUsers($filter: UserFilter) {
+    users(filter: $filter) { id name age }
+  }
+`;
+```
+
+### SQL Adapter
+
+```ts title="SQL Export Adapter"
+import { SQLFilterAdapter } from '@zengrid/core';
+
+const adapter = new SQLFilterAdapter();
+const filters = [
+  { field: 'age', operator: 'gt', value: 18 },
+  { field: 'name', operator: 'contains', value: 'John' }
+];
+
+const { whereClause, params } = adapter.export(filters);
+// whereClause: "age > ? AND name LIKE ?"
+// params: [18, '%John%']
+
+const sql = `SELECT * FROM users WHERE ${whereClause}`;
+```
+
+<Callout type="tip">
+Use export adapters to automatically convert filter state to your backend API format.
+</Callout>
+
+## AsyncFilterPlugin
+
+For async filtering with loading states:
+
+```ts title="Async Filtering"
+import { createAsyncFilterPlugin } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  filtering: {
+    mode: 'backend',
+    onFilterRequest: async (filters) => {
+      grid.api.loading.show();
+
+      try {
+        const data = await fetchFilteredData(filters);
+        grid.api.data.setData(data);
+      } finally {
+        grid.api.loading.hide();
+      }
+    }
+  }
+});
+
+grid.usePlugin(createAsyncFilterPlugin());
+```
+
+## Reactive State
+
+FilterPlugin creates these reactive signals:
+
+```ts title="Filter State Signals"
+// Current filter state
+store.get('filter.state')         // Array<FilterCondition>
+store.set('filter.state', filters)
+
+// Computed signals
+store.get('filter.hasFilters')    // Boolean: any active filters
+store.get('filter.filteredCount') // Number: rows after filtering
+store.get('filter.filteredFields') // Array<string>: filtered field names
+```
+
+## API Methods
+
+FilterPlugin registers these methods on `grid.api.filter`:
+
+```ts title="Filter API Methods"
+// Set filters
+grid.api.filter.setFilters([
+  { field: 'age', operator: 'gt', value: 18 }
+]);
+
+// Get current filters
+const filters = grid.api.filter.getFilters();
+
+// Add filter
+grid.api.filter.addFilter({ field: 'status', operator: 'equals', value: 'active' });
+
+// Remove filter
+grid.api.filter.removeFilter('age');
+
+// Clear all filters
+grid.api.filter.clearFilters();
+
+// Get filtered count
+const count = grid.api.filter.getFilteredCount();
+```
+
+## Filter State Structure
+
+```ts title="FilterCondition Type"
+interface FilterCondition {
+  field: string;
+  operator: FilterOperator;
+  value: any;
+}
+
+type FilterOperator =
+  | 'equals' | 'notEquals'
+  | 'gt' | 'gte' | 'lt' | 'lte'
+  | 'contains' | 'startsWith' | 'endsWith'
+  | 'in' | 'notIn'
+  | 'between';
+```
+
+## Filter Caching
+
+FilterPlugin includes caching for performance:
+
+```ts title="Filter Cache"
+// Cache filters for repeated queries
+const grid = createGrid(container, {
+  filtering: {
+    mode: 'frontend',
+    cacheEnabled: true,
+    cacheSize: 100 // LRU cache size
+  }
+});
+
+// Repeated filters use cached results
+grid.api.filter.setFilters([
+  { field: 'age', operator: 'gt', value: 18 }
+]); // Executes filter
+
+grid.api.filter.setFilters([
+  { field: 'age', operator: 'gt', value: 18 }
+]); // Uses cached result
+```
+
+<Callout type="info">
+Filter caching uses an LRU cache from `@zengrid/shared` to avoid memory leaks.
+</Callout>
+
+## Column Indexing
+
+FilterPlugin creates indexes for frequently filtered columns:
+
+```ts title="Column Indexing"
+const grid = createGrid(container, {
+  filtering: {
+    mode: 'frontend',
+    indexedColumns: ['status', 'category']
+  }
+});
+
+// Indexed columns filter faster with O(1) lookups
+grid.api.filter.setFilters([
+  { field: 'status', operator: 'equals', value: 'active' }
+]); // Fast index lookup
+```
+
+## Events
+
+FilterPlugin emits events for filter changes:
+
+```ts title="Filter Events"
+grid.on('filter:change', (filters) => {
+  console.log('Filters changed:', filters);
+});
+
+grid.on('filter:clear', () => {
+  console.log('Filters cleared');
+});
+```
+
+## Performance Optimization
+
+FilterPlugin includes several optimizations:
+
+- **Filter compilation**: Compiles filter expressions once
+- **Range optimization**: Optimizes range filters for sorted data
+- **Substring optimization**: Uses efficient string matching
+- **Index-based filtering**: Uses column indexes when available
+
+<Callout type="tip">
+Enable column indexing for frequently filtered columns to improve performance.
+</Callout>

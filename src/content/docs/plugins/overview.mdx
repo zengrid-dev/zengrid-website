@@ -1,0 +1,162 @@
+---
+title: Plugin Overview
+description: Understand ZenGrid's plugin architecture, lifecycle phases, and dependency system.
+order: 21
+category: Plugins
+tags: [plugins, architecture, lifecycle]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid's plugin architecture provides a modular, extensible system for adding functionality to the grid. Plugins follow a structured lifecycle with phase-based initialization and dependency management.
+
+## Plugin Interface
+
+Every ZenGrid plugin implements the `GridPlugin` interface:
+
+```ts title="GridPlugin Interface"
+interface GridPlugin {
+  name: string;
+  phase: number;
+  dependencies?: string[];
+  setup(store: GridStore, api: GridApi): PluginDisposable;
+  dispose?(): void;
+}
+```
+
+<Callout type="info">
+The `setup` method receives both the reactive store and the grid API, giving plugins full access to state management and grid operations.
+</Callout>
+
+## Lifecycle Phases
+
+Plugins are initialized in phase order (0-130), ensuring dependencies load before dependent plugins:
+
+```ts title="Phase Numbers"
+CorePlugin           // Phase 0
+SortPlugin          // Phase 10
+FilterPlugin        // Phase 20
+SelectionPlugin     // Phase 40
+EditingPlugin       // Phase 45
+UndoRedoPlugin      // Phase 50
+ScrollPlugin        // Phase 100
+ViewportPlugin      // Phase 110
+ResizePlugin        // Phase 120
+InfiniteScrollPlugin // Phase 130
+```
+
+<Callout type="tip">
+Choose a phase number higher than your dependencies to ensure proper initialization order.
+</Callout>
+
+## Dependency System
+
+Plugins can declare dependencies on other plugins:
+
+```ts title="Plugin Dependencies"
+const myPlugin: GridPlugin = {
+  name: 'MyPlugin',
+  phase: 60,
+  dependencies: ['CorePlugin', 'SelectionPlugin'],
+  setup(store, api) {
+    // CorePlugin and SelectionPlugin are guaranteed to be initialized
+    return { teardown: [] };
+  }
+};
+```
+
+## PluginHost
+
+The `PluginHost` manages plugin registration and lifecycle:
+
+```ts title="PluginHost API"
+// Register a plugin
+grid.usePlugin(plugin);
+
+// Plugin management
+pluginHost.has('PluginName');
+pluginHost.getPluginNames();
+pluginHost.getPluginsByPhase(10);
+
+// Cleanup all plugins
+pluginHost.destroy();
+```
+
+## Plugin Setup
+
+The `setup` method receives two key objects:
+
+- **GridStore**: Reactive state management system
+- **GridApi**: Grid operations and methods
+
+```ts title="Plugin Setup Example"
+setup(store: GridStore, api: GridApi) {
+  // Create reactive state
+  store.extend('myFeature.enabled', true, 'MyPlugin', this.phase);
+
+  // Create computed values
+  store.computed('myFeature.status', () => {
+    return store.get('myFeature.enabled') ? 'active' : 'inactive';
+  }, 'MyPlugin', this.phase);
+
+  // Register API methods
+  api.register('myFeature', {
+    enable: () => store.set('myFeature.enabled', true),
+    disable: () => store.set('myFeature.enabled', false)
+  });
+
+  return { teardown: [] };
+}
+```
+
+## Plugin Disposable
+
+Plugins return a `PluginDisposable` from setup for cleanup:
+
+```ts title="PluginDisposable"
+interface PluginDisposable {
+  teardown: Array<() => void>;
+}
+```
+
+<Callout type="warning">
+Always add cleanup functions to the teardown array to prevent memory leaks.
+</Callout>
+
+## Built-in Plugins
+
+ZenGrid includes these built-in plugins:
+
+| Plugin | Phase | Purpose |
+|--------|-------|---------|
+| CorePlugin | 0 | Foundational data and state management |
+| SortPlugin | 10 | Sorting integration with reactive store |
+| FilterPlugin | 20 | Filtering with backend adapters |
+| SelectionPlugin | 40 | Selection with IntervalTree queries |
+| EditingPlugin | 45 | Cell editing lifecycle management |
+| UndoRedoPlugin | 50 | Command pattern undo/redo system |
+| ScrollPlugin | 100 | Scroll state management |
+| ViewportPlugin | 110 | Virtual scrolling viewport |
+| ResizePlugin | 120 | Column and row resizing |
+| InfiniteScrollPlugin | 130 | Infinite scroll data loading |
+
+## Registering Plugins
+
+Use `grid.usePlugin()` to register plugins:
+
+```ts title="Registering Plugins"
+import { createGrid, createSortPlugin, createFilterPlugin } from '@zengrid/core';
+
+const grid = createGrid(container, options);
+
+// Register built-in plugins
+grid.usePlugin(createSortPlugin());
+grid.usePlugin(createFilterPlugin());
+
+// Register custom plugins
+grid.usePlugin(myCustomPlugin);
+```
+
+<Callout type="info">
+Plugins are initialized immediately upon registration, respecting phase order and dependencies.
+</Callout>

@@ -1,0 +1,320 @@
+---
+title: SelectionPlugin
+description: SelectionPlugin integrates selection with the reactive store using IntervalTree-backed queries.
+order: 25
+category: Plugins
+tags: [plugins, selection, interval-tree]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `SelectionPlugin` integrates ZenGrid's selection functionality with the reactive store system, using IntervalTree for efficient range queries.
+
+## Overview
+
+SelectionPlugin runs at phase 40 and provides:
+
+- Reactive selection state management
+- Cell, row, column, and range selection modes
+- IntervalTree-backed O(log n) queries
+- Keyboard and mouse selection
+- Selection events
+
+<Callout type="info">
+SelectionPlugin depends on CorePlugin and uses IntervalTree from `@zengrid/shared` for efficient range operations.
+</Callout>
+
+## Creation
+
+Create the SelectionPlugin using the factory function:
+
+```ts title="Creating SelectionPlugin"
+import { createSelectionPlugin } from '@zengrid/core';
+
+const selectionPlugin = createSelectionPlugin();
+grid.usePlugin(selectionPlugin);
+```
+
+## Selection Modes
+
+SelectionPlugin supports multiple selection modes:
+
+```ts title="Selection Modes"
+const grid = createGrid(container, {
+  selection: {
+    mode: 'cell',      // Single cell
+    // mode: 'row',    // Single or multiple rows
+    // mode: 'column', // Single or multiple columns
+    // mode: 'range',  // Rectangular ranges
+    multiple: true     // Allow multiple selections
+  }
+});
+
+grid.usePlugin(createSelectionPlugin());
+```
+
+### Cell Selection
+
+```ts title="Cell Selection"
+// Select a single cell
+grid.api.selection.selectCell(5, 2);
+
+// Check if cell is selected
+const isSelected = grid.api.selection.isCellSelected(5, 2);
+
+// Get selected cells
+const cells = grid.api.selection.getSelectedCells();
+// [{ rowIndex: 5, columnIndex: 2 }]
+```
+
+### Row Selection
+
+```ts title="Row Selection"
+// Select a single row
+grid.api.selection.selectRow(5);
+
+// Select multiple rows
+grid.api.selection.selectRows([5, 6, 7]);
+
+// Get selected rows
+const rows = grid.api.selection.getSelectedRows();
+// [5, 6, 7]
+
+// Check if row is selected
+const isSelected = grid.api.selection.isRowSelected(5);
+```
+
+### Column Selection
+
+```ts title="Column Selection"
+// Select a single column
+grid.api.selection.selectColumn(2);
+
+// Select multiple columns
+grid.api.selection.selectColumns([2, 3]);
+
+// Get selected columns
+const columns = grid.api.selection.getSelectedColumns();
+// [2, 3]
+```
+
+### Range Selection
+
+```ts title="Range Selection"
+// Select a rectangular range
+grid.api.selection.selectRange({
+  startRow: 5,
+  endRow: 10,
+  startCol: 2,
+  endCol: 4
+});
+
+// Get selected ranges
+const ranges = grid.api.selection.getSelectedRanges();
+// [{ startRow: 5, endRow: 10, startCol: 2, endCol: 4 }]
+```
+
+<Callout type="tip">
+Range selection is the most flexible mode, supporting rectangular selections with keyboard and mouse.
+</Callout>
+
+## IntervalTree Integration
+
+SelectionPlugin uses IntervalTree for efficient range queries:
+
+```ts title="IntervalTree Operations"
+// O(log n) query for selected rows in viewport
+const viewportStart = 100;
+const viewportEnd = 200;
+
+// Efficiently find overlapping selections
+const selectedInViewport = grid.api.selection.getSelectedInRange(
+  viewportStart,
+  viewportEnd
+);
+
+// IntervalTree handles complex overlapping ranges
+grid.api.selection.selectRange({ startRow: 50, endRow: 150, startCol: 0, endCol: 5 });
+grid.api.selection.selectRange({ startRow: 120, endRow: 180, startCol: 2, endCol: 7 });
+
+// Merge overlapping ranges automatically
+const ranges = grid.api.selection.getSelectedRanges();
+```
+
+<Callout type="info">
+IntervalTree provides O(log n) query performance even with thousands of selection ranges.
+</Callout>
+
+## Reactive State
+
+SelectionPlugin creates these reactive signals:
+
+```ts title="Selection State Signals"
+// Selection ranges
+store.get('selection.ranges')      // IntervalTree of selected ranges
+store.set('selection.ranges', tree)
+
+// Active cell (keyboard focus)
+store.get('selection.active')      // { row: number, col: number } | null
+store.set('selection.active', cell)
+
+// Computed signals
+store.get('selection.hasSelection') // Boolean: any selections
+store.get('selection.selectedCount') // Number of selected cells
+```
+
+## API Methods
+
+SelectionPlugin registers these methods on `grid.api.selection`:
+
+```ts title="Selection API Methods"
+// Cell selection
+grid.api.selection.selectCell(row, col);
+grid.api.selection.isCellSelected(row, col);
+grid.api.selection.getSelectedCells();
+
+// Row selection
+grid.api.selection.selectRow(row);
+grid.api.selection.selectRows(rows);
+grid.api.selection.isRowSelected(row);
+grid.api.selection.getSelectedRows();
+
+// Column selection
+grid.api.selection.selectColumn(col);
+grid.api.selection.selectColumns(cols);
+grid.api.selection.isColumnSelected(col);
+grid.api.selection.getSelectedColumns();
+
+// Range selection
+grid.api.selection.selectRange(range);
+grid.api.selection.getSelectedRanges();
+grid.api.selection.getSelectedInRange(startRow, endRow);
+
+// Clear selection
+grid.api.selection.clearSelection();
+
+// Active cell
+grid.api.selection.setActiveCell(row, col);
+grid.api.selection.getActiveCell();
+```
+
+## Keyboard Selection
+
+SelectionPlugin integrates with keyboard navigation:
+
+```ts title="Keyboard Selection"
+// Arrow keys move active cell
+// Shift + Arrow keys extend selection
+// Ctrl + A selects all
+// Ctrl + Click adds to selection
+
+grid.on('selection:keydown', (event) => {
+  console.log('Keyboard selection:', event.key);
+});
+```
+
+## Mouse Selection
+
+Handle mouse-based selection:
+
+```ts title="Mouse Selection"
+// Click selects cell
+// Click + Drag selects range
+// Ctrl + Click adds to selection
+// Shift + Click extends selection
+
+grid.on('selection:mousedown', (event) => {
+  console.log('Mouse selection:', event.row, event.col);
+});
+```
+
+## Events
+
+SelectionPlugin emits events for selection changes:
+
+```ts title="Selection Events"
+grid.on('selection:change', (selection) => {
+  console.log('Selection changed:', selection);
+});
+
+grid.on('selection:clear', () => {
+  console.log('Selection cleared');
+});
+
+grid.on('selection:cell', (cell) => {
+  console.log('Cell selected:', cell);
+});
+
+grid.on('selection:range', (range) => {
+  console.log('Range selected:', range);
+});
+```
+
+## Integration with Store
+
+SelectionPlugin integrates seamlessly with the reactive store:
+
+```ts title="Store Integration"
+// Watch selection changes
+store.effect('logSelectionChanges', () => {
+  const ranges = store.get('selection.ranges');
+  console.log('Current selection:', ranges);
+}, 'MyComponent', 100);
+
+// Computed from selection
+store.computed('selection.isEmpty', () => {
+  const ranges = store.get('selection.ranges');
+  return ranges.size === 0;
+}, 'MyComponent', 100);
+```
+
+## Performance
+
+SelectionPlugin optimizes selection operations:
+
+- **IntervalTree**: O(log n) range queries
+- **Batch updates**: Multiple selections batched into single update
+- **Incremental updates**: Only affected cells re-rendered
+- **Viewport-aware**: Only renders selected cells in viewport
+
+<Callout type="tip">
+Use range selection with IntervalTree for optimal performance with large selections.
+</Callout>
+
+## Selection State Structure
+
+```ts title="Selection Types"
+interface CellSelection {
+  rowIndex: number;
+  columnIndex: number;
+}
+
+interface RangeSelection {
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+}
+
+interface ActiveCell {
+  row: number;
+  col: number;
+}
+```
+
+## Custom Selection Styling
+
+Customize selection appearance:
+
+```ts title="Custom Selection Style"
+const grid = createGrid(container, {
+  selection: {
+    mode: 'range',
+    style: {
+      backgroundColor: 'rgba(0, 120, 215, 0.1)',
+      borderColor: '#0078d7',
+      borderWidth: 2
+    }
+  }
+});
+```

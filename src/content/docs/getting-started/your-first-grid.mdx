@@ -1,0 +1,402 @@
+---
+title: Your First Grid
+description: Step-by-step tutorial building a full-featured data grid with columns, renderers, and events.
+order: 3
+category: Getting Started
+tags: [tutorial, columns, renderers, events]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+Build a full-featured data grid step-by-step, from basic setup to custom renderers and event handling.
+
+## Step 1: HTML Container
+
+Create a container element with explicit dimensions:
+
+```html title="index.html"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My First Grid</title>
+  <style>
+    #grid-container {
+      width: 100%;
+      height: 600px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div id="grid-container"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+```
+
+<Callout type="warning">
+The grid container must have explicit width and height. The grid will not render without defined dimensions.
+</Callout>
+
+## Step 2: Column Definitions
+
+Define columns with their properties:
+
+```ts title="columns.ts"
+import { type ColumnDef } from '@zengrid/core';
+
+export const columns: ColumnDef[] = [
+  {
+    field: 'id',
+    header: 'ID',
+    width: 80,
+    sortable: true,
+    editable: false
+  },
+  {
+    field: 'name',
+    header: 'Name',
+    width: 200,
+    sortable: true,
+    editable: true,
+    renderer: 'text'
+  },
+  {
+    field: 'email',
+    header: 'Email',
+    width: 250,
+    sortable: true,
+    filterable: true,
+    editable: true
+  },
+  {
+    field: 'department',
+    header: 'Department',
+    width: 180,
+    renderer: 'chip'
+  },
+  {
+    field: 'salary',
+    header: 'Salary',
+    width: 120,
+    sortable: true,
+    renderer: 'number'
+  },
+  {
+    field: 'active',
+    header: 'Active',
+    width: 100,
+    renderer: 'checkbox',
+    editable: true
+  }
+];
+```
+
+<Callout type="info">
+Column properties: `field` (data key), `header` (display name), `width` (pixels), `renderer` (cell renderer), `sortable`, `editable`, `filterable`, `resizable`, `reorderable`.
+</Callout>
+
+## Step 3: Loading Array Data
+
+Load data from an array using the data callback:
+
+```ts title="data.ts"
+export interface Employee {
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  salary: number;
+  active: boolean;
+}
+
+export const employees: Employee[] = [
+  {
+    id: 1,
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    department: 'Engineering',
+    salary: 95000,
+    active: true
+  },
+  {
+    id: 2,
+    name: 'Bob Smith',
+    email: 'bob@example.com',
+    department: 'Sales',
+    salary: 75000,
+    active: true
+  },
+  {
+    id: 3,
+    name: 'Charlie Brown',
+    email: 'charlie@example.com',
+    department: 'Marketing',
+    salary: 68000,
+    active: false
+  }
+];
+```
+
+```ts title="main.ts"
+import { Grid } from '@zengrid/core';
+import { columns } from './columns';
+import { employees } from './data';
+
+const grid = new Grid({
+  container: document.getElementById('grid-container')!,
+  columns,
+  data: (row, col) => {
+    const employee = employees[row];
+    const field = columns[col].field;
+    return employee[field as keyof typeof employee];
+  },
+  rowCount: employees.length
+});
+
+grid.render();
+```
+
+## Step 4: Cell Renderers
+
+Register and use custom cell renderers:
+
+```ts title="renderers.ts"
+import { type CellRenderer } from '@zengrid/core';
+
+// Custom status renderer with colored badges
+export const statusRenderer: CellRenderer = {
+  render(element: HTMLElement, params: any) {
+    const { value } = params;
+    element.className = 'status-badge';
+    element.textContent = value;
+    element.style.cssText = `
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background-color: ${value === 'Active' ? '#d4edda' : '#f8d7da'};
+      color: ${value === 'Active' ? '#155724' : '#721c24'};
+    `;
+  },
+
+  update(element: HTMLElement, params: any) {
+    this.render(element, params);
+  },
+
+  destroy(element: HTMLElement) {
+    element.textContent = '';
+    element.className = '';
+    element.style.cssText = '';
+  }
+};
+
+// Custom currency renderer
+export const currencyRenderer: CellRenderer = {
+  render(element: HTMLElement, params: any) {
+    const { value } = params;
+    element.textContent = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value);
+  },
+
+  update(element: HTMLElement, params: any) {
+    this.render(element, params);
+  },
+
+  destroy(element: HTMLElement) {
+    element.textContent = '';
+  }
+};
+```
+
+Register renderers with the grid:
+
+```ts title="main.ts"
+import { statusRenderer, currencyRenderer } from './renderers';
+
+// Register custom renderers
+grid.registerRenderer('status', statusRenderer);
+grid.registerRenderer('currency', currencyRenderer);
+
+// Update column definitions to use custom renderers
+columns[3].renderer = 'status';
+columns[4].renderer = 'currency';
+```
+
+<Callout type="tip">
+The CellRenderer interface requires three methods: `render()` creates initial content, `update()` updates existing content, and `destroy()` cleans up resources.
+</Callout>
+
+## Step 5: Event Handling
+
+Handle grid events to respond to user interactions:
+
+```ts title="events.ts"
+// Cell click event
+grid.on('cell:click', (payload) => {
+  const { cell, value, nativeEvent } = payload;
+  console.log(`Clicked cell at row ${cell.row}, col ${cell.col}`);
+  console.log(`Value: ${value}`);
+});
+
+// Cell double-click event
+grid.on('cell:dblclick', (payload) => {
+  const { cell } = payload;
+  console.log(`Double-clicked cell at row ${cell.row}, col ${cell.col}`);
+  // Enter edit mode
+  grid.startEdit(cell.row, cell.col);
+});
+
+// Selection change event
+grid.on('selection:change', (payload) => {
+  const { ranges } = payload;
+  console.log('Selected ranges:', ranges);
+
+  if (ranges.length > 0) {
+    const range = ranges[0];
+    console.log(`Selected from (${range.startRow},${range.startCol}) to (${range.endRow},${range.endCol})`);
+  }
+});
+
+// Cell edit event
+grid.on('cell:edit', (payload) => {
+  const { cell, oldValue, newValue } = payload;
+  console.log(`Cell edited at row ${cell.row}, col ${cell.col}`);
+  console.log(`Old value: ${oldValue}, New value: ${newValue}`);
+
+  // Update your data source
+  const field = columns[cell.col].field;
+  employees[cell.row][field as keyof typeof employees[0]] = newValue;
+});
+
+// Sort change event
+grid.on('sort:change', (payload) => {
+  const { column, direction } = payload;
+  console.log(`Sorted column ${column} in ${direction} order`);
+});
+
+// Filter change event
+grid.on('filter:change', (payload) => {
+  const { filters } = payload;
+  console.log('Active filters:', filters);
+});
+```
+
+<Callout type="info">
+Common events: `cell:click`, `cell:dblclick`, `cell:edit`, `selection:change`, `sort:change`, `filter:change`, `column:resize`, `column:reorder`.
+</Callout>
+
+## Step 6: Customization
+
+Customize the grid with options and constraints:
+
+```ts title="customization.ts"
+// Update grid options dynamically
+grid.updateOptions({
+  enableSelection: true,
+  selectionType: 'range',
+  enableColumnReorder: true,
+  enableColumnResize: true,
+  rowHeight: 40,
+  headerHeight: 50
+});
+
+// Set column constraints
+grid.setColumnConstraints([
+  { index: 0, minWidth: 60, maxWidth: 100 },
+  { index: 1, minWidth: 150, maxWidth: 300 },
+  { index: 4, minWidth: 100, maxWidth: 200 }
+]);
+
+// Programmatically sort
+grid.sort(1, 'asc'); // Sort by name ascending
+
+// Programmatically filter
+grid.setFilter(2, 'contains', '@example.com');
+
+// Programmatically select
+grid.setSelection([
+  { startRow: 0, startCol: 0, endRow: 2, endCol: 5 }
+]);
+```
+
+## Cleanup
+
+Always destroy the grid when done to free resources:
+
+```ts title="cleanup.ts"
+// Clean up when component unmounts or page navigates away
+window.addEventListener('beforeunload', () => {
+  grid.destroy();
+});
+
+// Or in a framework lifecycle hook
+// React: useEffect cleanup
+// Vue: onBeforeUnmount
+// Angular: ngOnDestroy
+```
+
+<Callout type="warning">
+Call `grid.destroy()` to remove event listeners, clean up renderers, and free memory. Failing to destroy can cause memory leaks.
+</Callout>
+
+## Complete Example
+
+Here's the full working example:
+
+```ts title="complete-example.ts"
+import { Grid, type ColumnDef, type CellRenderer } from '@zengrid/core';
+
+// Data
+const employees = [
+  { id: 1, name: 'Alice', email: 'alice@example.com', department: 'Engineering', salary: 95000, active: true },
+  { id: 2, name: 'Bob', email: 'bob@example.com', department: 'Sales', salary: 75000, active: true },
+  { id: 3, name: 'Charlie', email: 'charlie@example.com', department: 'Marketing', salary: 68000, active: false }
+];
+
+// Columns
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80, sortable: true },
+  { field: 'name', header: 'Name', width: 200, sortable: true, editable: true },
+  { field: 'email', header: 'Email', width: 250, filterable: true },
+  { field: 'department', header: 'Department', width: 180, renderer: 'chip' },
+  { field: 'salary', header: 'Salary', width: 120, renderer: 'currency' },
+  { field: 'active', header: 'Active', width: 100, renderer: 'checkbox' }
+];
+
+// Custom renderer
+const currencyRenderer: CellRenderer = {
+  render(el, { value }) {
+    el.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  },
+  update(el, params) { this.render(el, params); },
+  destroy(el) { el.textContent = ''; }
+};
+
+// Create grid
+const grid = new Grid({
+  container: document.getElementById('grid-container')!,
+  columns,
+  data: (row, col) => employees[row][columns[col].field],
+  rowCount: employees.length,
+  enableSelection: true,
+  selectionType: 'range'
+});
+
+grid.registerRenderer('currency', currencyRenderer);
+grid.render();
+
+// Events
+grid.on('cell:click', ({ cell, value }) => console.log('Clicked:', value));
+grid.on('cell:edit', ({ cell, newValue }) => {
+  employees[cell.row][columns[cell.col].field] = newValue;
+});
+```
+
+## Next Steps
+
+Learn about [TypeScript Setup](/getting-started/typescript-setup) for type-safe development with full IntelliSense support.

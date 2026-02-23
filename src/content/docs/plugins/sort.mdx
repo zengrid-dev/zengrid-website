@@ -1,0 +1,268 @@
+---
+title: SortPlugin
+description: SortPlugin and AsyncSortPlugin integrate sorting with the reactive store system.
+order: 23
+category: Plugins
+tags: [plugins, sort, reactive]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `SortPlugin` integrates ZenGrid's sorting functionality with the reactive store system, supporting both frontend and backend sorting modes.
+
+## Overview
+
+SortPlugin runs at phase 10 and provides:
+
+- Reactive sort state management
+- Frontend in-memory sorting
+- Backend sort delegation
+- Single and multi-column sorting
+- Sort state persistence
+
+<Callout type="info">
+SortPlugin depends on CorePlugin and must be registered after it.
+</Callout>
+
+## Creation
+
+Create the SortPlugin using factory functions:
+
+```ts title="Creating SortPlugin"
+import { createSortPlugin, createAsyncSortPlugin } from '@zengrid/core';
+
+// Synchronous sorting
+const sortPlugin = createSortPlugin();
+grid.usePlugin(sortPlugin);
+
+// Asynchronous sorting
+const asyncSortPlugin = createAsyncSortPlugin();
+grid.usePlugin(asyncSortPlugin);
+```
+
+## Frontend Mode
+
+Frontend mode sorts data in-memory using built-in sorters:
+
+```ts title="Frontend Sorting"
+import { createGrid, createSortPlugin } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  columns: [
+    { id: 'name', field: 'name', sortable: true },
+    { id: 'age', field: 'age', sortable: true }
+  ],
+  data: users,
+  sorting: {
+    mode: 'frontend',
+    multiColumn: true
+  }
+});
+
+grid.usePlugin(createSortPlugin());
+
+// Sort by name ascending
+grid.api.sort.setSortState([
+  { field: 'name', direction: 'asc' }
+]);
+```
+
+### Single Column Sorting
+
+Uses `SingleColumnSorter` for single-column operations:
+
+```ts title="Single Column Sort"
+// Only one column sorted at a time
+grid.api.sort.setSortState([
+  { field: 'age', direction: 'desc' }
+]);
+
+// Previous sort is replaced
+store.get('sort.state'); // [{ field: 'age', direction: 'desc' }]
+```
+
+### Multi-Column Sorting
+
+Uses `MultiColumnSorter` for multi-column operations:
+
+```ts title="Multi-Column Sort"
+const grid = createGrid(container, {
+  sorting: { mode: 'frontend', multiColumn: true }
+});
+
+// Sort by multiple columns
+grid.api.sort.setSortState([
+  { field: 'department', direction: 'asc' },
+  { field: 'name', direction: 'asc' }
+]);
+
+// Data sorted by department, then by name
+```
+
+<Callout type="tip">
+Multi-column sorting maintains sort priority based on array order.
+</Callout>
+
+## Backend Mode
+
+Backend mode delegates sorting to a callback:
+
+```ts title="Backend Sorting"
+const grid = createGrid(container, {
+  columns: [
+    { id: 'name', field: 'name', sortable: true }
+  ],
+  sorting: {
+    mode: 'backend',
+    onSortRequest: async (sortState) => {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify({ sort: sortState })
+      });
+      const data = await response.json();
+      grid.api.data.setData(data);
+    }
+  }
+});
+
+grid.usePlugin(createSortPlugin());
+```
+
+## AsyncSortPlugin
+
+For async sorting operations with loading states:
+
+```ts title="Async Sorting"
+import { createAsyncSortPlugin } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  sorting: {
+    mode: 'backend',
+    onSortRequest: async (sortState) => {
+      // Show loading indicator
+      grid.api.loading.show();
+
+      try {
+        const data = await fetchSortedData(sortState);
+        grid.api.data.setData(data);
+      } finally {
+        grid.api.loading.hide();
+      }
+    }
+  }
+});
+
+grid.usePlugin(createAsyncSortPlugin());
+```
+
+## Reactive State
+
+SortPlugin creates these reactive signals:
+
+```ts title="Sort State Signals"
+// Current sort state
+store.get('sort.state')          // Array<{ field: string, direction: 'asc' | 'desc' }>
+store.set('sort.state', newSort)
+
+// Computed signals
+store.get('sort.hasSorting')     // Boolean: any active sorts
+store.get('sort.sortedFields')   // Array<string>: sorted field names
+```
+
+## API Methods
+
+SortPlugin registers these methods on `grid.api.sort`:
+
+```ts title="Sort API Methods"
+// Set sort state
+grid.api.sort.setSortState([
+  { field: 'name', direction: 'asc' }
+]);
+
+// Get current sort state
+const sortState = grid.api.sort.getSortState();
+
+// Toggle sort on a field
+grid.api.sort.toggleSort('age');
+
+// Clear all sorting
+grid.api.sort.clearSort();
+
+// Sort by field with direction
+grid.api.sort.sortByField('name', 'desc');
+```
+
+## Sort State Structure
+
+```ts title="SortState Type"
+interface SortState {
+  field: string;
+  direction: 'asc' | 'desc';
+}
+
+type SortStateArray = SortState[];
+```
+
+## Events
+
+SortPlugin emits events for sort changes:
+
+```ts title="Sort Events"
+grid.on('sort:change', (sortState) => {
+  console.log('Sort changed:', sortState);
+});
+
+grid.on('sort:clear', () => {
+  console.log('Sort cleared');
+});
+```
+
+## Integration with Store
+
+SortPlugin integrates seamlessly with the reactive store:
+
+```ts title="Store Integration"
+// Watch sort changes
+store.effect('logSortChanges', () => {
+  const sortState = store.get('sort.state');
+  console.log('Current sort:', sortState);
+}, 'MyComponent', 100);
+
+// Computed from sort state
+store.computed('sort.summary', () => {
+  const sortState = store.get('sort.state');
+  return sortState.map(s => `${s.field} ${s.direction}`).join(', ');
+}, 'MyComponent', 100);
+```
+
+## Performance
+
+SortPlugin optimizes sorting performance:
+
+- **Timsort algorithm**: Uses efficient Timsort from `@zengrid/shared`
+- **Index-based**: Sorts indices, not data
+- **Stable sorting**: Maintains relative order for equal elements
+- **Lazy evaluation**: Only sorts when needed
+
+<Callout type="info">
+Frontend mode uses Timsort with O(n log n) average complexity for optimal performance.
+</Callout>
+
+## Custom Comparators
+
+Define custom sort comparators per column:
+
+```ts title="Custom Comparators"
+const grid = createGrid(container, {
+  columns: [
+    {
+      id: 'date',
+      field: 'date',
+      sortable: true,
+      sortComparator: (a, b) => {
+        return new Date(a).getTime() - new Date(b).getTime();
+      }
+    }
+  ]
+});
+```

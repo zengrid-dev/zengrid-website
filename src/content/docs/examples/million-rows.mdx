@@ -1,0 +1,408 @@
+---
+title: Million Rows Performance
+description: Render one million rows with virtual scrolling and cell pooling.
+order: 47
+category: Examples
+tags: [examples, performance, million-rows]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+import MillionRowsDemo from '../../../components/demos/MillionRowsDemo.astro';
+
+This example demonstrates ZenGrid's ability to handle massive datasets with virtual scrolling and cell pooling. Render one million rows with smooth scrolling and constant DOM element count.
+
+<MillionRowsDemo />
+
+## Basic Million Row Grid
+
+```typescript title="million-rows.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+const columns: Column[] = [
+  { id: 'id', header: 'ID', width: 80 },
+  { id: 'name', header: 'Name', width: 200 },
+  { id: 'email', header: 'Email', width: 250 },
+  { id: 'department', header: 'Department', width: 150 },
+  { id: 'salary', header: 'Salary', width: 120 },
+  { id: 'startDate', header: 'Start Date', width: 150 },
+];
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: 1_000_000,  // One million rows
+  rowHeight: 40,
+  headerHeight: 44,
+
+  // Data generation function
+  data: (rowIndex: number, colId: string) => {
+    switch (colId) {
+      case 'id':
+        return rowIndex + 1;
+      case 'name':
+        return `Employee ${rowIndex + 1}`;
+      case 'email':
+        return `employee${rowIndex + 1}@company.com`;
+      case 'department':
+        return ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance'][rowIndex % 5];
+      case 'salary':
+        return `$${(50000 + (rowIndex * 100) % 100000).toLocaleString()}`;
+      case 'startDate':
+        const date = new Date(2020, 0, 1);
+        date.setDate(date.getDate() + (rowIndex % 1000));
+        return date.toISOString().split('T')[0];
+      default:
+        return '';
+    }
+  },
+});
+
+console.log('Grid created with 1,000,000 rows');
+console.log('DOM element count:', document.querySelectorAll('.zengrid-cell').length);
+```
+
+<Callout type="info">
+Only visible cells are rendered in the DOM. With a viewport height of 600px and 40px row height, only ~15 rows are rendered at any time, regardless of the total row count.
+</Callout>
+
+## Cell Pooling
+
+Enable cell pooling to reuse DOM elements during scrolling:
+
+```typescript title="cell-pooling.ts"
+const grid = createGrid(container, {
+  columns,
+  rowCount: 1_000_000,
+  rowHeight: 40,
+
+  // Enable cell pooling
+  enableCellPooling: true,
+  cellPoolSize: 100,  // Pool size
+
+  data: (rowIndex, colId) => {
+    // Data generation
+    return `Cell ${rowIndex}-${colId}`;
+  },
+});
+```
+
+<Callout type="tip">
+Cell pooling reduces memory allocation and garbage collection during scrolling. It's enabled by default for grids with more than 10,000 rows.
+</Callout>
+
+## Overscan for Smooth Scrolling
+
+Add overscan rows to improve scroll smoothness:
+
+```typescript title="overscan.ts"
+const grid = createGrid(container, {
+  columns,
+  rowCount: 1_000_000,
+  rowHeight: 40,
+
+  // Render extra rows above and below viewport
+  overscan: 5,  // Render 5 extra rows on each side
+
+  data: (rowIndex, colId) => {
+    return `Cell ${rowIndex}-${colId}`;
+  },
+});
+```
+
+<Callout type="info">
+Overscan renders additional rows outside the visible viewport. This reduces blank areas during fast scrolling but increases the number of rendered cells.
+</Callout>
+
+## Performance Monitoring
+
+Monitor grid performance with built-in statistics:
+
+```typescript title="performance-stats.ts"
+const grid = createGrid(container, options);
+
+// Get performance stats
+const stats = grid.getStats();
+
+console.log('Performance Stats:', {
+  totalRows: stats.totalRows,
+  visibleRows: stats.visibleRows,
+  renderedCells: stats.renderedCells,
+  domElements: stats.domElements,
+  scrollTop: stats.scrollTop,
+  renderTime: stats.lastRenderTime,
+  fps: stats.averageFps,
+});
+
+// Monitor stats during scrolling
+setInterval(() => {
+  const stats = grid.getStats();
+  console.log(`FPS: ${stats.averageFps}, Render: ${stats.lastRenderTime}ms`);
+}, 1000);
+```
+
+## Navigation with ScrollToCell
+
+Navigate to specific cells programmatically:
+
+```typescript title="scroll-to-cell.ts"
+const grid = createGrid(container, options);
+
+// Scroll to specific row
+grid.scrollToCell({ rowIndex: 500_000 });
+
+// Scroll to specific cell with alignment
+grid.scrollToCell({
+  rowIndex: 750_000,
+  colId: 'email',
+  align: 'center',  // 'start', 'center', 'end'
+});
+
+// Smooth scroll to cell
+grid.scrollToCell({
+  rowIndex: 999_999,  // Last row
+  behavior: 'smooth',
+});
+
+// Add navigation buttons
+function addNavigationButtons() {
+  const nav = document.createElement('div');
+  nav.innerHTML = `
+    <button id="scroll-start">Start</button>
+    <button id="scroll-middle">Middle</button>
+    <button id="scroll-end">End</button>
+    <input type="number" id="row-input" placeholder="Row number" />
+    <button id="scroll-to-row">Go</button>
+  `;
+  document.body.prepend(nav);
+
+  document.getElementById('scroll-start')?.addEventListener('click', () => {
+    grid.scrollToCell({ rowIndex: 0 });
+  });
+
+  document.getElementById('scroll-middle')?.addEventListener('click', () => {
+    grid.scrollToCell({ rowIndex: 500_000 });
+  });
+
+  document.getElementById('scroll-end')?.addEventListener('click', () => {
+    grid.scrollToCell({ rowIndex: 999_999 });
+  });
+
+  document.getElementById('scroll-to-row')?.addEventListener('click', () => {
+    const input = document.getElementById('row-input') as HTMLInputElement;
+    const rowIndex = parseInt(input.value, 10);
+    if (!isNaN(rowIndex) && rowIndex >= 0 && rowIndex < 1_000_000) {
+      grid.scrollToCell({ rowIndex });
+    }
+  });
+}
+
+addNavigationButtons();
+```
+
+<Callout type="tip">
+Use `scrollToCell()` to implement features like "jump to row", search results navigation, or bookmarks.
+</Callout>
+
+## Complete Million Row Example
+
+```typescript title="complete-million-row.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+// Generate realistic mock data
+function generateData(rowIndex: number, colId: string): string | number {
+  const seed = rowIndex;
+  const random = (min: number, max: number) => {
+    return Math.floor((Math.sin(seed * 9999 + colId.length) + 1) * 0.5 * (max - min) + min);
+  };
+
+  switch (colId) {
+    case 'id':
+      return rowIndex + 1;
+    case 'name':
+      const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'David', 'Emily'];
+      const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'];
+      return `${firstNames[random(0, firstNames.length)]} ${lastNames[random(0, lastNames.length)]}`;
+    case 'email':
+      return `user${rowIndex + 1}@company.com`;
+    case 'department':
+      return ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance'][random(0, 5)];
+    case 'salary':
+      return `$${(50000 + random(0, 100000)).toLocaleString()}`;
+    case 'startDate':
+      const date = new Date(2015, random(0, 12), random(1, 28));
+      return date.toISOString().split('T')[0];
+    case 'performance':
+      return `${random(60, 100)}%`;
+    default:
+      return '';
+  }
+}
+
+// Column definitions
+const columns: Column[] = [
+  { id: 'id', header: 'ID', width: 80, frozen: true },
+  { id: 'name', header: 'Name', width: 200 },
+  { id: 'email', header: 'Email', width: 250 },
+  { id: 'department', header: 'Department', width: 150 },
+  { id: 'salary', header: 'Salary', width: 120 },
+  { id: 'startDate', header: 'Start Date', width: 150 },
+  { id: 'performance', header: 'Performance', width: 120 },
+];
+
+// Create grid
+const grid = createGrid(container, {
+  columns,
+  rowCount: 1_000_000,
+  rowHeight: 40,
+  headerHeight: 44,
+  enableCellPooling: true,
+  overscan: 5,
+  data: generateData,
+});
+
+// Performance dashboard
+const dashboard = document.createElement('div');
+dashboard.style.cssText = 'padding: 10px; background: #f5f5f5; margin-bottom: 10px;';
+document.body.prepend(dashboard);
+
+function updateDashboard() {
+  const stats = grid.getStats();
+  dashboard.innerHTML = `
+    <strong>Performance Dashboard</strong> |
+    Total Rows: ${stats.totalRows.toLocaleString()} |
+    Visible: ${stats.visibleRows} |
+    DOM Cells: ${stats.renderedCells} |
+    FPS: ${stats.averageFps} |
+    Render: ${stats.lastRenderTime}ms |
+    Scroll: ${Math.round(stats.scrollTop)}px
+  `;
+}
+
+// Update dashboard every second
+setInterval(updateDashboard, 1000);
+updateDashboard();
+
+// Navigation controls
+const nav = document.createElement('div');
+nav.style.cssText = 'padding: 10px; margin-bottom: 10px;';
+nav.innerHTML = `
+  <button id="start">⏮ Start</button>
+  <button id="prev-page">◀ Prev Page</button>
+  <button id="middle">⏺ Middle</button>
+  <button id="next-page">Next Page ▶</button>
+  <button id="end">End ⏭</button>
+  <input type="number" id="row-input" placeholder="Row" style="width: 100px; margin-left: 10px;" />
+  <button id="go">Go</button>
+`;
+document.body.prepend(nav);
+
+// Navigation handlers
+document.getElementById('start')?.addEventListener('click', () => {
+  grid.scrollToCell({ rowIndex: 0, behavior: 'smooth' });
+});
+
+document.getElementById('middle')?.addEventListener('click', () => {
+  grid.scrollToCell({ rowIndex: 500_000, behavior: 'smooth' });
+});
+
+document.getElementById('end')?.addEventListener('click', () => {
+  grid.scrollToCell({ rowIndex: 999_999, behavior: 'smooth' });
+});
+
+document.getElementById('prev-page')?.addEventListener('click', () => {
+  const stats = grid.getStats();
+  const currentRow = Math.floor(stats.scrollTop / 40);
+  const targetRow = Math.max(0, currentRow - 20);
+  grid.scrollToCell({ rowIndex: targetRow, behavior: 'smooth' });
+});
+
+document.getElementById('next-page')?.addEventListener('click', () => {
+  const stats = grid.getStats();
+  const currentRow = Math.floor(stats.scrollTop / 40);
+  const targetRow = Math.min(999_999, currentRow + 20);
+  grid.scrollToCell({ rowIndex: targetRow, behavior: 'smooth' });
+});
+
+document.getElementById('go')?.addEventListener('click', () => {
+  const input = document.getElementById('row-input') as HTMLInputElement;
+  const rowIndex = parseInt(input.value, 10) - 1;  // Convert to 0-based
+  if (!isNaN(rowIndex) && rowIndex >= 0 && rowIndex < 1_000_000) {
+    grid.scrollToCell({ rowIndex, behavior: 'smooth' });
+  }
+});
+
+// Log scroll events
+let lastLog = Date.now();
+grid.on('scroll', (event) => {
+  const now = Date.now();
+  if (now - lastLog > 1000) {
+    console.log('Scrolled to row ~', Math.floor(event.scrollTop / 40));
+    lastLog = now;
+  }
+});
+
+console.log('Million row grid initialized');
+```
+
+<Callout type="info">
+The grid maintains constant performance regardless of the total row count. Scrolling from row 1 to row 1,000,000 is just as smooth as scrolling within the first 100 rows.
+</Callout>
+
+## Performance Tips
+
+### Data Generation
+
+- Keep the `data` callback function fast
+- Avoid expensive computations or API calls inside `data`
+- Pre-compute or cache complex values
+
+```typescript
+// Bad: Expensive operation in data callback
+data: (rowIndex, colId) => {
+  return expensiveComputation(rowIndex, colId);  // Called frequently!
+}
+
+// Good: Cache computed values
+const cache = new Map();
+data: (rowIndex, colId) => {
+  const key = `${rowIndex}-${colId}`;
+  if (!cache.has(key)) {
+    cache.set(key, expensiveComputation(rowIndex, colId));
+  }
+  return cache.get(key);
+}
+```
+
+### Cell Rendering
+
+- Use simple HTML in cell renderers
+- Avoid nested elements when possible
+- Minimize CSS complexity on cells
+
+### Memory Management
+
+- Don't store references to all rows in memory
+- Use generators or lazy loading for data access
+- Enable cell pooling for very large grids
+
+<Callout type="warning">
+Virtual scrolling renders only visible cells. Don't try to access DOM elements for non-visible rows as they don't exist in the DOM.
+</Callout>
+
+## Benchmarks
+
+Typical performance on modern hardware:
+
+- **1 million rows**: 60 FPS smooth scrolling
+- **Render time**: under 16ms per frame
+- **DOM elements**: Constant (~150 cells regardless of row count)
+- **Memory usage**: ~50MB for 1M rows with 7 columns
+- **Scroll to any row**: under 100ms
+
+## Next Steps
+
+- Add [sorting](/examples/sortable) to large datasets
+- Add [filtering](/examples/filterable) to narrow down results
+- Learn about [data virtualization strategies](/advanced/data-virtualization)
+- Explore [performance optimization techniques](/advanced/performance-optimization)

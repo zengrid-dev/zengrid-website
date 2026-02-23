@@ -1,0 +1,178 @@
+---
+title: CorePlugin
+description: The CorePlugin provides foundational data and state management at phase 0.
+order: 22
+category: Plugins
+tags: [plugins, core, state]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `CorePlugin` is the foundation of ZenGrid's plugin system, running at phase 0. It establishes the core reactive state that all other plugins build upon.
+
+## Overview
+
+CorePlugin creates the fundamental store keys for managing grid data, rows, and columns:
+
+```ts title="CorePlugin Keys"
+rows.raw          // Raw data array
+rows.indices      // Row index mapping
+rows.viewIndices  // Filtered/sorted view indices
+rows.viewCount    // Number of visible rows
+```
+
+<Callout type="info">
+CorePlugin has no dependencies and must be loaded before any other plugin.
+</Callout>
+
+## Creation
+
+Create the CorePlugin using the factory function:
+
+```ts title="Creating CorePlugin"
+import { createCorePlugin } from '@zengrid/core';
+
+const corePlugin = createCorePlugin();
+grid.usePlugin(corePlugin);
+```
+
+## Store Structure
+
+CorePlugin initializes these reactive signals in the store:
+
+### Row State
+
+```ts title="Row State Signals"
+// Raw data
+store.get('rows.raw')          // Original data array
+store.set('rows.raw', newData) // Update data
+
+// Index mapping
+store.get('rows.indices')       // Array of row indices
+store.get('rows.viewIndices')   // Filtered/sorted indices
+store.get('rows.viewCount')     // Number of visible rows
+```
+
+### Column State
+
+```ts title="Column State Signals"
+store.get('columns.definitions') // Column configurations
+store.get('columns.visible')     // Visible column list
+store.get('columns.order')       // Column display order
+```
+
+### Data Management
+
+```ts title="Data Management Signals"
+store.get('data.source')        // Data source reference
+store.get('data.loading')       // Loading state
+store.get('data.error')         // Error state
+```
+
+## Phase 0 Initialization
+
+CorePlugin runs at phase 0, making it the first plugin to initialize:
+
+```ts title="Phase 0 Execution"
+const CorePlugin: GridPlugin = {
+  name: 'CorePlugin',
+  phase: 0,
+  dependencies: undefined,
+
+  setup(store, api) {
+    // Initialize core state
+    store.extend('rows.raw', [], 'CorePlugin', 0);
+    store.extend('rows.indices', [], 'CorePlugin', 0);
+    store.extend('rows.viewIndices', [], 'CorePlugin', 0);
+    store.extend('rows.viewCount', 0, 'CorePlugin', 0);
+
+    return { teardown: [] };
+  }
+};
+```
+
+<Callout type="warning">
+Never modify CorePlugin's phase or remove it. All other plugins depend on its initialization.
+</Callout>
+
+## State Foundation
+
+CorePlugin establishes the reactive foundation:
+
+```ts title="Reactive State Flow"
+// Raw data changes
+store.set('rows.raw', newData);
+
+// Automatically updates dependent signals
+// → rows.indices recalculated
+// → rows.viewIndices updated (if filters/sort active)
+// → rows.viewCount recalculated
+```
+
+## Integration with Other Plugins
+
+All plugins depend on CorePlugin's state:
+
+```ts title="Plugin Dependencies on Core"
+// SortPlugin reads rows.raw
+const sortPlugin = {
+  name: 'SortPlugin',
+  phase: 10,
+  dependencies: ['CorePlugin'],
+  setup(store, api) {
+    const rawData = store.get('rows.raw');
+    // Sort operations...
+  }
+};
+
+// FilterPlugin reads rows.indices
+const filterPlugin = {
+  name: 'FilterPlugin',
+  phase: 20,
+  dependencies: ['CorePlugin'],
+  setup(store, api) {
+    const indices = store.get('rows.indices');
+    // Filter operations...
+  }
+};
+```
+
+## API Methods
+
+CorePlugin doesn't register API methods directly, but provides the state other plugins use to register their methods:
+
+```ts title="Core State Usage"
+// Other plugins use core state
+api.register('data', {
+  getData: () => store.get('rows.raw'),
+  getRowCount: () => store.get('rows.viewCount'),
+  getRow: (index: number) => {
+    const indices = store.get('rows.viewIndices');
+    const data = store.get('rows.raw');
+    return data[indices[index]];
+  }
+});
+```
+
+## Performance Considerations
+
+CorePlugin uses efficient reactive patterns:
+
+- **Lazy evaluation**: Computed signals only recalculate when dependencies change
+- **Batch updates**: Multiple state changes batch into single update cycle
+- **Memory efficiency**: Uses typed arrays for index mappings when possible
+
+<Callout type="tip">
+CorePlugin's reactive state automatically propagates changes to dependent plugins without manual coordination.
+</Callout>
+
+## Cleanup
+
+CorePlugin cleanup happens automatically during grid destruction:
+
+```ts title="CorePlugin Cleanup"
+dispose() {
+  // Store automatically cleans up signals owned by 'CorePlugin'
+  // No manual cleanup required
+}
+```

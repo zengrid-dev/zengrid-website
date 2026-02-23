@@ -1,0 +1,326 @@
+---
+title: Editing
+description: Enable inline cell editing with built-in editors, validation, and keyboard shortcuts.
+order: 12
+category: Features
+tags: [editing, editors, validation]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides a comprehensive inline editing system with built-in editors, validation support, and intuitive keyboard shortcuts.
+
+## EditorManager API
+
+The EditorManager handles all editing operations in the grid:
+
+```js title="editor-manager.js"
+// Start editing a cell
+grid.startEdit(cell, initialValue);
+
+// Commit the current edit
+grid.commitEdit();
+
+// Cancel the current edit
+grid.cancelEdit();
+
+// Check if a cell is being edited
+const isEditing = grid.isEditing();
+
+// Get the cell being edited
+const editingCell = grid.getEditingCell();
+```
+
+## Built-In Editors
+
+ZenGrid includes these built-in cell editors:
+
+- **text**: Single-line text input
+- **number**: Numeric input with validation
+- **checkbox**: Boolean checkbox
+- **date**: Date picker
+- **time**: Time picker
+- **datetime**: Date and time picker
+- **date-range**: Date range selector
+- **select**: Single-select dropdown
+- **dropdown**: Searchable dropdown with autocomplete
+
+## Enabling Editing
+
+Configure editing at the grid and column level:
+
+```js title="enable-editing.js"
+const grid = new ZenGrid(container, {
+  columns: [
+    {
+      id: 'name',
+      field: 'name',
+      editable: true,
+      editor: 'text'
+    },
+    {
+      id: 'age',
+      field: 'age',
+      editable: true,
+      editor: 'number',
+      editorParams: {
+        min: 0,
+        max: 120
+      }
+    },
+    {
+      id: 'active',
+      field: 'active',
+      editable: true,
+      editor: 'checkbox'
+    },
+    {
+      id: 'status',
+      field: 'status',
+      editable: true,
+      editor: 'select',
+      editorParams: {
+        options: ['active', 'inactive', 'pending']
+      }
+    }
+  ]
+});
+```
+
+<Callout type="info">
+By default, all columns are non-editable. Set `editable: true` on individual columns to enable editing.
+</Callout>
+
+## Custom Editors
+
+Create custom editors by implementing the CellEditor interface:
+
+```js title="custom-editor.js"
+class CustomEditor {
+  constructor() {
+    this.value = null;
+    this.input = null;
+  }
+
+  // Initialize the editor
+  init(container, value, params) {
+    this.value = value;
+
+    this.input = document.createElement('input');
+    this.input.type = 'text';
+    this.input.value = value || '';
+    this.input.className = 'custom-editor';
+
+    container.appendChild(this.input);
+
+    // Handle params
+    if (params.onComplete) {
+      this.input.addEventListener('blur', () => {
+        params.onComplete(this.getValue());
+      });
+    }
+  }
+
+  // Get the current value
+  getValue() {
+    return this.input.value;
+  }
+
+  // Focus the editor
+  focus() {
+    this.input.focus();
+    this.input.select();
+  }
+
+  // Clean up
+  destroy() {
+    if (this.input) {
+      this.input.remove();
+    }
+  }
+
+  // Optional: Validation
+  isValid() {
+    return this.input.value.length > 0;
+  }
+
+  // Optional: Handle key events
+  onKeyDown(event) {
+    if (event.key === 'Enter') {
+      return true; // Signal to commit
+    }
+    if (event.key === 'Escape') {
+      return false; // Signal to cancel
+    }
+  }
+}
+
+// Register the custom editor
+grid.registerEditor('custom', CustomEditor);
+
+// Use in column definition
+{
+  id: 'customField',
+  field: 'customField',
+  editable: true,
+  editor: 'custom'
+}
+```
+
+## Editor Parameters
+
+Pass configuration to editors via `editorParams`:
+
+```js title="editor-params.js"
+{
+  id: 'birthdate',
+  field: 'birthdate',
+  editable: true,
+  editor: 'date',
+  editorParams: {
+    min: '1900-01-01',
+    max: new Date().toISOString().split('T')[0],
+    format: 'MM/DD/YYYY'
+  }
+}
+```
+
+### EditorParams Interface
+
+Editors receive these parameters:
+
+```typescript title="editor-params.ts"
+interface EditorParams {
+  cell: { row: number; col: number };
+  column: ColumnDef;
+  rowData: any;
+  onComplete: (value: any) => void;
+  onChange?: (value: any) => void;
+  options?: any;
+  registerPopup?: (element: HTMLElement) => void;
+  unregisterPopup?: (element: HTMLElement) => void;
+}
+```
+
+<Callout type="tip">
+Use `registerPopup` and `unregisterPopup` for editors that show popups (like date pickers) to ensure proper cleanup and click-outside handling.
+</Callout>
+
+## Keyboard Shortcuts
+
+ZenGrid provides intuitive keyboard shortcuts for editing:
+
+- **Enter**: Commit edit and move to the next row
+- **Tab**: Commit edit and move to the next cell
+- **Escape**: Cancel edit and restore original value
+- **F2**: Start editing the selected cell
+
+```js title="keyboard-example.js"
+// Users can double-click or press F2 to start editing
+// Press Enter to commit and move down
+// Press Tab to commit and move right
+// Press Escape to cancel
+```
+
+## Validation
+
+Implement validation in custom editors:
+
+```js title="validation.js"
+class ValidatedEditor {
+  // ... other methods ...
+
+  isValid() {
+    const value = this.input.value;
+
+    // Email validation example
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  }
+}
+
+// The grid will prevent committing invalid values
+grid.on('edit:commit', (event) => {
+  if (!event.valid) {
+    console.log('Cannot commit invalid value');
+    event.preventDefault(); // Keep editor open
+  }
+});
+```
+
+<Callout type="warning">
+Always validate user input on the server side as well. Client-side validation is for user experience, not security.
+</Callout>
+
+## Events
+
+Listen to editing lifecycle events:
+
+```js title="editing-events.js"
+grid.on('edit:start', (event) => {
+  console.log('Started editing:', event.cell, event.value);
+});
+
+grid.on('edit:end', (event) => {
+  console.log('Stopped editing:', event.cell);
+});
+
+grid.on('edit:commit', (event) => {
+  console.log('Committed value:', event.cell, event.oldValue, event.newValue);
+
+  // Save to backend
+  saveToBackend(event.cell.row, event.cell.col, event.newValue);
+});
+
+grid.on('edit:cancel', (event) => {
+  console.log('Cancelled editing:', event.cell);
+});
+```
+
+## Example: Date Range Editor
+
+```js title="date-range-example.js"
+const grid = new ZenGrid(container, {
+  columns: [
+    {
+      id: 'bookingPeriod',
+      field: 'bookingPeriod',
+      header: 'Booking Period',
+      editable: true,
+      editor: 'date-range',
+      editorParams: {
+        format: 'YYYY-MM-DD',
+        minDays: 1,
+        maxDays: 30,
+        disabledDates: ['2024-12-25', '2024-01-01']
+      }
+    }
+  ]
+});
+
+grid.on('edit:commit', (event) => {
+  console.log('New date range:', event.newValue);
+  // { start: '2024-01-15', end: '2024-01-20' }
+});
+```
+
+## Programmatic Editing
+
+Control editing programmatically:
+
+```js title="programmatic-editing.js"
+// Start editing a specific cell
+grid.startEdit({ row: 5, col: 2 }, 'initial value');
+
+// Commit the edit
+grid.commitEdit();
+
+// Or cancel it
+grid.cancelEdit();
+
+// Check editing state
+if (grid.isEditing()) {
+  const cell = grid.getEditingCell();
+  console.log('Currently editing:', cell);
+}
+```

@@ -1,0 +1,311 @@
+---
+title: Pagination
+description: Add pagination with customizable templates and page navigation controls.
+order: 13
+category: Features
+tags: [pagination, pages, navigation]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides flexible pagination with customizable templates, multiple page sizes, and comprehensive navigation controls.
+
+## Configuration
+
+Enable and configure pagination:
+
+```js title="pagination-config.js"
+const grid = new ZenGrid(container, {
+  pagination: {
+    enabled: true,
+    pageSize: 50,
+    template: 'material', // 'simple' | 'material' | 'bootstrap' | 'compact' | 'full'
+    position: 'bottom',   // 'top' | 'bottom' | 'both'
+    pageSizes: [25, 50, 100, 200]
+  }
+});
+```
+
+<Callout type="info">
+Pagination is disabled by default. Set `pagination.enabled: true` to activate it.
+</Callout>
+
+## Pagination Templates
+
+ZenGrid includes five built-in pagination templates:
+
+### Simple
+Basic previous/next navigation with page numbers.
+
+```js title="simple-template.js"
+pagination: {
+  enabled: true,
+  template: 'simple'
+}
+```
+
+### Material
+Material Design-inspired pagination controls.
+
+```js title="material-template.js"
+pagination: {
+  enabled: true,
+  template: 'material'
+}
+```
+
+### Bootstrap
+Bootstrap-styled pagination controls.
+
+```js title="bootstrap-template.js"
+pagination: {
+  enabled: true,
+  template: 'bootstrap'
+}
+```
+
+### Compact
+Minimal pagination with just essential controls.
+
+```js title="compact-template.js"
+pagination: {
+  enabled: true,
+  template: 'compact'
+}
+```
+
+### Full
+Complete pagination with all navigation options and page size selector.
+
+```js title="full-template.js"
+pagination: {
+  enabled: true,
+  template: 'full',
+  pageSizes: [25, 50, 100, 200]
+}
+```
+
+<Callout type="tip">
+Use the `full` template when you want to give users maximum control over pagination, including page size selection.
+</Callout>
+
+## Navigation Methods
+
+Control pagination programmatically:
+
+```js title="navigation-methods.js"
+// Go to a specific page (1-based)
+grid.goToPage(5);
+
+// Navigate sequentially
+grid.nextPage();
+grid.previousPage();
+
+// Jump to boundaries
+grid.firstPage();
+grid.lastPage();
+
+// Change page size
+grid.setPageSize(100);
+```
+
+## Pagination State
+
+Query the current pagination state:
+
+```js title="pagination-state.js"
+// Get current page number (1-based)
+const currentPage = grid.getCurrentPage();
+
+// Get current page size
+const pageSize = grid.getPageSize();
+
+// Get total number of pages
+const totalPages = grid.getTotalPages();
+
+// Get complete pagination state
+const state = grid.getPaginationState();
+console.log(state);
+// {
+//   currentPage: 3,
+//   pageSize: 50,
+//   totalRows: 1247,
+//   totalPages: 25,
+//   startRow: 100,  // 0-based index
+//   endRow: 149     // 0-based index
+// }
+```
+
+## Page Position
+
+Control where pagination controls appear:
+
+```js title="pagination-position.js"
+// Show at bottom (default)
+pagination: {
+  enabled: true,
+  position: 'bottom'
+}
+
+// Show at top
+pagination: {
+  enabled: true,
+  position: 'top'
+}
+
+// Show at both top and bottom
+pagination: {
+  enabled: true,
+  position: 'both'
+}
+```
+
+<Callout type="tip">
+Use `position: 'both'` for grids with many rows to avoid forcing users to scroll to change pages.
+</Callout>
+
+## Page Size Options
+
+Provide multiple page size options:
+
+```js title="page-sizes.js"
+const grid = new ZenGrid(container, {
+  pagination: {
+    enabled: true,
+    pageSize: 50,      // Initial page size
+    pageSizes: [25, 50, 100, 200, 500],
+    template: 'full'   // Required for page size selector
+  }
+});
+```
+
+## Events
+
+Listen to pagination changes:
+
+```js title="pagination-events.js"
+grid.on('page:change', (event) => {
+  console.log('Page changed:', {
+    previousPage: event.previousPage,
+    currentPage: event.currentPage,
+    pageSize: event.pageSize
+  });
+});
+
+// Using onPageChange callback
+const grid = new ZenGrid(container, {
+  pagination: {
+    enabled: true,
+    onPageChange: (state) => {
+      console.log('New page:', state.currentPage);
+      console.log('Page range:', state.startRow, '-', state.endRow);
+    }
+  }
+});
+```
+
+## Example: Server-Side Pagination
+
+For large datasets, combine pagination with server-side data loading:
+
+```js title="server-pagination.js"
+const grid = new ZenGrid(container, {
+  pagination: {
+    enabled: true,
+    pageSize: 50,
+    template: 'full',
+    onPageChange: async (state) => {
+      // Fetch data for the current page
+      const response = await fetch(
+        `/api/data?page=${state.currentPage}&size=${state.pageSize}`
+      );
+
+      const result = await response.json();
+
+      // Update grid with new page data
+      grid.setData(result.rows);
+
+      // Update total row count if needed
+      if (result.totalRows !== grid.getTotalRows()) {
+        grid.setTotalRows(result.totalRows);
+      }
+    }
+  }
+});
+
+// Initial load
+grid.goToPage(1);
+```
+
+<Callout type="warning">
+When implementing server-side pagination, ensure you call `setTotalRows()` with the total number of rows in the dataset so the grid can calculate the correct number of pages.
+</Callout>
+
+## Example: Combined with Filtering
+
+Pagination works seamlessly with filtering:
+
+```js title="pagination-filter.js"
+const grid = new ZenGrid(container, {
+  pagination: {
+    enabled: true,
+    pageSize: 50
+  }
+});
+
+// Apply a filter
+grid.setFilter('status', 'equals', 'active');
+
+// Pagination automatically adjusts to filtered results
+console.log(grid.getTotalPages()); // Pages for filtered data
+
+// Clear filter
+grid.clearFilters();
+
+// Pagination returns to showing all pages
+console.log(grid.getTotalPages()); // Pages for all data
+```
+
+## Keyboard Navigation
+
+Pagination supports keyboard shortcuts:
+
+- **Ctrl + Home**: Go to first page
+- **Ctrl + End**: Go to last page
+- **Page Up**: Go to previous page
+- **Page Down**: Go to next page
+
+```js title="keyboard-pagination.js"
+// These keyboard shortcuts work automatically
+// when pagination is enabled
+```
+
+<Callout type="tip">
+Keyboard shortcuts are only active when the grid has focus. Click on the grid to enable keyboard navigation.
+</Callout>
+
+## Custom Styling
+
+Pagination controls use standard CSS classes for easy customization:
+
+```css title="custom-pagination.css"
+.zengrid-pagination {
+  padding: 12px;
+  border-top: 1px solid #ddd;
+}
+
+.zengrid-pagination-button {
+  padding: 6px 12px;
+  margin: 0 2px;
+}
+
+.zengrid-pagination-button.active {
+  background: #007bff;
+  color: white;
+}
+
+.zengrid-pagination-info {
+  margin: 0 16px;
+  font-size: 14px;
+}
+```

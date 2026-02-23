@@ -1,0 +1,753 @@
+---
+title: Types
+description: Key TypeScript types and interfaces used throughout the ZenGrid API.
+order: 20
+category: API Reference
+tags: [api, types, typescript]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Types
+
+ZenGrid is written in TypeScript and exports all its types for use in your application.
+
+## Column Types
+
+### ColumnDef
+
+Defines the configuration for a column.
+
+```typescript title="ColumnDef interface"
+interface ColumnDef {
+  id?: string;
+  field: string;
+  header: string;
+  width?: number;
+  renderer?: string | CellRenderer;
+  sortable?: boolean;
+  editable?: boolean;
+  editor?: string | CellEditor;
+  editorOptions?: Record<string, any>;
+  filterable?: boolean;
+  resizable?: boolean;
+  reorderable?: boolean;
+  minWidth?: number;
+  maxWidth?: number;
+  overflow?: 'ellipsis' | 'clip' | 'wrap';
+  autoHeight?: boolean;
+}
+```
+
+**Properties:**
+
+- `id?: string` - Unique column identifier (defaults to field name)
+- `field: string` - Field name in data object
+- `header: string` - Header text
+- `width?: number` - Column width in pixels
+- `renderer?: string | CellRenderer` - Custom cell renderer
+- `sortable?: boolean` - Enable sorting (default: `true`)
+- `editable?: boolean` - Enable editing (default: `false`)
+- `editor?: string | CellEditor` - Custom cell editor
+- `editorOptions?: Record<string, any>` - Editor configuration
+- `filterable?: boolean` - Enable filtering (default: `true`)
+- `resizable?: boolean` - Enable resizing (default: `true`)
+- `reorderable?: boolean` - Enable reordering (default: `true`)
+- `minWidth?: number` - Minimum column width
+- `maxWidth?: number` - Maximum column width
+- `overflow?: 'ellipsis' | 'clip' | 'wrap'` - Cell overflow behavior
+- `autoHeight?: boolean` - Auto-calculate row height based on content
+
+```typescript title="Example usage"
+const columns: ColumnDef[] = [
+  {
+    field: 'name',
+    header: 'Full Name',
+    width: 200,
+    sortable: true,
+    editable: true
+  },
+  {
+    field: 'email',
+    header: 'Email Address',
+    width: 250,
+    renderer: 'link'
+  }
+];
+```
+
+## Cell Types
+
+### CellRef
+
+Reference to a specific cell by row and column index.
+
+```typescript title="CellRef interface"
+interface CellRef {
+  row: number;
+  col: number;
+}
+```
+
+```typescript title="Example usage"
+const cell: CellRef = { row: 5, col: 2 };
+grid.scrollToCell(cell.row, cell.col);
+```
+
+### CellRange
+
+Defines a rectangular range of cells.
+
+```typescript title="CellRange interface"
+interface CellRange {
+  startRow: number;
+  startCol: number;
+  endRow: number;
+  endCol: number;
+}
+```
+
+```typescript title="Example usage"
+const range: CellRange = {
+  startRow: 0,
+  startCol: 0,
+  endRow: 10,
+  endCol: 5
+};
+```
+
+### CellPosition
+
+Describes the visual position of a cell in the grid.
+
+```typescript title="CellPosition interface"
+interface CellPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+```
+
+**Properties:**
+
+- `x: number` - Left offset in pixels
+- `y: number` - Top offset in pixels
+- `width: number` - Cell width in pixels
+- `height: number` - Cell height in pixels
+
+## Viewport Types
+
+### VisibleRange
+
+Range of currently visible cells.
+
+```typescript title="VisibleRange interface"
+interface VisibleRange {
+  startRow: number;
+  endRow: number;
+  startCol: number;
+  endCol: number;
+}
+```
+
+```typescript title="Example usage"
+const visibleRange = grid.getVisibleRange();
+console.log('Visible rows:', visibleRange.startRow, 'to', visibleRange.endRow);
+```
+
+### ScrollPosition
+
+Current scroll position of the grid.
+
+```typescript title="ScrollPosition interface"
+interface ScrollPosition {
+  top: number;
+  left: number;
+}
+```
+
+```typescript title="Example usage"
+const { top, left } = grid.getScrollPosition();
+```
+
+## Sort Types
+
+### SortState
+
+Describes the sort state for a column.
+
+```typescript title="SortState interface"
+interface SortState {
+  column: number;
+  direction: 'asc' | 'desc' | null;
+  sortIndex?: number;
+}
+```
+
+**Properties:**
+
+- `column: number` - Column index
+- `direction: 'asc' | 'desc' | null` - Sort direction
+- `sortIndex?: number` - Sort priority for multi-column sorting (0 is highest priority)
+
+```typescript title="Example usage"
+const sortState: SortState[] = [
+  { column: 0, direction: 'asc', sortIndex: 0 },
+  { column: 2, direction: 'desc', sortIndex: 1 }
+];
+grid.setSortState(sortState);
+```
+
+### SortDirection
+
+Sort direction type.
+
+```typescript title="SortDirection type"
+type SortDirection = 'asc' | 'desc' | null;
+```
+
+- `'asc'` - Ascending order
+- `'desc'` - Descending order
+- `null` - No sort
+
+## Filter Types
+
+### FilterModel
+
+Describes the filter state for a column.
+
+```typescript title="FilterModel interface"
+interface FilterModel {
+  column: number;
+  conditions: FilterCondition[];
+  logic?: 'AND' | 'OR';
+}
+```
+
+**Properties:**
+
+- `column: number` - Column index
+- `conditions: FilterCondition[]` - Array of filter conditions
+- `logic?: 'AND' | 'OR'` - Logical operator for multiple conditions (default: `'AND'`)
+
+```typescript title="Example usage"
+const filterModel: FilterModel = {
+  column: 1,
+  conditions: [
+    { operator: 'greaterThan', value: 10 },
+    { operator: 'lessThan', value: 100 }
+  ],
+  logic: 'AND'
+};
+```
+
+### FilterCondition
+
+Single filter condition.
+
+```typescript title="FilterCondition interface"
+interface FilterCondition {
+  operator: FilterOperator;
+  value?: any;
+}
+```
+
+**Properties:**
+
+- `operator: FilterOperator` - Comparison operator
+- `value?: any` - Comparison value (not required for operators like `isEmpty`)
+
+### FilterOperator
+
+Available filter operators.
+
+```typescript title="FilterOperator type"
+type FilterOperator =
+  | 'equals'
+  | 'notEquals'
+  | 'contains'
+  | 'notContains'
+  | 'startsWith'
+  | 'endsWith'
+  | 'isEmpty'
+  | 'isNotEmpty'
+  | 'greaterThan'
+  | 'greaterThanOrEqual'
+  | 'lessThan'
+  | 'lessThanOrEqual'
+  | 'inRange'
+  | 'between'
+  | 'isNull'
+  | 'isNotNull';
+```
+
+**Operators:**
+
+- `equals` - Value equals
+- `notEquals` - Value does not equal
+- `contains` - Text contains substring
+- `notContains` - Text does not contain substring
+- `startsWith` - Text starts with
+- `endsWith` - Text ends with
+- `isEmpty` - Value is empty string
+- `isNotEmpty` - Value is not empty string
+- `greaterThan` - Numeric greater than
+- `greaterThanOrEqual` - Numeric greater than or equal
+- `lessThan` - Numeric less than
+- `lessThanOrEqual` - Numeric less than or equal
+- `inRange` - Value in specified range
+- `between` - Alias for `inRange`
+- `isNull` - Value is null/undefined
+- `isNotNull` - Value is not null/undefined
+
+### FilterQuery
+
+SQL query representation of filter state.
+
+```typescript title="FilterQuery interface"
+interface FilterQuery {
+  sql: string;
+  params?: any[];
+}
+```
+
+**Properties:**
+
+- `sql: string` - SQL WHERE clause
+- `params?: any[]` - Parameterized values
+
+```typescript title="Example usage"
+const query: FilterQuery = {
+  sql: 'age > ? AND age < ?',
+  params: [10, 100]
+};
+```
+
+### FilterExpression
+
+Complete filter expression in multiple formats.
+
+```typescript title="FilterExpression interface"
+interface FilterExpression {
+  type: 'sql' | 'model';
+  sql?: string;
+  boundSql?: string;
+  params?: any[];
+  models?: FilterModel[];
+}
+```
+
+**Properties:**
+
+- `type: 'sql' | 'model'` - Expression type
+- `sql?: string` - SQL WHERE clause with placeholders
+- `boundSql?: string` - SQL with values bound
+- `params?: any[]` - Parameterized values
+- `models?: FilterModel[]` - Filter model representation
+
+## Pagination Types
+
+### PaginationConfig
+
+Pagination configuration options.
+
+```typescript title="PaginationConfig interface"
+interface PaginationConfig {
+  enabled: boolean;
+  pageSize: number;
+  template: string;
+  position: 'top' | 'bottom' | 'both';
+  pageSizes: number[];
+}
+```
+
+**Properties:**
+
+- `enabled: boolean` - Enable pagination
+- `pageSize: number` - Rows per page
+- `template: string` - Display template (e.g., `'Page {current} of {total}'`)
+- `position: 'top' | 'bottom' | 'both'` - Pagination controls position
+- `pageSizes: number[]` - Available page size options
+
+### PaginationState
+
+Current pagination state.
+
+```typescript title="PaginationState interface"
+interface PaginationState {
+  currentPage: number;
+  pageSize: number;
+  totalRows: number;
+  totalPages: number;
+  startRow: number;
+  endRow: number;
+}
+```
+
+**Properties:**
+
+- `currentPage: number` - Current page (1-based)
+- `pageSize: number` - Rows per page
+- `totalRows: number` - Total number of rows
+- `totalPages: number` - Total number of pages
+- `startRow: number` - First row index on current page
+- `endRow: number` - Last row index on current page
+
+## State Types
+
+### GridStateSnapshot
+
+Complete snapshot of grid state for save/restore.
+
+```typescript title="GridStateSnapshot interface"
+interface GridStateSnapshot {
+  columns: ColumnStateSnapshot[];
+  sort: SortState[];
+  filter: FilterModel[];
+  pagination?: PaginationState;
+  scroll?: ScrollPosition;
+  selection?: CellRange[];
+}
+```
+
+**Properties:**
+
+- `columns: ColumnStateSnapshot[]` - Column states
+- `sort: SortState[]` - Sort state
+- `filter: FilterModel[]` - Filter state
+- `pagination?: PaginationState` - Pagination state
+- `scroll?: ScrollPosition` - Scroll position
+- `selection?: CellRange[]` - Selection ranges
+
+```typescript title="Example usage"
+// Save state
+const snapshot = grid.getStateSnapshot();
+localStorage.setItem('gridState', JSON.stringify(snapshot));
+
+// Restore state
+const saved = JSON.parse(localStorage.getItem('gridState'));
+grid.applyStateSnapshot(saved);
+```
+
+### ColumnStateSnapshot
+
+State snapshot for a single column.
+
+```typescript title="ColumnStateSnapshot interface"
+interface ColumnStateSnapshot {
+  colId: string;
+  width?: number;
+  visible?: boolean;
+  pinned?: 'left' | 'right' | null;
+  sort?: SortState;
+  filter?: FilterModel;
+  order?: number;
+}
+```
+
+**Properties:**
+
+- `colId: string` - Column identifier
+- `width?: number` - Column width
+- `visible?: boolean` - Visibility state
+- `pinned?: 'left' | 'right' | null` - Pin state
+- `sort?: SortState` - Sort state
+- `filter?: FilterModel` - Filter state
+- `order?: number` - Display order
+
+## Export Types
+
+### GridExportOptions
+
+Options for exporting grid data.
+
+```typescript title="GridExportOptions interface"
+interface GridExportOptions {
+  rows: 'all' | 'visible' | 'selected';
+  columns: 'all' | 'visible';
+  includeHeaders: boolean;
+}
+```
+
+**Properties:**
+
+- `rows: 'all' | 'visible' | 'selected'` - Which rows to export
+- `columns: 'all' | 'visible'` - Which columns to export
+- `includeHeaders: boolean` - Include column headers
+
+```typescript title="Example usage"
+const csv = grid.exportCSV({
+  rows: 'visible',
+  columns: 'all',
+  includeHeaders: true
+});
+```
+
+## Renderer Types
+
+### CellRenderer
+
+Interface for custom cell renderers.
+
+```typescript title="CellRenderer interface"
+interface CellRenderer {
+  render(params: RenderParams): HTMLElement;
+  update?(params: RenderParams): void;
+  destroy?(element: HTMLElement): void;
+  getCellClass?(params: RenderParams): string;
+}
+```
+
+**Methods:**
+
+- `render(params): HTMLElement` - Create and return the cell element
+- `update?(params): void` - Update existing cell element (optional)
+- `destroy?(element): void` - Clean up when cell is destroyed (optional)
+- `getCellClass?(params): string` - Return CSS class names for the cell (optional)
+
+<Callout type="info">
+The `update` method is optional but recommended for performance. If not provided, the cell will be re-rendered on updates.
+</Callout>
+
+### RenderParams
+
+Parameters passed to cell renderers.
+
+```typescript title="RenderParams interface"
+interface RenderParams {
+  cell: CellRef;
+  position: CellPosition;
+  value: any;
+  column?: ColumnDef;
+  rowData?: any;
+  isSelected: boolean;
+  isActive: boolean;
+  isEditing: boolean;
+}
+```
+
+**Properties:**
+
+- `cell: CellRef` - Cell coordinates
+- `position: CellPosition` - Visual position
+- `value: any` - Cell value
+- `column?: ColumnDef` - Column definition
+- `rowData?: any` - Full row data object
+- `isSelected: boolean` - Selection state
+- `isActive: boolean` - Active (focused) state
+- `isEditing: boolean` - Editing state
+
+```typescript title="Example renderer"
+const customRenderer: CellRenderer = {
+  render(params) {
+    const div = document.createElement('div');
+    div.textContent = params.value;
+    if (params.isSelected) {
+      div.classList.add('selected');
+    }
+    return div;
+  },
+  update(params) {
+    const div = params.element;
+    div.textContent = params.value;
+  }
+};
+```
+
+## Editor Types
+
+### CellEditor
+
+Interface for custom cell editors.
+
+```typescript title="CellEditor interface"
+interface CellEditor {
+  init(params: EditorParams): HTMLElement;
+  getValue(): any;
+  focus(): void;
+  destroy(): void;
+  isValid?(): boolean;
+  onKeyDown?(event: KeyboardEvent): void;
+}
+```
+
+**Methods:**
+
+- `init(params): HTMLElement` - Create and return the editor element
+- `getValue(): any` - Get the current editor value
+- `focus(): void` - Focus the editor
+- `destroy(): void` - Clean up when editor is closed
+- `isValid?(): boolean` - Validate current value (optional)
+- `onKeyDown?(event): void` - Handle keyboard events (optional)
+
+### EditorParams
+
+Parameters passed to cell editors.
+
+```typescript title="EditorParams interface"
+interface EditorParams {
+  cell: CellRef;
+  column?: ColumnDef;
+  rowData?: any;
+  onComplete?: (value: any) => void;
+  onChange?: (value: any) => void;
+  options?: Record<string, any>;
+  registerPopup?: (element: HTMLElement) => void;
+  unregisterPopup?: (element: HTMLElement) => void;
+}
+```
+
+**Properties:**
+
+- `cell: CellRef` - Cell being edited
+- `column?: ColumnDef` - Column definition
+- `rowData?: any` - Full row data
+- `onComplete?: (value) => void` - Callback when editing completes
+- `onChange?: (value) => void` - Callback when value changes
+- `options?: Record<string, any>` - Editor-specific options
+- `registerPopup?: (element) => void` - Register popup element (for dropdowns)
+- `unregisterPopup?: (element) => void` - Unregister popup element
+
+```typescript title="Example editor"
+const customEditor: CellEditor = {
+  init(params) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = params.value || '';
+    input.addEventListener('change', () => {
+      params.onChange?.(input.value);
+    });
+    return input;
+  },
+  getValue() {
+    return this.input.value;
+  },
+  focus() {
+    this.input.focus();
+  },
+  destroy() {
+    // Cleanup
+  }
+};
+```
+
+## Header Renderer Types
+
+### HeaderRenderer
+
+Interface for custom header renderers.
+
+```typescript title="HeaderRenderer interface"
+interface HeaderRenderer {
+  render(params: HeaderRenderParams): HTMLElement;
+  update?(params: HeaderRenderParams): void;
+  destroy?(element: HTMLElement): void;
+  getHeaderClass?(params: HeaderRenderParams): string;
+}
+```
+
+**Methods:**
+
+- `render(params): HTMLElement` - Create and return the header element
+- `update?(params): void` - Update existing header element (optional)
+- `destroy?(element): void` - Clean up when header is destroyed (optional)
+- `getHeaderClass?(params): string` - Return CSS class names (optional)
+
+### HeaderRenderParams
+
+Parameters passed to header renderers.
+
+```typescript title="HeaderRenderParams interface"
+interface HeaderRenderParams {
+  columnIndex: number;
+  column?: ColumnDef;
+  config: any;
+  width: number;
+  height: number;
+  isHovered?: boolean;
+  isFocused?: boolean;
+  isResizing?: boolean;
+  emit?: (event: string, data?: any) => void;
+}
+```
+
+**Properties:**
+
+- `columnIndex: number` - Column index
+- `column?: ColumnDef` - Column definition
+- `config: any` - Header configuration
+- `width: number` - Header width
+- `height: number` - Header height
+- `isHovered?: boolean` - Hover state
+- `isFocused?: boolean` - Focus state
+- `isResizing?: boolean` - Resize state
+- `emit?: (event, data) => void` - Event emitter
+
+## Plugin Types
+
+### GridPlugin
+
+Interface for grid plugins.
+
+```typescript title="GridPlugin interface"
+interface GridPlugin {
+  name: string;
+  phase: 'pre-init' | 'init' | 'post-init';
+  dependencies?: string[];
+  setup(store: any, api: any): void;
+  dispose?(): void;
+}
+```
+
+**Properties:**
+
+- `name: string` - Unique plugin name
+- `phase: 'pre-init' | 'init' | 'post-init'` - Initialization phase
+- `dependencies?: string[]` - Names of required plugins
+- `setup(store, api): void` - Setup function called during initialization
+- `dispose?(): void` - Cleanup function (optional)
+
+```typescript title="Example plugin"
+const customPlugin: GridPlugin = {
+  name: 'custom-plugin',
+  phase: 'init',
+  setup(store, api) {
+    // Plugin initialization
+    api.on('cell:click', (event) => {
+      console.log('Plugin handling click:', event.cell);
+    });
+  },
+  dispose() {
+    // Cleanup
+  }
+};
+
+grid.usePlugin(customPlugin);
+```
+
+<Callout type="tip">
+All types are exported from the `@zengrid/core` package and can be imported for use in your TypeScript code.
+</Callout>
+
+## Type Imports
+
+```typescript title="Importing types"
+import type {
+  Grid,
+  GridOptions,
+  ColumnDef,
+  CellRef,
+  CellRange,
+  SortState,
+  FilterModel,
+  FilterOperator,
+  CellRenderer,
+  RenderParams,
+  CellEditor,
+  EditorParams,
+  HeaderRenderer,
+  HeaderRenderParams,
+  GridPlugin
+} from '@zengrid/core';
+```

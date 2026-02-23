@@ -1,0 +1,382 @@
+---
+title: UndoRedoPlugin
+description: UndoRedoPlugin implements command pattern with CommandStack for undo/redo operations.
+order: 27
+category: Plugins
+tags: [plugins, undo-redo, command-pattern]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `UndoRedoPlugin` implements the command pattern using CommandStack from `@zengrid/shared`, providing undo/redo functionality for grid operations.
+
+## Overview
+
+UndoRedoPlugin runs at phase 50 and provides:
+
+- Command pattern implementation
+- Undo/redo for cell edits, filters, sorting
+- Custom command support
+- Command history management
+- Reactive state integration
+
+<Callout type="info">
+UndoRedoPlugin uses CommandStack from `@zengrid/shared` for efficient command history management.
+</Callout>
+
+## Creation
+
+Create the UndoRedoPlugin using the factory function:
+
+```ts title="Creating UndoRedoPlugin"
+import { createUndoRedoPlugin } from '@zengrid/core';
+
+const undoRedoPlugin = createUndoRedoPlugin();
+grid.usePlugin(undoRedoPlugin);
+```
+
+## Command Pattern
+
+UndoRedoPlugin implements the command pattern:
+
+```ts title="ICommand Interface"
+interface ICommand {
+  description: string;
+  execute(): void;
+  undo(): void;
+  redo?(): void;
+}
+```
+
+Each operation (cell edit, filter change, sort change) is wrapped in a command that knows how to execute, undo, and redo itself.
+
+## Built-in Commands
+
+### Cell Edit Command
+
+Record cell edits automatically:
+
+```ts title="Cell Edit Recording"
+// EditingPlugin automatically records edits
+grid.api.editing.startEditing(5, 2);
+grid.api.editing.commitEdit(); // Automatically recorded
+
+// Or record manually
+grid.api.undoRedo.recordCellEdit(
+  5,                    // row
+  2,                    // col
+  'old value',          // old value
+  'new value',          // new value
+  (row, col, value) => {
+    grid.api.data.setCellValue(row, col, value);
+  }
+);
+```
+
+### Filter Change Command
+
+Record filter changes:
+
+```ts title="Filter Change Recording"
+const oldFilters = grid.api.filter.getFilters();
+
+// Apply new filters
+grid.api.filter.setFilters([
+  { field: 'age', operator: 'gt', value: 18 }
+]);
+
+// Record the change
+grid.api.undoRedo.recordFilterChange(
+  oldFilters,
+  grid.api.filter.getFilters(),
+  (filters) => {
+    grid.api.filter.setFilters(filters);
+  }
+);
+```
+
+### Sort Change Command
+
+Record sort changes:
+
+```ts title="Sort Change Recording"
+const oldSortState = grid.api.sort.getSortState();
+
+// Apply new sort
+grid.api.sort.setSortState([
+  { field: 'name', direction: 'asc' }
+]);
+
+// Record the change
+grid.api.undoRedo.recordSortChange(
+  oldSortState,
+  grid.api.sort.getSortState(),
+  (sortState) => {
+    grid.api.sort.setSortState(sortState);
+  }
+);
+```
+
+<Callout type="tip">
+Built-in plugins automatically record their changes to the undo/redo stack.
+</Callout>
+
+## Custom Commands
+
+Create custom commands for any operation:
+
+```ts title="Custom Command"
+grid.api.undoRedo.recordCustomCommand(
+  'Bulk Update',               // description
+  () => {                      // execute
+    // Perform operation
+    for (let i = 0; i < 10; i++) {
+      grid.api.data.setCellValue(i, 0, 'Updated');
+    }
+  },
+  () => {                      // undo
+    // Reverse operation
+    for (let i = 0; i < 10; i++) {
+      grid.api.data.setCellValue(i, 0, 'Original');
+    }
+  },
+  () => {                      // redo (optional)
+    // Re-execute operation
+    for (let i = 0; i < 10; i++) {
+      grid.api.data.setCellValue(i, 0, 'Updated');
+    }
+  }
+);
+```
+
+## Reactive State
+
+UndoRedoPlugin creates these reactive signals:
+
+```ts title="Undo/Redo State Signals"
+// Undo/redo availability
+store.get('undoRedo.canUndo')    // Boolean: undo available
+store.get('undoRedo.canRedo')    // Boolean: redo available
+
+// Command counts
+store.get('undoRedo.undoCount')  // Number of undo commands
+store.get('undoRedo.redoCount')  // Number of redo commands
+
+// Current command
+store.get('undoRedo.currentCommand') // Current command description
+```
+
+## API Methods
+
+UndoRedoPlugin registers these methods on `grid.api.undoRedo`:
+
+```ts title="UndoRedo API Methods"
+// Undo/Redo operations
+grid.api.undoRedo.undo();
+grid.api.undoRedo.redo();
+
+// Check availability
+const canUndo = grid.api.undoRedo.canUndo();
+const canRedo = grid.api.undoRedo.canRedo();
+
+// Command recording
+grid.api.undoRedo.recordCellEdit(row, col, oldValue, newValue, setValue);
+grid.api.undoRedo.recordFilterChange(oldFilters, newFilters, setFilters);
+grid.api.undoRedo.recordSortChange(oldSort, newSort, setSort);
+grid.api.undoRedo.recordCustomCommand(description, execute, undo, redo);
+
+// Execute command directly
+grid.api.undoRedo.executeCommand(command);
+
+// History management
+grid.api.undoRedo.clear();
+grid.api.undoRedo.getUndoHistory();
+grid.api.undoRedo.getRedoHistory();
+```
+
+## Command Execution
+
+Execute commands directly through the API:
+
+```ts title="Execute Command"
+const command: ICommand = {
+  description: 'Clear Grid',
+  execute() {
+    grid.api.data.setData([]);
+  },
+  undo() {
+    grid.api.data.setData(originalData);
+  }
+};
+
+// Execute and add to history
+grid.api.undoRedo.executeCommand(command);
+```
+
+## History Management
+
+Manage command history:
+
+```ts title="Command History"
+// Get undo history
+const undoHistory = grid.api.undoRedo.getUndoHistory();
+console.log('Undo commands:', undoHistory.map(c => c.description));
+
+// Get redo history
+const redoHistory = grid.api.undoRedo.getRedoHistory();
+console.log('Redo commands:', redoHistory.map(c => c.description));
+
+// Clear all history
+grid.api.undoRedo.clear();
+```
+
+## Events
+
+UndoRedoPlugin emits events for undo/redo operations:
+
+```ts title="UndoRedo Events"
+grid.on('undo-redo:change', (event) => {
+  console.log('Undo/Redo state changed');
+  console.log('Can undo:', event.canUndo);
+  console.log('Can redo:', event.canRedo);
+});
+
+grid.on('undo-redo:undo', (command) => {
+  console.log('Undid:', command.description);
+});
+
+grid.on('undo-redo:redo', (command) => {
+  console.log('Redid:', command.description);
+});
+
+grid.on('undo-redo:execute', (command) => {
+  console.log('Executed:', command.description);
+});
+```
+
+## Keyboard Shortcuts
+
+Integrate with keyboard shortcuts:
+
+```ts title="Keyboard Integration"
+const grid = createGrid(container, {
+  undoRedo: {
+    shortcuts: {
+      undo: 'Ctrl+Z',      // Windows/Linux
+      redo: 'Ctrl+Y',      // Windows/Linux
+      undoMac: 'Cmd+Z',    // macOS
+      redoMac: 'Cmd+Shift+Z' // macOS
+    }
+  }
+});
+
+grid.usePlugin(createUndoRedoPlugin());
+
+// Keyboard shortcuts automatically trigger undo/redo
+```
+
+<Callout type="tip">
+UndoRedoPlugin automatically detects platform and uses appropriate keyboard shortcuts.
+</Callout>
+
+## CommandStack Integration
+
+UndoRedoPlugin uses CommandStack from `@zengrid/shared`:
+
+```ts title="CommandStack Features"
+// Stack size limit
+const grid = createGrid(container, {
+  undoRedo: {
+    maxStackSize: 100  // Limit command history
+  }
+});
+
+// Automatic cleanup when limit reached
+// Oldest commands removed first (FIFO)
+```
+
+## Batch Commands
+
+Group multiple operations into a single undo/redo action:
+
+```ts title="Batch Commands"
+grid.api.undoRedo.beginBatch('Bulk Update');
+
+// Multiple operations
+for (let i = 0; i < 100; i++) {
+  grid.api.data.setCellValue(i, 0, 'Updated');
+}
+
+grid.api.undoRedo.endBatch();
+
+// Undo reverses all 100 operations as one
+grid.api.undoRedo.undo();
+```
+
+<Callout type="info">
+Batch commands improve performance and user experience for bulk operations.
+</Callout>
+
+## Integration with Store
+
+UndoRedoPlugin integrates seamlessly with the reactive store:
+
+```ts title="Store Integration"
+// Watch undo/redo changes
+store.effect('updateUndoRedoUI', () => {
+  const canUndo = store.get('undoRedo.canUndo');
+  const canRedo = store.get('undoRedo.canRedo');
+
+  // Update UI buttons
+  undoButton.disabled = !canUndo;
+  redoButton.disabled = !canRedo;
+}, 'MyComponent', 100);
+
+// Computed from undo/redo state
+store.computed('undoRedo.status', () => {
+  const undoCount = store.get('undoRedo.undoCount');
+  const redoCount = store.get('undoRedo.redoCount');
+  return `Undo: ${undoCount}, Redo: ${redoCount}`;
+}, 'MyComponent', 100);
+```
+
+## UndoRedoManager Methods
+
+The UndoRedoManager provides these methods:
+
+```ts title="UndoRedoManager API"
+interface UndoRedoManager {
+  // Cell operations
+  recordCellEdit(row: number, col: number, oldValue: any, newValue: any, setValue: Function): void;
+
+  // Filter operations
+  recordFilterChange(oldFilters: FilterState, newFilters: FilterState, setFilters: Function): void;
+
+  // Sort operations
+  recordSortChange(oldSortState: SortState, newSortState: SortState, setSortState: Function): void;
+
+  // Custom commands
+  recordCustomCommand(description: string, execute: Function, undo: Function, redo?: Function): void;
+  executeCommand(command: ICommand): void;
+
+  // Undo/Redo
+  undo(): void;
+  redo(): void;
+  canUndo(): boolean;
+  canRedo(): boolean;
+
+  // History
+  clear(): void;
+  getUndoHistory(): ICommand[];
+  getRedoHistory(): ICommand[];
+}
+```
+
+## Performance
+
+UndoRedoPlugin optimizes command history:
+
+- **Efficient stack**: O(1) push/pop operations
+- **Memory limits**: Configurable max stack size
+- **Batch operations**: Group multiple commands
+- **Lazy execution**: Commands only execute when needed

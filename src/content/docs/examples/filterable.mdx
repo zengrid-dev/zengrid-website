@@ -1,0 +1,403 @@
+---
+title: Filterable Grid
+description: Grid with column filters, quick filter, and filter export to REST/GraphQL.
+order: 45
+category: Examples
+tags: [examples, filtering, query]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+import FilterableDemo from '../../../components/demos/FilterableDemo.astro';
+
+This example demonstrates how to enable filtering on columns, use quick filters, combine multiple filter conditions, and export filters to REST/GraphQL/SQL formats.
+
+<FilterableDemo />
+
+## Enable Column Filtering
+
+Add `filterable: true` to column definitions:
+
+```typescript title="filterable-columns.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+const columns: Column[] = [
+  {
+    id: 'id',
+    header: 'ID',
+    width: 60,
+    filterable: true,
+  },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    filterable: true,
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+    filterable: true,
+  },
+  {
+    id: 'role',
+    header: 'Role',
+    width: 150,
+    filterable: true,
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    width: 120,
+    filterable: true,
+  },
+];
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: 100,
+  rowHeight: 40,
+  data: (rowIndex, colId) => {
+    // Data callback implementation
+    return `Cell ${rowIndex}-${colId}`;
+  },
+});
+```
+
+<Callout type="info">
+Filterable columns display a filter icon in the header. Click the icon to open the filter menu.
+</Callout>
+
+## Simple Filters
+
+Apply basic filters to columns:
+
+```typescript title="simple-filters.ts"
+// Filter by exact match
+grid.setFilter('status', 'Active');
+
+// Filter by partial match (contains)
+grid.setFilter('name', 'Alice');
+
+// Clear filter
+grid.setFilter('status', null);
+
+// Get current filter state
+const filters = grid.getFilterState();
+console.log('Active filters:', filters);
+```
+
+## Column Filters with Conditions
+
+Use advanced filtering with multiple conditions and logical operators:
+
+```typescript title="column-filters.ts"
+import type { ColumnFilter } from '@zengrid/core';
+
+// Single condition filter
+const statusFilter: ColumnFilter = {
+  colId: 'status',
+  condition: 'equals',
+  value: 'Active',
+};
+
+grid.setColumnFilter(statusFilter);
+
+// Multiple conditions with AND logic
+const complexFilter: ColumnFilter = {
+  colId: 'name',
+  logic: 'AND',
+  conditions: [
+    { condition: 'contains', value: 'Smith' },
+    { condition: 'notEquals', value: 'John Smith' },
+  ],
+};
+
+grid.setColumnFilter(complexFilter);
+
+// Multiple conditions with OR logic
+const roleFilter: ColumnFilter = {
+  colId: 'role',
+  logic: 'OR',
+  conditions: [
+    { condition: 'equals', value: 'Admin' },
+    { condition: 'equals', value: 'Editor' },
+  ],
+};
+
+grid.setColumnFilter(roleFilter);
+```
+
+<Callout type="tip">
+Available filter conditions: `equals`, `notEquals`, `contains`, `notContains`, `startsWith`, `endsWith`, `greaterThan`, `lessThan`, `greaterThanOrEqual`, `lessThanOrEqual`, `isEmpty`, `isNotEmpty`.
+</Callout>
+
+## Quick Filter
+
+Filter across all columns simultaneously:
+
+```typescript title="quick-filter.ts"
+// Search across all columns
+grid.setQuickFilter('Alice');
+
+// Quick filter is case-insensitive by default
+grid.setQuickFilter('admin');
+
+// Clear quick filter
+grid.setQuickFilter('');
+
+// Listen for quick filter changes
+grid.on('filter:quickFilterChanged', (event) => {
+  console.log('Quick filter:', event.value);
+  console.log('Matching rows:', event.matchCount);
+});
+```
+
+## Combining Filters
+
+Combine column filters with quick filter:
+
+```typescript title="combined-filters.ts"
+// Apply multiple column filters
+grid.setColumnFilter({
+  colId: 'status',
+  condition: 'equals',
+  value: 'Active',
+});
+
+grid.setColumnFilter({
+  colId: 'role',
+  logic: 'OR',
+  conditions: [
+    { condition: 'equals', value: 'Admin' },
+    { condition: 'equals', value: 'Editor' },
+  ],
+});
+
+// Add quick filter on top
+grid.setQuickFilter('Smith');
+
+// Result: Active users with Admin OR Editor role,
+// whose data contains "Smith" in any column
+```
+
+<Callout type="info">
+Column filters are combined with AND logic. Quick filter is applied after column filters.
+</Callout>
+
+## Filter Export
+
+Export filters to REST, GraphQL, or SQL format for server-side filtering:
+
+```typescript title="filter-export.ts"
+import type { FilterExports } from '@zengrid/core';
+
+// Apply filters
+grid.setColumnFilter({
+  colId: 'status',
+  condition: 'equals',
+  value: 'Active',
+});
+
+grid.setColumnFilter({
+  colId: 'age',
+  condition: 'greaterThanOrEqual',
+  value: 18,
+});
+
+// Get filter exports
+const exports: FilterExports = grid.getFilterExports();
+
+// REST API format
+console.log('REST:', exports.rest);
+// Output: "?status=Active&age_gte=18"
+
+// GraphQL format
+console.log('GraphQL:', exports.graphql);
+// Output: { status: { eq: "Active" }, age: { gte: 18 } }
+
+// SQL format
+console.log('SQL:', exports.sql);
+// Output: "status = 'Active' AND age >= 18"
+```
+
+### REST API Filter Export
+
+```typescript title="rest-export.ts"
+const exports = grid.getFilterExports();
+
+// Use with fetch
+const response = await fetch(`/api/users${exports.rest}`);
+const data = await response.json();
+
+// Example REST output formats:
+// Single filter: ?status=Active
+// Multiple filters: ?status=Active&role=Admin
+// Range filter: ?age_gte=18&age_lte=65
+// Contains: ?name_contains=Smith
+// OR logic: ?role_in=Admin,Editor
+```
+
+### GraphQL Filter Export
+
+```typescript title="graphql-export.ts"
+const exports = grid.getFilterExports();
+
+// Use with GraphQL client
+const query = `
+  query GetUsers($filter: UserFilter) {
+    users(filter: $filter) {
+      id
+      name
+      email
+    }
+  }
+`;
+
+const response = await graphqlClient.query({
+  query,
+  variables: { filter: exports.graphql },
+});
+
+// Example GraphQL output:
+// {
+//   status: { eq: "Active" },
+//   age: { gte: 18, lte: 65 },
+//   name: { contains: "Smith" },
+//   role: { in: ["Admin", "Editor"] }
+// }
+```
+
+### SQL Filter Export
+
+```typescript title="sql-export.ts"
+const exports = grid.getFilterExports();
+
+// Use in SQL query builder
+const query = `
+  SELECT * FROM users
+  WHERE ${exports.sql}
+  ORDER BY name ASC
+`;
+
+// Example SQL output:
+// "status = 'Active' AND age >= 18 AND age <= 65"
+// "name LIKE '%Smith%' AND (role = 'Admin' OR role = 'Editor')"
+```
+
+<Callout type="warning">
+Always sanitize and validate filter exports on the server side before using them in database queries to prevent SQL injection attacks.
+</Callout>
+
+## Clear Filters
+
+Remove all or specific filters:
+
+```typescript title="clear-filters.ts"
+// Clear specific column filter
+grid.setColumnFilter({ colId: 'status', condition: 'equals', value: null });
+
+// Clear quick filter
+grid.setQuickFilter('');
+
+// Clear all filters
+grid.clearAllFilters();
+
+// Get filter state to check
+const hasFilters = grid.getFilterState().length > 0;
+console.log('Has active filters:', hasFilters);
+```
+
+## Filter Events
+
+Listen to filter events:
+
+```typescript title="filter-events.ts"
+// Filter state changed
+grid.on('filter:changed', (event) => {
+  console.log('Filters changed:', event.filters);
+  console.log('Visible rows:', event.visibleRowCount);
+});
+
+// Quick filter changed
+grid.on('filter:quickFilterChanged', (event) => {
+  console.log('Quick filter:', event.value);
+});
+
+// Column filter changed
+grid.on('filter:columnFilterChanged', (event) => {
+  console.log('Column filter changed:', event.colId, event.filter);
+});
+```
+
+## Complete Filterable Example
+
+```typescript title="complete-filterable.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+const data = [
+  { id: 1, name: 'Alice Smith', email: 'alice@example.com', role: 'Admin', status: 'Active' },
+  { id: 2, name: 'Bob Jones', email: 'bob@example.com', role: 'Editor', status: 'Inactive' },
+  { id: 3, name: 'Charlie Brown', email: 'charlie@example.com', role: 'Viewer', status: 'Active' },
+  // ... more rows
+];
+
+const columns: Column[] = [
+  { id: 'id', header: 'ID', width: 60, filterable: true },
+  { id: 'name', header: 'Name', width: 200, filterable: true },
+  { id: 'email', header: 'Email', width: 250, filterable: true },
+  { id: 'role', header: 'Role', width: 150, filterable: true },
+  { id: 'status', header: 'Status', width: 120, filterable: true },
+];
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: data.length,
+  rowHeight: 40,
+  data: (rowIndex, colId) => {
+    return data[rowIndex]?.[colId] ?? '';
+  },
+});
+
+// Apply default filters
+grid.setColumnFilter({
+  colId: 'status',
+  condition: 'equals',
+  value: 'Active',
+});
+
+// Add quick filter input
+const quickFilterInput = document.createElement('input');
+quickFilterInput.placeholder = 'Quick filter...';
+quickFilterInput.addEventListener('input', (e) => {
+  grid.setQuickFilter((e.target as HTMLInputElement).value);
+});
+document.body.prepend(quickFilterInput);
+
+// Show filter exports
+grid.on('filter:changed', () => {
+  const exports = grid.getFilterExports();
+  console.log('REST:', exports.rest);
+  console.log('GraphQL:', exports.graphql);
+  console.log('SQL:', exports.sql);
+});
+```
+
+<Callout type="tip">
+Combine filters with sorting for powerful data exploration. Filters are applied before sorting.
+</Callout>
+
+## Performance Considerations
+
+- Filtering is performed on the full dataset
+- For large datasets (>100k rows), use server-side filtering with filter exports
+- Filter operations are optimized with caching and indexing
+- Complex filters with many conditions may impact performance
+
+## Next Steps
+
+- Add [sorting](/examples/sortable) to filtered results
+- Enable [editing](/examples/editable) on filtered data
+- Learn about [filter optimization strategies](/advanced/filter-optimization)

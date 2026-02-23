@@ -1,63 +1,141 @@
 ---
-// Simple grid demo component
+const installCmd = 'npm install @zengrid/core';
 ---
 
 <div class="grid-demo">
-  <div class="mac-buttons">
-    <span class="mac-btn red"></span>
-    <span class="mac-btn yellow"></span>
-    <span class="mac-btn green"></span>
-  </div>
-  <div class="grid-container">
-    <div class="grid-header">
-      <div class="grid-cell header">Name</div>
-      <div class="grid-cell header">Age</div>
-      <div class="grid-cell header">Role</div>
-      <div class="grid-cell header">Department</div>
+  <div class="demo-chrome-bar">
+    <div class="mac-buttons">
+      <span class="mac-btn red"></span>
+      <span class="mac-btn yellow"></span>
+      <span class="mac-btn green"></span>
     </div>
-    <div class="grid-body">
-      <div class="grid-row">
-        <div class="grid-cell">John Smith</div>
-        <div class="grid-cell">28</div>
-        <div class="grid-cell"><span class="badge badge-green">Developer</span></div>
-        <div class="grid-cell">Engineering</div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell">Sarah Johnson</div>
-        <div class="grid-cell">32</div>
-        <div class="grid-cell"><span class="badge badge-blue">Designer</span></div>
-        <div class="grid-cell">Product</div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell">Michael Chen</div>
-        <div class="grid-cell">25</div>
-        <div class="grid-cell"><span class="badge badge-green">Developer</span></div>
-        <div class="grid-cell">Engineering</div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell">Emily Davis</div>
-        <div class="grid-cell">29</div>
-        <div class="grid-cell"><span class="badge badge-purple">Manager</span></div>
-        <div class="grid-cell">Operations</div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell">David Wilson</div>
-        <div class="grid-cell">31</div>
-        <div class="grid-cell"><span class="badge badge-blue">Designer</span></div>
-        <div class="grid-cell">Product</div>
-      </div>
-      <div class="grid-row">
-        <div class="grid-cell">Lisa Anderson</div>
-        <div class="grid-cell">27</div>
-        <div class="grid-cell"><span class="badge badge-green">Developer</span></div>
-        <div class="grid-cell">Engineering</div>
+    <button class="theme-toggle" id="homepage-theme-toggle" aria-label="Toggle theme">
+      <span class="theme-icon theme-icon--light">&#9788;</span>
+      <span class="theme-icon theme-icon--dark">&#9790;</span>
+    </button>
+  </div>
+  <div class="demo-preview">
+    <div id="grid-container" class="grid-container"></div>
+    <div class="npm-install">
+      <div class="install-label">Install from npm</div>
+      <div class="install-command">
+        <code id="install-text">{installCmd}</code>
+        <button class="copy-btn" id="copy-btn" aria-label="Copy install command">
+          <span class="copy-icon">📋</span>
+        </button>
       </div>
     </div>
   </div>
   <div class="grid-info">
-    <p>⚡ High performance grid with <strong>1M+ rows</strong> support</p>
+    <p>⚡ High-performance virtual scrolling • <strong>14 Data Structures</strong> • TypeScript</p>
   </div>
 </div>
+
+<script>
+  import { Grid } from '@zengrid/core';
+  import '@zengrid/core/dist/styles.css';
+  import { faker } from '@faker-js/faker';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Copy button functionality
+    const copyBtn = document.getElementById('copy-btn');
+    const installText = document.getElementById('install-text');
+    if (copyBtn && installText) {
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(installText.textContent || '');
+        copyBtn.innerHTML = '<span class="copy-icon">✓</span>';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<span class="copy-icon">📋</span>';
+        }, 2000);
+      });
+    }
+
+    // Initialize grid
+    const container = document.getElementById('grid-container');
+
+    if (container) {
+      try {
+        // Generate realistic sample data using Faker
+        const rowCount = 5000;
+
+        // Set seed for reproducible data
+        faker.seed(123);
+
+        const data = Array.from({ length: rowCount }, (_, i) => {
+          const person = faker.person;
+          const date = faker.date;
+          const number = faker.number;
+          const location = faker.location;
+          const company = faker.company;
+
+          return [
+            person.fullName(),
+            number.int({ min: 22, max: 65 }),
+            location.country(),
+            company.buzzNoun().replace(/^./, str => str.toUpperCase()),
+            `$${number.int({ min: 45000, max: 150000 }).toLocaleString()}`,
+            faker.helpers.arrayElement(['Active', 'On Leave', 'Remote', 'Office']),
+            date.past({ years: 5 }).toLocaleDateString(),
+            `${number.int({ min: 35, max: 50 })}h`,
+            `${number.int({ min: 65, max: 100 })}%`,
+            `#EMP${(i + 1).toString().padStart(5, '0')}`
+          ];
+        });
+
+        // Create grid instance with realistic column headers
+        const columns = [
+          { field: 'name', header: 'Name', width: 180 },
+          { field: 'age', header: 'Age', width: 80 },
+          { field: 'country', header: 'Country', width: 120 },
+          { field: 'department', header: 'Department', width: 140 },
+          { field: 'salary', header: 'Salary', width: 120 },
+          { field: 'status', header: 'Status', width: 100 },
+          { field: 'date', header: 'Join Date', width: 120 },
+          { field: 'hours', header: 'Hours/Week', width: 110 },
+          { field: 'performance', header: 'Performance', width: 120 },
+          { field: 'id', header: 'Employee ID', width: 120 }
+        ];
+
+        const colCount = columns.length;
+
+        const grid = new Grid(container, {
+          rowCount,
+          colCount,
+          rowHeight: 32,
+          colWidth: columns.map(col => col.width),
+          columns,
+          enableColumnResize: false,
+          enableSelection: true,
+        });
+
+        // Set data and render
+        grid.setData(data);
+        grid.render();
+
+        // Apply dark theme by default
+        container.classList.add('zg-theme-dark');
+
+        // Theme toggle
+        const themeBtn = document.getElementById('homepage-theme-toggle');
+        if (themeBtn) {
+          themeBtn.addEventListener('click', () => {
+            const isDark = container.classList.contains('zg-theme-dark');
+            if (isDark) {
+              container.classList.remove('zg-theme-dark');
+              themeBtn.classList.add('is-light');
+            } else {
+              container.classList.add('zg-theme-dark');
+              themeBtn.classList.remove('is-light');
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error('Grid initialization error:', error);
+      }
+    }
+  });
+</script>
 
 <style>
   .grid-demo {
@@ -73,11 +151,42 @@
                 0 0 0 1px rgba(255,255,255,0.05);
   }
 
+  .demo-chrome-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
   .mac-buttons {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1rem;
   }
+
+  .theme-toggle {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+  }
+
+  .theme-toggle:hover {
+    background: rgba(255,255,255,0.14);
+    color: #e2e8f0;
+  }
+
+  .theme-icon--light { display: none; }
+  .theme-icon--dark { display: inline; }
+
+  .theme-toggle.is-light .theme-icon--light { display: inline; }
+  .theme-toggle.is-light .theme-icon--dark { display: none; }
 
   .mac-btn {
     width: 12px;
@@ -89,100 +198,74 @@
   .mac-btn.yellow { background: #f59e0b; }
   .mac-btn.green { background: #10b981; }
 
-  .grid-container {
+  .demo-preview {
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 6px;
     overflow: hidden;
-    font-size: 0.875rem;
+    background: rgba(15, 23, 42, 0.9);
+  }
+
+  .grid-container {
     width: 100%;
+    height: 400px;
+    overflow: hidden;
   }
 
-  .grid-header {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1.5fr 1.5fr;
-    background: rgba(30, 41, 59, 0.5);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    font-weight: 600;
+  .grid-container :global(.zg-scroll-container) {
+    scrollbar-width: none;
   }
 
-  .grid-body {
-    background: transparent;
+  .grid-container :global(.zg-scroll-container)::-webkit-scrollbar {
+    display: none;
   }
 
-  .grid-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1.5fr 1.5fr;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    transition: background-color 0.15s ease;
-    animation: slideInRight 0.5s ease-out backwards;
+  .npm-install {
+    padding: 1.5rem;
+    background: rgba(16, 185, 129, 0.05);
+    border-top: 1px solid rgba(255,255,255,0.1);
   }
 
-  .grid-row:nth-child(1) { animation-delay: 0.1s; }
-  .grid-row:nth-child(2) { animation-delay: 0.2s; }
-  .grid-row:nth-child(3) { animation-delay: 0.3s; }
-  .grid-row:nth-child(4) { animation-delay: 0.4s; }
-  .grid-row:nth-child(5) { animation-delay: 0.5s; }
-  .grid-row:nth-child(6) { animation-delay: 0.6s; }
-
-  @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  .grid-row:hover {
-    background: rgba(255,255,255,0.03);
-  }
-
-  .grid-row:last-child {
-    border-bottom: none;
-  }
-
-  .grid-cell {
-    padding: 0.75rem 1rem;
-    border-right: 1px solid rgba(255,255,255,0.05);
-    display: flex;
-    align-items: center;
-    line-height: 1.4;
-    color: #e2e8f0;
-    font-size: 0.875rem;
-  }
-
-  .grid-cell:last-child {
-    border-right: none;
-  }
-
-  .grid-cell.header {
-    color: #94a3b8;
+  .install-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-size: 0.7rem;
-    font-weight: 600;
   }
 
-  .badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 500;
+  .install-command {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
   }
 
-  .badge-green {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+  #install-text {
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 0.875rem;
+    color: #10b981;
+    flex: 1;
   }
 
-  .badge-blue {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.2);
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+    font-size: 1.25rem;
   }
 
-  .badge-purple {
-    background: rgba(139, 92, 246, 0.15);
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.2);
+  .copy-btn:hover {
+    color: #10b981;
+    transform: scale(1.1);
   }
 
   .grid-info {
@@ -198,10 +281,7 @@
 
   @media (max-width: 768px) {
     .grid-demo { padding: 1rem; }
-    .grid-header, .grid-row {
-      grid-template-columns: 1.5fr 0.75fr 1fr 1fr;
-      font-size: 0.75rem;
-    }
-    .grid-cell { padding: 0.5rem 0.75rem; }
+    .code-example { padding: 1rem; }
+    pre { font-size: 0.75rem; }
   }
 </style>

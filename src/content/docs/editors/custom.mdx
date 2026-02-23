@@ -1,0 +1,633 @@
+---
+title: Custom Cell Editors
+description: Create custom cell editors by implementing the CellEditor interface.
+order: 42
+category: Cell Editors
+tags: [editors, custom, tutorial]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+Learn how to create custom cell editors by implementing the `CellEditor` interface.
+
+## CellEditor Interface
+
+Custom editors must implement the `CellEditor` interface:
+
+```ts title="CellEditor Interface"
+interface CellEditor<T = any> {
+  init(container: HTMLElement, value: T, params: EditorParams): void;
+  getValue(): T;
+  focus(): void;
+  destroy(): void;
+  isValid?(): boolean | { valid: boolean; message: string };
+  onKeyDown?(event: KeyboardEvent): boolean;
+}
+```
+
+## Creating a Custom Editor
+
+Let's create a `ColorPickerEditor` as an example:
+
+### Step 1: Implement the Interface
+
+```ts title="ColorPickerEditor.ts"
+import { CellEditor, EditorParams } from '@zengrid/core';
+
+interface ColorPickerOptions {
+  palette?: string[];
+  allowCustom?: boolean;
+}
+
+export class ColorPickerEditor implements CellEditor<string> {
+  private container: HTMLElement;
+  private input: HTMLInputElement;
+  private paletteContainer: HTMLElement;
+  private selectedColor: string;
+  private options: ColorPickerOptions;
+  private params: EditorParams;
+
+  init(container: HTMLElement, value: string, params: EditorParams): void {
+    this.container = container;
+    this.params = params;
+    this.options = params.options || {};
+    this.selectedColor = value || '#000000';
+
+    this.createUI();
+    this.attachEvents();
+
+    // Register popup if needed
+    if (params.registerPopup) {
+      params.registerPopup(this.paletteContainer);
+    }
+  }
+
+  getValue(): string {
+    return this.selectedColor;
+  }
+
+  focus(): void {
+    this.input.focus();
+  }
+
+  destroy(): void {
+    // Unregister popup
+    if (this.params.unregisterPopup) {
+      this.params.unregisterPopup(this.paletteContainer);
+    }
+
+    // Remove DOM elements
+    this.container.innerHTML = '';
+
+    // Clean up event listeners
+    this.detachEvents();
+  }
+
+  isValid(): boolean {
+    return /^#[0-9A-F]{6}$/i.test(this.selectedColor);
+  }
+
+  onKeyDown(event: KeyboardEvent): boolean {
+    if (event.key === 'Escape') {
+      // Close palette if open
+      this.paletteContainer.style.display = 'none';
+      return true;
+    }
+    return false;
+  }
+
+  private createUI(): void {
+    // Create input field
+    this.input = document.createElement('input');
+    this.input.type = 'text';
+    this.input.value = this.selectedColor;
+    this.input.className = 'color-picker-input';
+    this.container.appendChild(this.input);
+
+    // Create color preview
+    const preview = document.createElement('div');
+    preview.className = 'color-preview';
+    preview.style.backgroundColor = this.selectedColor;
+    this.container.appendChild(preview);
+
+    // Create palette popup
+    this.paletteContainer = document.createElement('div');
+    this.paletteContainer.className = 'color-palette';
+    this.createPalette();
+    this.container.appendChild(this.paletteContainer);
+  }
+
+  private createPalette(): void {
+    const palette = this.options.palette || [
+      '#FF0000', '#00FF00', '#0000FF',
+      '#FFFF00', '#FF00FF', '#00FFFF',
+      '#000000', '#FFFFFF', '#808080'
+    ];
+
+    palette.forEach(color => {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.backgroundColor = color;
+      swatch.dataset.color = color;
+      this.paletteContainer.appendChild(swatch);
+    });
+
+    // Add custom color option
+    if (this.options.allowCustom) {
+      const customSwatch = document.createElement('div');
+      customSwatch.className = 'color-swatch custom';
+      customSwatch.textContent = '+';
+      this.paletteContainer.appendChild(customSwatch);
+    }
+  }
+
+  private attachEvents(): void {
+    // Input change event
+    this.input.addEventListener('input', this.handleInputChange);
+
+    // Swatch click event
+    this.paletteContainer.addEventListener('click', this.handleSwatchClick);
+  }
+
+  private detachEvents(): void {
+    this.input.removeEventListener('input', this.handleInputChange);
+    this.paletteContainer.removeEventListener('click', this.handleSwatchClick);
+  }
+
+  private handleInputChange = (event: Event): void => {
+    const value = (event.target as HTMLInputElement).value;
+    if (/^#[0-9A-F]{6}$/i.test(value)) {
+      this.selectedColor = value;
+      this.updatePreview();
+    }
+  };
+
+  private handleSwatchClick = (event: Event): void => {
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('color-swatch')) {
+      const color = target.dataset.color;
+      if (color) {
+        this.selectedColor = color;
+        this.input.value = color;
+        this.updatePreview();
+
+        // Notify change
+        if (this.params.onChange) {
+          this.params.onChange(this.selectedColor);
+        }
+      }
+    }
+  };
+
+  private updatePreview(): void {
+    const preview = this.container.querySelector('.color-preview') as HTMLElement;
+    if (preview) {
+      preview.style.backgroundColor = this.selectedColor;
+    }
+  }
+}
+```
+
+<Callout type="tip">
+Always clean up event listeners and DOM elements in the `destroy()` method to prevent memory leaks.
+</Callout>
+
+### Step 2: Add Styling
+
+```css title="ColorPickerEditor.css"
+.color-picker-input {
+  width: 80px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.color-preview {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.color-palette {
+  position: absolute;
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.color-swatch {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+  border-color: #007bff;
+}
+
+.color-swatch.custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: #f0f0f0;
+}
+```
+
+### Step 3: Register the Editor
+
+```ts title="Register Custom Editor"
+import { ColorPickerEditor } from './ColorPickerEditor';
+
+// Register globally
+grid.registerEditor('colorPicker', ColorPickerEditor);
+```
+
+### Step 4: Use in Column Definition
+
+```ts title="Use Custom Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'brandColor',
+    header: 'Brand Color',
+    editor: 'colorPicker',
+    editorOptions: {
+      palette: [
+        '#FF6B6B', '#4ECDC4', '#45B7D1',
+        '#FFA07A', '#98D8C8', '#F7DC6F',
+        '#BB8FCE', '#85C1E2', '#F8B88B'
+      ],
+      allowCustom: true
+    }
+  }
+];
+```
+
+<Callout type="info">
+The `editorOptions` object is passed as `params.options` in the `init()` method.
+</Callout>
+
+## EditorParams
+
+The `EditorParams` object provides context and utilities:
+
+```ts title="EditorParams Properties"
+interface EditorParams {
+  // Cell position
+  cell: { row: number; col: number };
+
+  // Column definition
+  column?: ColumnDef;
+
+  // Row data
+  rowData?: any;
+
+  // Callbacks
+  onComplete?: (value: any) => void;
+  onChange?: (value: any) => void;
+
+  // Custom options
+  options?: any;
+
+  // Popup management (for click-outside handling)
+  registerPopup?: (element: HTMLElement) => void;
+  unregisterPopup?: (element: HTMLElement) => void;
+
+  // Scroll container reference
+  scrollContainer?: HTMLElement;
+}
+```
+
+### Using Callbacks
+
+```ts title="Editor with Callbacks"
+init(container: HTMLElement, value: string, params: EditorParams): void {
+  // ...create UI...
+
+  this.input.addEventListener('input', () => {
+    // Notify of change (doesn't commit)
+    if (params.onChange) {
+      params.onChange(this.input.value);
+    }
+  });
+
+  this.submitButton.addEventListener('click', () => {
+    // Commit the value
+    if (params.onComplete) {
+      params.onComplete(this.input.value);
+    }
+  });
+}
+```
+
+### Accessing Row Data
+
+```ts title="Editor Using Row Data"
+init(container: HTMLElement, value: string, params: EditorParams): void {
+  // Access other row data
+  const row = params.rowData;
+  const category = row?.category;
+
+  // Customize editor based on row data
+  if (category === 'premium') {
+    this.addPremiumOptions();
+  }
+}
+```
+
+## Validation
+
+Implement `isValid()` for validation:
+
+```ts title="Validation Examples"
+// Simple boolean validation
+isValid(): boolean {
+  return this.getValue().length > 0;
+}
+
+// Detailed validation with message
+isValid(): { valid: boolean; message: string } {
+  const value = this.getValue();
+
+  if (value.length === 0) {
+    return { valid: false, message: 'Value is required' };
+  }
+
+  if (value.length > 100) {
+    return { valid: false, message: 'Value too long (max 100 characters)' };
+  }
+
+  return { valid: true, message: '' };
+}
+```
+
+<Callout type="warning">
+Validation is checked when the user attempts to commit the edit. Invalid edits prevent the value from being saved.
+</Callout>
+
+## Keyboard Handling
+
+Implement `onKeyDown()` for custom keyboard behavior:
+
+```ts title="Custom Keyboard Handling"
+onKeyDown(event: KeyboardEvent): boolean {
+  switch (event.key) {
+    case 'Tab':
+      // Custom tab behavior
+      this.nextField();
+      return true; // Prevent default
+
+    case 'Enter':
+      if (event.ctrlKey) {
+        // Custom Ctrl+Enter behavior
+        this.submitSpecial();
+        return true;
+      }
+      break;
+
+    case 'Escape':
+      // Close popup if open
+      if (this.isPopupOpen()) {
+        this.closePopup();
+        return true; // Prevent closing editor
+      }
+      break;
+  }
+
+  return false; // Allow default behavior
+}
+```
+
+## Popup Management
+
+For editors with popups (like dropdowns or pickers):
+
+```ts title="Popup Registration"
+init(container: HTMLElement, value: string, params: EditorParams): void {
+  // Create popup element
+  this.popup = document.createElement('div');
+  this.popup.className = 'editor-popup';
+  container.appendChild(this.popup);
+
+  // Register for click-outside handling
+  if (params.registerPopup) {
+    params.registerPopup(this.popup);
+  }
+}
+
+destroy(): void {
+  // Unregister popup
+  if (this.params.unregisterPopup) {
+    this.params.unregisterPopup(this.popup);
+  }
+
+  // Clean up
+  this.popup.remove();
+}
+```
+
+<Callout type="info">
+Registering popups ensures they close when clicking outside and handle scroll events correctly.
+</Callout>
+
+## Complete Examples
+
+### Slider Editor
+
+```ts title="SliderEditor.ts"
+export class SliderEditor implements CellEditor<number> {
+  private slider: HTMLInputElement;
+  private display: HTMLElement;
+
+  init(container: HTMLElement, value: number, params: EditorParams): void {
+    const options = params.options || {};
+
+    // Create slider
+    this.slider = document.createElement('input');
+    this.slider.type = 'range';
+    this.slider.min = String(options.min || 0);
+    this.slider.max = String(options.max || 100);
+    this.slider.step = String(options.step || 1);
+    this.slider.value = String(value || 0);
+
+    // Create display
+    this.display = document.createElement('span');
+    this.display.textContent = String(value || 0);
+
+    // Add to container
+    container.appendChild(this.slider);
+    container.appendChild(this.display);
+
+    // Update display on change
+    this.slider.addEventListener('input', () => {
+      this.display.textContent = this.slider.value;
+    });
+  }
+
+  getValue(): number {
+    return Number(this.slider.value);
+  }
+
+  focus(): void {
+    this.slider.focus();
+  }
+
+  destroy(): void {
+    this.slider.remove();
+    this.display.remove();
+  }
+}
+
+// Usage
+{
+  field: 'rating',
+  header: 'Rating',
+  editor: 'slider',
+  editorOptions: {
+    min: 0,
+    max: 10,
+    step: 0.5
+  }
+}
+```
+
+### Rich Text Editor
+
+```ts title="RichTextEditor.ts"
+export class RichTextEditor implements CellEditor<string> {
+  private editor: HTMLDivElement;
+
+  init(container: HTMLElement, value: string, params: EditorParams): void {
+    this.editor = document.createElement('div');
+    this.editor.contentEditable = 'true';
+    this.editor.innerHTML = value || '';
+    this.editor.className = 'rich-text-editor';
+
+    // Create toolbar
+    const toolbar = this.createToolbar();
+    container.appendChild(toolbar);
+    container.appendChild(this.editor);
+  }
+
+  getValue(): string {
+    return this.editor.innerHTML;
+  }
+
+  focus(): void {
+    this.editor.focus();
+  }
+
+  destroy(): void {
+    this.editor.remove();
+  }
+
+  private createToolbar(): HTMLElement {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'rich-text-toolbar';
+
+    // Bold button
+    this.addToolbarButton(toolbar, 'B', () => {
+      document.execCommand('bold');
+    });
+
+    // Italic button
+    this.addToolbarButton(toolbar, 'I', () => {
+      document.execCommand('italic');
+    });
+
+    return toolbar;
+  }
+
+  private addToolbarButton(
+    toolbar: HTMLElement,
+    text: string,
+    onClick: () => void
+  ): void {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.onclick = onClick;
+    toolbar.appendChild(button);
+  }
+}
+```
+
+## Best Practices
+
+1. **Always implement all required methods**: `init()`, `getValue()`, `focus()`, `destroy()`
+2. **Clean up properly**: Remove DOM elements and event listeners in `destroy()`
+3. **Use registerPopup**: For any popup UI to handle click-outside correctly
+4. **Provide validation**: Implement `isValid()` when validation is needed
+5. **Handle keyboard events**: Implement `onKeyDown()` for special key handling
+6. **Focus management**: Ensure `focus()` properly focuses the input element
+7. **Use params.options**: Access configuration through `params.options`
+8. **Notify changes**: Call `params.onChange()` for live updates
+9. **Type safety**: Use TypeScript generics for type-safe values
+10. **Test thoroughly**: Test keyboard navigation, validation, and cleanup
+
+```ts title="Well-Structured Custom Editor"
+export class MyEditor implements CellEditor<MyType> {
+  private container: HTMLElement;
+  private params: EditorParams;
+  private value: MyType;
+
+  init(container: HTMLElement, value: MyType, params: EditorParams): void {
+    this.container = container;
+    this.params = params;
+    this.value = value;
+
+    this.createUI();
+    this.attachEvents();
+    this.registerPopups();
+  }
+
+  getValue(): MyType {
+    return this.value;
+  }
+
+  focus(): void {
+    // Focus the main input
+  }
+
+  destroy(): void {
+    this.unregisterPopups();
+    this.detachEvents();
+    this.container.innerHTML = '';
+  }
+
+  isValid(): boolean | { valid: boolean; message: string } {
+    // Validate the value
+    return true;
+  }
+
+  onKeyDown(event: KeyboardEvent): boolean {
+    // Handle special keys
+    return false;
+  }
+
+  private createUI(): void { /* ... */ }
+  private attachEvents(): void { /* ... */ }
+  private detachEvents(): void { /* ... */ }
+  private registerPopups(): void { /* ... */ }
+  private unregisterPopups(): void { /* ... */ }
+}
+```
+
+<Callout type="tip">
+Study the built-in editors in the ZenGrid source code for more implementation examples and patterns.
+</Callout>

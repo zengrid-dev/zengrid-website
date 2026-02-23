@@ -1,0 +1,874 @@
+---
+title: Grid Class
+description: Complete reference for the Grid class constructor, methods, and properties.
+order: 17
+category: API Reference
+tags: [api, grid, methods]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+# Grid Class
+
+The `Grid` class is the main entry point for creating and managing a ZenGrid instance.
+
+## Constructor
+
+```typescript title="Creating a Grid instance"
+import { Grid } from '@zengrid/core';
+
+const grid = new Grid(container, options);
+```
+
+**Parameters:**
+
+- `container: HTMLElement` - The DOM element that will contain the grid
+- `options: GridOptions` - Configuration options for the grid
+
+<Callout type="tip">
+The container element should have explicit dimensions set via CSS. The grid will automatically size itself to fill the container.
+</Callout>
+
+## Data Methods
+
+### setData()
+
+Sets the grid's data array.
+
+```typescript title="Setting grid data"
+grid.setData([
+  ['Alice', 30, 'Engineering'],
+  ['Bob', 25, 'Design'],
+  ['Charlie', 35, 'Product']
+]);
+```
+
+**Parameters:**
+- `data: any[][]` - Two-dimensional array of cell values
+
+### getData()
+
+Gets the value of a specific cell.
+
+```typescript title="Getting cell data"
+const value = grid.getData(row, col);
+```
+
+**Parameters:**
+- `row: number` - Row index
+- `col: number` - Column index
+
+**Returns:** The cell value
+
+### getDataMode()
+
+Gets the current data mode.
+
+```typescript title="Getting data mode"
+const mode = grid.getDataMode();
+// Returns: 'frontend' | 'backend' | 'auto'
+```
+
+## Rendering Methods
+
+### render()
+
+Renders the grid. Called automatically after initialization.
+
+```typescript title="Manual render"
+grid.render();
+```
+
+### refresh()
+
+Forces a complete re-render of the grid.
+
+```typescript title="Refreshing the grid"
+grid.refresh();
+```
+
+### clearCache()
+
+Clears the renderer cache.
+
+```typescript title="Clearing renderer cache"
+grid.clearCache();
+```
+
+### updateCells()
+
+Updates specific cells efficiently.
+
+```typescript title="Updating specific cells"
+grid.updateCells([
+  { row: 0, col: 1 },
+  { row: 2, col: 3 }
+]);
+```
+
+**Parameters:**
+- `cells: CellRef[]` - Array of cell references to update
+
+### destroy()
+
+Destroys the grid instance and cleans up all resources.
+
+```typescript title="Destroying the grid"
+grid.destroy();
+```
+
+<Callout type="warning">
+After calling `destroy()`, the grid instance cannot be reused. You must create a new instance.
+</Callout>
+
+## Scrolling Methods
+
+### scrollToCell()
+
+Scrolls to bring a specific cell into view.
+
+```typescript title="Scrolling to a cell"
+grid.scrollToCell(row, col);
+```
+
+**Parameters:**
+- `row: number` - Target row index
+- `col: number` - Target column index
+
+### scrollThroughCells()
+
+Smoothly scrolls through a sequence of cells.
+
+```typescript title="Scrolling through cells"
+grid.scrollThroughCells(
+  [
+    { row: 0, col: 0 },
+    { row: 5, col: 2 },
+    { row: 10, col: 1 }
+  ],
+  { duration: 500, delay: 200 }
+);
+```
+
+**Parameters:**
+- `cells: CellRef[]` - Array of cells to scroll through
+- `options?: { duration?: number, delay?: number }` - Animation options
+
+### getScrollPosition()
+
+Gets the current scroll position.
+
+```typescript title="Getting scroll position"
+const { top, left } = grid.getScrollPosition();
+```
+
+**Returns:** `ScrollPosition` object with `top` and `left` properties
+
+### getVisibleRange()
+
+Gets the range of currently visible cells.
+
+```typescript title="Getting visible range"
+const range = grid.getVisibleRange();
+// { startRow: 0, endRow: 20, startCol: 0, endCol: 5 }
+```
+
+**Returns:** `VisibleRange` object
+
+## Sorting Methods
+
+### sort()
+
+Sorts the grid by a specific column.
+
+```typescript title="Sorting a column"
+grid.sort(columnIndex, 'asc');
+```
+
+**Parameters:**
+- `column: number` - Column index to sort by
+- `direction?: 'asc' | 'desc' | null` - Sort direction (defaults to 'asc')
+
+### toggleSort()
+
+Toggles the sort direction for a column.
+
+```typescript title="Toggling sort"
+grid.toggleSort(columnIndex);
+```
+
+**Parameters:**
+- `column: number` - Column index to toggle
+
+### getSortState()
+
+Gets the current sort state for all columns.
+
+```typescript title="Getting sort state"
+const sortState = grid.getSortState();
+// [{ column: 1, direction: 'asc', sortIndex: 0 }]
+```
+
+**Returns:** Array of `SortState` objects
+
+### getColumnSort()
+
+Gets the sort state for a specific column.
+
+```typescript title="Getting column sort state"
+const sortState = grid.getColumnSort(columnIndex);
+```
+
+**Parameters:**
+- `column: number` - Column index
+
+**Returns:** `SortState` object or undefined
+
+### getSortIcons()
+
+Gets the configured sort icons.
+
+```typescript title="Getting sort icons"
+const icons = grid.getSortIcons();
+```
+
+**Returns:** Sort icons configuration
+
+### getSortMode()
+
+Gets the current sort mode.
+
+```typescript title="Getting sort mode"
+const mode = grid.getSortMode();
+// Returns: 'frontend' | 'backend' | 'auto'
+```
+
+### clearSort()
+
+Clears all sorting.
+
+```typescript title="Clearing all sorting"
+grid.clearSort();
+```
+
+### setSortState()
+
+Sets the sort state for multiple columns.
+
+```typescript title="Setting sort state"
+grid.setSortState([
+  { column: 0, direction: 'asc', sortIndex: 0 },
+  { column: 2, direction: 'desc', sortIndex: 1 }
+]);
+```
+
+**Parameters:**
+- `sortState: SortState[]` - Array of sort states to apply
+
+## Filtering Methods
+
+### setFilter()
+
+Sets a simple filter on a column.
+
+```typescript title="Setting a column filter"
+grid.setFilter(columnIndex, 'contains', 'search term');
+```
+
+**Parameters:**
+- `column: number` - Column index
+- `operator: FilterOperator` - Filter operator
+- `value?: any` - Filter value
+
+### setColumnFilter()
+
+Sets advanced filter conditions on a column.
+
+```typescript title="Setting advanced filter"
+grid.setColumnFilter(
+  columnIndex,
+  [
+    { operator: 'greaterThan', value: 10 },
+    { operator: 'lessThan', value: 100 }
+  ],
+  'AND'
+);
+```
+
+**Parameters:**
+- `column: number` - Column index
+- `conditions: FilterCondition[]` - Array of filter conditions
+- `logic?: 'AND' | 'OR'` - Logic operator (defaults to 'AND')
+
+### getFilterState()
+
+Gets the current filter state.
+
+```typescript title="Getting filter state"
+const filterState = grid.getFilterState();
+```
+
+**Returns:** Array of `FilterModel` objects
+
+### setFilterState()
+
+Sets the filter state for multiple columns.
+
+```typescript title="Setting filter state"
+grid.setFilterState([
+  {
+    column: 0,
+    conditions: [{ operator: 'equals', value: 'Active' }]
+  }
+]);
+```
+
+**Parameters:**
+- `models: FilterModel[]` - Array of filter models
+
+### getFieldFilterState()
+
+Gets filter state organized by field names.
+
+```typescript title="Getting field filter state"
+const fieldFilters = grid.getFieldFilterState();
+```
+
+**Returns:** Object mapping field names to filter models
+
+### getFilterExports()
+
+Gets filter state in multiple export formats.
+
+```typescript title="Getting filter exports"
+const exports = grid.getFilterExports();
+// { sql: "...", rest: {...}, graphql: {...}, models: [...] }
+```
+
+**Returns:** Object with SQL, REST, GraphQL, and model representations
+
+### getFilterMode()
+
+Gets the current filter mode.
+
+```typescript title="Getting filter mode"
+const mode = grid.getFilterMode();
+// Returns: 'frontend' | 'backend' | 'auto'
+```
+
+### clearFilters()
+
+Clears all filters.
+
+```typescript title="Clearing all filters"
+grid.clearFilters();
+```
+
+### clearColumnFilter()
+
+Clears the filter for a specific column.
+
+```typescript title="Clearing column filter"
+grid.clearColumnFilter(columnIndex);
+```
+
+**Parameters:**
+- `column: number` - Column index
+
+### setQuickFilter()
+
+Sets a quick search filter across multiple columns.
+
+```typescript title="Setting quick filter"
+grid.setQuickFilter('search term', [0, 1, 2]);
+```
+
+**Parameters:**
+- `query: string` - Search query
+- `columns?: number[]` - Columns to search (defaults to all)
+
+### clearQuickFilter()
+
+Clears the quick filter.
+
+```typescript title="Clearing quick filter"
+grid.clearQuickFilter();
+```
+
+### getQuickFilter()
+
+Gets the current quick filter query.
+
+```typescript title="Getting quick filter"
+const query = grid.getQuickFilter();
+```
+
+**Returns:** Current quick filter query string
+
+## Export Methods
+
+### exportCSV()
+
+Exports grid data as CSV.
+
+```typescript title="Exporting to CSV"
+const csv = grid.exportCSV({
+  rows: 'visible',
+  columns: 'all',
+  includeHeaders: true
+});
+```
+
+**Parameters:**
+- `options?: GridExportOptions` - Export configuration
+
+**Returns:** CSV string
+
+### exportTSV()
+
+Exports grid data as TSV.
+
+```typescript title="Exporting to TSV"
+const tsv = grid.exportTSV({
+  rows: 'visible',
+  columns: 'all',
+  includeHeaders: true
+});
+```
+
+**Parameters:**
+- `options?: GridExportOptions` - Export configuration
+
+**Returns:** TSV string
+
+## Pagination Methods
+
+### goToPage()
+
+Navigates to a specific page.
+
+```typescript title="Going to a page"
+grid.goToPage(3);
+```
+
+**Parameters:**
+- `page: number` - Target page number (1-based)
+
+### nextPage()
+
+Navigates to the next page.
+
+```typescript title="Going to next page"
+grid.nextPage();
+```
+
+### previousPage()
+
+Navigates to the previous page.
+
+```typescript title="Going to previous page"
+grid.previousPage();
+```
+
+### firstPage()
+
+Navigates to the first page.
+
+```typescript title="Going to first page"
+grid.firstPage();
+```
+
+### lastPage()
+
+Navigates to the last page.
+
+```typescript title="Going to last page"
+grid.lastPage();
+```
+
+### setPageSize()
+
+Sets the number of rows per page.
+
+```typescript title="Setting page size"
+grid.setPageSize(50);
+```
+
+**Parameters:**
+- `pageSize: number` - Number of rows per page
+
+### getCurrentPage()
+
+Gets the current page number.
+
+```typescript title="Getting current page"
+const page = grid.getCurrentPage();
+```
+
+**Returns:** Current page number (1-based)
+
+### getPageSize()
+
+Gets the current page size.
+
+```typescript title="Getting page size"
+const size = grid.getPageSize();
+```
+
+**Returns:** Number of rows per page
+
+### getTotalPages()
+
+Gets the total number of pages.
+
+```typescript title="Getting total pages"
+const total = grid.getTotalPages();
+```
+
+**Returns:** Total page count
+
+## Column Methods
+
+### attachColumnResize()
+
+Attaches column resize functionality to a header element.
+
+```typescript title="Attaching column resize"
+grid.attachColumnResize(headerElement);
+```
+
+**Parameters:**
+- `headerEl: HTMLElement` - Header element
+
+### detachColumnResize()
+
+Detaches column resize functionality.
+
+```typescript title="Detaching column resize"
+grid.detachColumnResize();
+```
+
+### resizeColumn()
+
+Programmatically resizes a column.
+
+```typescript title="Resizing a column"
+grid.resizeColumn(columnIndex, 150);
+```
+
+**Parameters:**
+- `col: number` - Column index
+- `width: number` - New width in pixels
+
+### autoFitColumn()
+
+Auto-fits a column to its content.
+
+```typescript title="Auto-fitting a column"
+grid.autoFitColumn(columnIndex);
+```
+
+**Parameters:**
+- `col: number` - Column index
+
+### autoFitAllColumns()
+
+Auto-fits all columns to their content.
+
+```typescript title="Auto-fitting all columns"
+grid.autoFitAllColumns();
+```
+
+### setColumnConstraints()
+
+Sets width constraints for a column.
+
+```typescript title="Setting column constraints"
+grid.setColumnConstraints(columnIndex, {
+  minWidth: 100,
+  maxWidth: 500
+});
+```
+
+**Parameters:**
+- `col: number` - Column index
+- `constraints: { minWidth?: number, maxWidth?: number }` - Width constraints
+
+### attachColumnDrag()
+
+Attaches column drag functionality to a header element.
+
+```typescript title="Attaching column drag"
+grid.attachColumnDrag(headerElement);
+```
+
+**Parameters:**
+- `headerEl: HTMLElement` - Header element
+
+### detachColumnDrag()
+
+Detaches column drag functionality.
+
+```typescript title="Detaching column drag"
+grid.detachColumnDrag();
+```
+
+### isDragging()
+
+Checks if a column is currently being dragged.
+
+```typescript title="Checking drag state"
+const dragging = grid.isDragging();
+```
+
+**Returns:** Boolean indicating drag state
+
+## Header Methods
+
+### registerHeaderRenderer()
+
+Registers a custom header renderer.
+
+```typescript title="Registering header renderer"
+grid.registerHeaderRenderer('custom', customHeaderRenderer);
+```
+
+**Parameters:**
+- `name: string` - Renderer name
+- `renderer: HeaderRenderer` - Renderer implementation
+
+### updateHeader()
+
+Updates a specific header cell.
+
+```typescript title="Updating a header"
+grid.updateHeader(columnIndex);
+```
+
+**Parameters:**
+- `colIndex: number` - Column index
+
+### updateAllHeaders()
+
+Updates all header cells.
+
+```typescript title="Updating all headers"
+grid.updateAllHeaders();
+```
+
+### refreshHeaders()
+
+Forces a complete refresh of all headers.
+
+```typescript title="Refreshing headers"
+grid.refreshHeaders();
+```
+
+## State Methods
+
+### getColumnState()
+
+Gets the state of all columns.
+
+```typescript title="Getting column state"
+const state = grid.getColumnState();
+```
+
+**Returns:** Array of `ColumnStateSnapshot` objects
+
+### applyColumnState()
+
+Applies column state configuration.
+
+```typescript title="Applying column state"
+grid.applyColumnState(state, { applyOrder: true });
+```
+
+**Parameters:**
+- `state: ColumnStateSnapshot[]` - Column state to apply
+- `options?: { applyOrder?: boolean }` - Application options
+
+### getStateSnapshot()
+
+Gets a complete snapshot of the grid state.
+
+```typescript title="Getting state snapshot"
+const snapshot = grid.getStateSnapshot();
+```
+
+**Returns:** `GridStateSnapshot` object
+
+### applyStateSnapshot()
+
+Restores the grid from a state snapshot.
+
+```typescript title="Applying state snapshot"
+grid.applyStateSnapshot(snapshot);
+```
+
+**Parameters:**
+- `snapshot: GridStateSnapshot` - State snapshot to restore
+
+<Callout type="tip">
+Use state snapshots to implement features like saved views or undo/redo functionality.
+</Callout>
+
+## Event Methods
+
+### on()
+
+Registers an event listener.
+
+```typescript title="Registering event listener"
+grid.on('cell:click', (event) => {
+  console.log('Cell clicked:', event.cell);
+});
+```
+
+**Parameters:**
+- `event: string` - Event name
+- `handler: Function` - Event handler function
+
+**Returns:** Cleanup function to unregister the listener
+
+### off()
+
+Unregisters an event listener.
+
+```typescript title="Unregistering event listener"
+grid.off('cell:click', handler);
+```
+
+**Parameters:**
+- `event: string` - Event name
+- `handler: Function` - Event handler function to remove
+
+## Configuration Methods
+
+### registerRenderer()
+
+Registers a custom cell renderer.
+
+```typescript title="Registering cell renderer"
+grid.registerRenderer('custom', customRenderer);
+```
+
+**Parameters:**
+- `name: string` - Renderer name
+- `renderer: CellRenderer` - Renderer implementation
+
+### updateOptions()
+
+Updates grid options at runtime.
+
+```typescript title="Updating options"
+grid.updateOptions({
+  rowHeight: 40,
+  enableSelection: true
+});
+```
+
+**Parameters:**
+- `options: Partial<GridOptions>` - Options to update
+
+### getStats()
+
+Gets performance and usage statistics.
+
+```typescript title="Getting grid stats"
+const stats = grid.getStats();
+```
+
+**Returns:** Object with grid statistics
+
+### getDimensions()
+
+Gets the grid's current dimensions.
+
+```typescript title="Getting dimensions"
+const { width, height } = grid.getDimensions();
+```
+
+**Returns:** Object with `width` and `height` properties
+
+### getColumnPosition()
+
+Gets the visual position of a column.
+
+```typescript title="Getting column position"
+const position = grid.getColumnPosition(columnIndex);
+// { x: 150, width: 100 }
+```
+
+**Parameters:**
+- `col: number` - Column index
+
+**Returns:** Object with `x` and `width` properties
+
+## Plugin Methods
+
+### getStore()
+
+Gets the internal reactive store.
+
+```typescript title="Getting the store"
+const store = grid.getStore();
+```
+
+**Returns:** The grid's reactive store instance
+
+<Callout type="warning">
+Direct store access is for advanced use cases. Prefer using the public API methods.
+</Callout>
+
+### getPluginHost()
+
+Gets the plugin host for advanced plugin management.
+
+```typescript title="Getting plugin host"
+const pluginHost = grid.getPluginHost();
+```
+
+**Returns:** The plugin host instance
+
+### getGridApi()
+
+Gets the grid API object.
+
+```typescript title="Getting grid API"
+const api = grid.getGridApi();
+```
+
+**Returns:** The grid API instance
+
+### usePlugin()
+
+Registers and activates a plugin.
+
+```typescript title="Using a plugin"
+grid.usePlugin(customPlugin);
+```
+
+**Parameters:**
+- `plugin: GridPlugin` - Plugin to register
+
+## Infinite Scroll Methods
+
+### resetInfiniteScrolling()
+
+Resets the infinite scrolling state.
+
+```typescript title="Resetting infinite scroll"
+grid.resetInfiniteScrolling();
+```
+
+### getSlidingWindowStats()
+
+Gets statistics about the sliding window for infinite scroll.
+
+```typescript title="Getting sliding window stats"
+const stats = grid.getSlidingWindowStats();
+// { windowSize: 1000, prunedRows: 500, totalLoaded: 5000 }
+```
+
+**Returns:** Object with sliding window statistics

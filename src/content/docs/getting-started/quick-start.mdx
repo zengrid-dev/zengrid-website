@@ -1,0 +1,166 @@
+---
+title: Quick Start
+description: Get a working ZenGrid up and running with sorting, filtering, and selection in minutes.
+order: 2
+category: Getting Started
+tags: [quick-start, tutorial, getting-started]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+Get a working ZenGrid up and running in minutes with sorting, filtering, and selection enabled.
+
+## Minimal Working Example
+
+Create a container div and initialize the grid:
+
+```html title="index.html"
+<div id="grid" style="width: 800px; height: 600px;"></div>
+```
+
+```ts title="app.ts"
+import { Grid } from '@zengrid/core';
+
+const grid = new Grid({
+  container: document.getElementById('grid')!,
+  data: (row, col) => `Cell ${row},${col}`,
+  rowCount: 100,
+  colCount: 5
+});
+
+grid.render();
+```
+
+<Callout type="info">
+The grid requires explicit dimensions on the container element. The data callback is called on-demand for each visible cell.
+</Callout>
+
+## Adding Columns
+
+Define columns with headers, widths, and field mappings:
+
+```ts title="columns.ts"
+import { Grid, type ColumnDef } from '@zengrid/core';
+
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80 },
+  { field: 'name', header: 'Name', width: 200 },
+  { field: 'email', header: 'Email', width: 250 },
+  { field: 'status', header: 'Status', width: 120 }
+];
+
+const dataset = [
+  { id: 1, name: 'Alice', email: 'alice@example.com', status: 'Active' },
+  { id: 2, name: 'Bob', email: 'bob@example.com', status: 'Inactive' }
+];
+
+const grid = new Grid({
+  container: document.getElementById('grid')!,
+  columns,
+  data: (row, col) => dataset[row][columns[col].field],
+  rowCount: dataset.length
+});
+```
+
+## Enable Sorting
+
+Add sorting to any column programmatically:
+
+```ts title="sorting.ts"
+// Sort a column ascending
+grid.sort(1, 'asc');
+
+// Sort a column descending
+grid.sort(1, 'desc');
+
+// Toggle sort direction
+grid.toggleSort(1);
+
+// Clear sorting
+grid.clearSort();
+```
+
+<Callout type="tip">
+Enable sorting on specific columns by setting `sortable: true` in the column definition.
+</Callout>
+
+## Enable Filtering
+
+Add filtering to columns:
+
+```ts title="filtering.ts"
+// Filter column by value
+grid.setFilter(1, 'contains', 'Alice');
+
+// Filter with different operators
+grid.setFilter(2, 'startsWith', 'admin');
+grid.setFilter(0, 'equals', 123);
+
+// Clear filters
+grid.clearFilters();
+```
+
+## Enable Selection
+
+Enable selection in grid options:
+
+```ts title="selection.ts"
+const grid = new Grid({
+  container: document.getElementById('grid')!,
+  data: (row, col) => `Cell ${row},${col}`,
+  rowCount: 100,
+  colCount: 5,
+  enableSelection: true,
+  selectionType: 'range' // 'single', 'range', or 'multi'
+});
+
+// Listen to selection changes
+grid.on('selection:change', (payload) => {
+  console.log('Selected ranges:', payload.ranges);
+});
+```
+
+<Callout type="info">
+Selection types: `single` (one cell), `range` (rectangular regions), or `multi` (multiple ranges).
+</Callout>
+
+## Full Working Example
+
+Here's a complete example combining all features:
+
+```ts title="full-example.ts"
+import { Grid, type ColumnDef } from '@zengrid/core';
+
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80, sortable: true },
+  { field: 'name', header: 'Name', width: 200, sortable: true, filterable: true },
+  { field: 'email', header: 'Email', width: 250, filterable: true },
+  { field: 'status', header: 'Status', width: 120 }
+];
+
+const dataset = [
+  { id: 1, name: 'Alice', email: 'alice@example.com', status: 'Active' },
+  { id: 2, name: 'Bob', email: 'bob@example.com', status: 'Inactive' },
+  { id: 3, name: 'Charlie', email: 'charlie@example.com', status: 'Active' }
+];
+
+const grid = new Grid({
+  container: document.getElementById('grid')!,
+  columns,
+  data: (row, col) => dataset[row][columns[col].field],
+  rowCount: dataset.length,
+  enableSelection: true,
+  selectionType: 'range'
+});
+
+grid.render();
+
+// Handle events
+grid.on('cell:click', ({ cell, value }) => {
+  console.log(`Clicked cell at row ${cell.row}, col ${cell.col}: ${value}`);
+});
+```
+
+## Next Steps
+
+Continue to [Your First Grid](/getting-started/your-first-grid) for a detailed step-by-step tutorial building a full-featured data grid.

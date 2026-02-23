@@ -1,0 +1,238 @@
+---
+title: Filtering
+description: Filter data with operators, SQL-like queries, and export filters to REST, GraphQL, or SQL.
+order: 11
+category: Features
+tags: [filtering, query, export]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid provides a comprehensive filtering system with support for multiple operators, SQL-like queries, and the ability to export filters to various backend formats.
+
+## Filter Operators
+
+ZenGrid supports a wide range of filter operators:
+
+- **equals**: Exact match
+- **notEquals**: Not equal to value
+- **contains**: Contains substring
+- **notContains**: Does not contain substring
+- **startsWith**: Starts with value
+- **endsWith**: Ends with value
+- **greaterThan**: Greater than value
+- **lessThan**: Less than value
+- **greaterThanOrEqual**: Greater than or equal to value
+- **lessThanOrEqual**: Less than or equal to value
+- **blank**: Is empty or null
+- **notBlank**: Has a value
+- **between**: Value is between two bounds
+- **in**: Value is in a list
+- **notIn**: Value is not in a list
+- **regex**: Matches regular expression
+
+## Basic Filtering
+
+```js title="basic-filter.js"
+// Apply a simple filter
+grid.setFilter('name', 'contains', 'John');
+
+// Clear a column filter
+grid.clearColumnFilter('name');
+
+// Clear all filters
+grid.clearFilters();
+```
+
+## Advanced Column Filters
+
+Apply multiple conditions to a single column:
+
+```js title="multi-condition-filter.js"
+// Age between 25 and 40
+grid.setColumnFilter('age', [
+  { operator: 'greaterThanOrEqual', value: 25 },
+  { operator: 'lessThanOrEqual', value: 40 }
+], 'and'); // 'and' | 'or'
+
+// Email ends with specific domains
+grid.setColumnFilter('email', [
+  { operator: 'endsWith', value: '@company.com' },
+  { operator: 'endsWith', value: '@partner.com' }
+], 'or');
+```
+
+<Callout type="info">
+When using multiple conditions, specify the logic operator: `'and'` requires all conditions to match, while `'or'` requires at least one to match.
+</Callout>
+
+## Quick Filter
+
+Search across multiple columns with a single query:
+
+```js title="quick-filter.js"
+// Search all columns
+grid.setQuickFilter('John');
+
+// Search specific columns
+grid.setQuickFilter('John', ['name', 'email', 'address']);
+
+// Clear quick filter
+grid.setQuickFilter('');
+```
+
+<Callout type="tip">
+Quick filter is ideal for implementing a global search box that searches across all visible columns.
+</Callout>
+
+## SQL-Like Queries
+
+Use SQL-like syntax for complex filtering:
+
+```js title="sql-query.js"
+const filterQuery = {
+  sql: 'age > ? AND (status = ? OR status = ?)',
+  params: [25, 'active', 'pending']
+};
+
+// Apply the SQL-like filter
+grid.applyFilterQuery(filterQuery);
+```
+
+## Filter Export
+
+Export your filters to various backend query formats:
+
+```js title="filter-export.js"
+// Get filter exports
+const exports = grid.getFilterExports();
+
+// REST API format
+console.log(exports.rest);
+// { name: { contains: 'John' }, age: { gte: 25, lte: 40 } }
+
+// GraphQL format
+console.log(exports.graphql);
+// { where: { name: { contains: "John" }, age: { gte: 25, lte: 40 } } }
+
+// SQL format
+console.log(exports.sql);
+// {
+//   query: "name LIKE ? AND age >= ? AND age <= ?",
+//   params: ["%John%", 25, 40]
+// }
+```
+
+### Filter Export Adapters
+
+ZenGrid includes three built-in export adapters:
+
+- **REST Adapter**: Exports to REST API query parameters
+- **GraphQL Adapter**: Exports to GraphQL where clauses
+- **SQL Adapter**: Exports to SQL WHERE clauses with parameterized queries
+
+```js title="export-adapters.js"
+import { RestAdapter, GraphQLAdapter, SQLAdapter } from '@zengrid/core';
+
+// Use adapters directly
+const restAdapter = new RestAdapter();
+const restQuery = restAdapter.export(grid.getFilterState());
+
+const graphqlAdapter = new GraphQLAdapter();
+const graphqlQuery = graphqlAdapter.export(grid.getFilterState());
+
+const sqlAdapter = new SQLAdapter();
+const sqlQuery = sqlAdapter.export(grid.getFilterState());
+```
+
+<Callout type="warning">
+Filter exports are intended for backend integration. Always validate and sanitize filter parameters on the server side to prevent injection attacks.
+</Callout>
+
+## Filter Performance
+
+ZenGrid optimizes filter performance through:
+
+- **Filter Caching**: Results are cached until data or filters change
+- **Index Management**: Maintains indices for fast lookups
+- **Range Optimization**: Optimized handling of range filters
+
+```js title="performance-config.js"
+const grid = new ZenGrid(container, {
+  filterCaching: true,        // Enable filter result caching
+  filterIndexing: true,       // Enable filter index management
+  rangeFilterOptimization: true
+});
+```
+
+## Events
+
+Listen to filter changes:
+
+```js title="filter-events.js"
+grid.on('filter:beforeFilter', (event) => {
+  console.log('About to filter:', event.filterState);
+  // Return false to cancel filtering
+});
+
+grid.on('filter:change', (event) => {
+  console.log('Filter changed:', event.filterState);
+  console.log('Visible rows:', event.visibleRowCount);
+});
+
+grid.on('filter:afterFilter', (event) => {
+  console.log('Filter applied:', event.filterState);
+});
+
+grid.on('filter:export', (event) => {
+  console.log('Filter exported:', event.format, event.query);
+});
+```
+
+## Example: Complex Filtering Scenario
+
+```js title="complex-filter-example.js"
+const grid = new ZenGrid(container, {
+  columns: [
+    { id: 'name', field: 'name', filterable: true },
+    { id: 'age', field: 'age', filterable: true },
+    { id: 'status', field: 'status', filterable: true },
+    { id: 'email', field: 'email', filterable: true }
+  ]
+});
+
+// Apply multiple filters
+grid.setFilter('status', 'in', ['active', 'pending']);
+grid.setColumnFilter('age', [
+  { operator: 'greaterThanOrEqual', value: 21 },
+  { operator: 'lessThan', value: 65 }
+], 'and');
+grid.setFilter('name', 'notBlank');
+
+// Get current filter state
+const filterState = grid.getFilterState();
+
+// Export for backend
+const sqlExport = grid.getFilterExports().sql;
+// Send to backend
+await fetch('/api/filtered-data', {
+  method: 'POST',
+  body: JSON.stringify(sqlExport)
+});
+```
+
+## Substring Optimization
+
+For substring filters (`contains`, `startsWith`, `endsWith`), ZenGrid uses optimized algorithms:
+
+```js title="substring-filter.js"
+// Efficient substring searching
+grid.setFilter('description', 'contains', 'important');
+
+// Case-insensitive by default
+grid.setFilter('name', 'contains', 'john', { caseSensitive: false });
+```
+
+<Callout type="tip">
+For best performance with large datasets, consider using backend filtering mode and creating appropriate database indices.
+</Callout>

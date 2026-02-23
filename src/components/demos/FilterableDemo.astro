@@ -1,0 +1,184 @@
+---
+import DemoContainer from './DemoContainer.astro';
+---
+
+<DemoContainer id="filterable-demo-grid" height="380px">
+  <div slot="controls" class="filter-controls">
+    <input type="text" id="filterable-demo-search" class="filter-input" placeholder="Quick filter..." />
+    <div class="filter-buttons">
+      <button class="filter-btn" data-filter="active">Active Only</button>
+      <button class="filter-btn" data-filter="engineering">Engineering</button>
+      <button class="filter-btn clear" data-filter="clear">Clear</button>
+    </div>
+  </div>
+  <div slot="status" class="filter-status">
+    <span id="filterable-demo-count"></span>
+  </div>
+</DemoContainer>
+
+<script>
+  import { Grid } from '@zengrid/core';
+  import '@zengrid/core/dist/styles.css';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('filterable-demo-grid');
+    if (!container) return;
+
+    const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Design', 'Support'];
+    const statuses = ['Active', 'Inactive', 'On Leave'];
+    const rowCount = 300;
+
+    const data = Array.from({ length: rowCount }, (_, i) => [
+      i + 1,
+      `Employee ${i + 1}`,
+      `emp${i + 1}@company.com`,
+      departments[i % departments.length],
+      statuses[i % statuses.length],
+    ]);
+
+    const columns = [
+      { field: 'id', header: 'ID', width: 60, filterable: true },
+      { field: 'name', header: 'Name', width: 180, filterable: true },
+      { field: 'email', header: 'Email', width: 220, filterable: true },
+      { field: 'department', header: 'Department', width: 140, filterable: true },
+      { field: 'status', header: 'Status', width: 120, filterable: true },
+    ];
+
+    const grid = new Grid(container, {
+      rowCount,
+      colCount: columns.length,
+      rowHeight: 32,
+      colWidth: columns.map(c => c.width),
+      columns,
+      enableSelection: true,
+    });
+
+    grid.setData(data);
+    grid.render();
+
+    const countEl = document.getElementById('filterable-demo-count');
+    function updateCount(filterState: any[] = []) {
+      if (countEl) {
+        if (filterState.length > 0) {
+          countEl.textContent = `Filtered (${filterState.length} active) · ${rowCount} total rows`;
+        } else {
+          countEl.textContent = `Showing all ${rowCount} rows`;
+        }
+      }
+    }
+    updateCount();
+
+    grid.on('filter:change', (e) => {
+      updateCount(e.filterState);
+    });
+
+    let activeButtonFilter: string | null = null;
+
+    const searchInput = document.getElementById('filterable-demo-search') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value;
+        if (query) {
+          grid.setQuickFilter(query);
+        } else {
+          grid.clearQuickFilter();
+        }
+      });
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = (btn as HTMLElement).dataset.filter;
+        if (filter === 'clear') {
+          activeButtonFilter = null;
+          if (searchInput) searchInput.value = '';
+          grid.clearFilters();
+          grid.clearQuickFilter();
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        } else {
+          if (activeButtonFilter === filter) {
+            activeButtonFilter = null;
+            grid.clearFilters();
+          } else {
+            activeButtonFilter = filter ?? null;
+            if (filter === 'active') {
+              grid.setFilter(4, 'equals', 'Active');
+            } else if (filter === 'engineering') {
+              grid.setFilter(3, 'equals', 'Engineering');
+            }
+          }
+          document.querySelectorAll('.filter-btn:not(.clear)').forEach(b => {
+            b.classList.toggle('active', (b as HTMLElement).dataset.filter === activeButtonFilter);
+          });
+        }
+      });
+    });
+  });
+</script>
+
+<style>
+  .filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-input {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem;
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    outline: none;
+    min-width: 160px;
+  }
+
+  .filter-input:focus {
+    border-color: #10b981;
+  }
+
+  .filter-buttons {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .filter-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 0.35rem 0.7rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #e2e8f0;
+  }
+
+  .filter-btn.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10b981;
+  }
+
+  .filter-btn.clear {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .filter-btn.clear:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .filter-status {
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+</style>

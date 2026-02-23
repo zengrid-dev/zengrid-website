@@ -1,0 +1,425 @@
+---
+title: Creating Custom Plugins
+description: Step-by-step tutorial for creating custom ZenGrid plugins with store access and signal ownership.
+order: 28
+category: Plugins
+tags: [plugins, tutorial, custom]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+This tutorial walks through creating a custom ZenGrid plugin step-by-step. We'll build a `RowHighlighterPlugin` that highlights rows based on custom criteria.
+
+## Plugin Requirements
+
+Every ZenGrid plugin must:
+
+1. Implement the `GridPlugin` interface
+2. Choose an appropriate phase number
+3. Declare dependencies (if any)
+4. Implement the `setup` method
+5. Return a `PluginDisposable` for cleanup
+6. Clean up resources in `dispose` (optional)
+
+## Step 1: Define the Plugin Interface
+
+```ts title="Plugin Structure"
+import { GridPlugin, GridStore, GridApi, PluginDisposable } from '@zengrid/core';
+
+const RowHighlighterPlugin: GridPlugin = {
+  name: 'RowHighlighterPlugin',
+  phase: 60,
+  dependencies: ['CorePlugin', 'SelectionPlugin'],
+
+  setup(store: GridStore, api: GridApi): PluginDisposable {
+    // Plugin implementation
+    return { teardown: [] };
+  },
+
+  dispose() {
+    // Optional cleanup
+  }
+};
+```
+
+<Callout type="info">
+Choose a phase number higher than your dependencies to ensure proper initialization order.
+</Callout>
+
+## Step 2: Choose the Phase
+
+Phase determines initialization order:
+
+```ts title="Phase Selection"
+const RowHighlighterPlugin: GridPlugin = {
+  name: 'RowHighlighterPlugin',
+  phase: 60, // After CorePlugin(0), SelectionPlugin(40), EditingPlugin(45), UndoRedoPlugin(50)
+  dependencies: ['CorePlugin', 'SelectionPlugin']
+};
+```
+
+## Step 3: Extend the Store
+
+Add custom signals to the reactive store:
+
+```ts title="Store Extension"
+setup(store: GridStore, api: GridApi): PluginDisposable {
+  // Extend store with custom signals
+  store.extend('highlighter.enabled', true, 'RowHighlighterPlugin', this.phase);
+  store.extend('highlighter.color', '#ffeb3b', 'RowHighlighterPlugin', this.phase);
+  store.extend('highlighter.rows', new Set<number>(), 'RowHighlighterPlugin', this.phase);
+
+  return { teardown: [] };
+}
+```
+
+<Callout type="tip">
+Use `store.extend()` to create new signals owned by your plugin. The store automatically cleans them up on plugin disposal.
+</Callout>
+
+## Step 4: Create Computed Signals
+
+Add derived state using computed signals:
+
+```ts title="Computed Signals"
+setup(store: GridStore, api: GridApi): PluginDisposable {
+  // Extend store
+  store.extend('highlighter.enabled', true, 'RowHighlighterPlugin', this.phase);
+  store.extend('highlighter.rows', new Set<number>(), 'RowHighlighterPlugin', this.phase);
+
+  // Create computed signal
+  store.computed('highlighter.count', () => {
+    const rows = store.get('highlighter.rows');
+    return rows.size;
+  }, 'RowHighlighterPlugin', this.phase);
+
+  store.computed('highlighter.hasHighlights', () => {
+    const count = store.get('highlighter.count');
+    return count > 0;
+  }, 'RowHighlighterPlugin', this.phase);
+
+  return { teardown: [] };
+}
+```
+
+## Step 5: Create Effects
+
+React to store changes using effects:
+
+```ts title="Effects"
+setup(store: GridStore, api: GridApi): PluginDisposable {
+  // ... previous code ...
+
+  // Create effect to update UI when rows change
+  store.effect('updateHighlightUI', () => {
+    const enabled = store.get('highlighter.enabled');
+    const rows = store.get('highlighter.rows');
+    const color = store.get('highlighter.color');
+
+    if (enabled) {
+      this.applyHighlights(rows, color);
+    } else {
+      this.clearHighlights();
+    }
+  }, 'RowHighlighterPlugin', this.phase);
+
+  return { teardown: [] };
+}
+
+private applyHighlights(rows: Set<number>, color: string): void {
+  rows.forEach(row => {
+    const rowElement = document.querySelector(`[data-row="${row}"]`);
+    if (rowElement) {
+      (rowElement as HTMLElement).style.backgroundColor = color;
+    }
+  });
+}
+
+private clearHighlights(): void {
+  const highlightedRows = document.querySelectorAll('[style*="background-color"]');
+  highlightedRows.forEach(row => {
+    (row as HTMLElement).style.backgroundColor = '';
+  });
+}
+```
+
+<Callout type="warning">
+Effects run automatically when their dependencies change. Be careful not to create infinite loops.
+</Callout>
+
+## Step 6: Register API Methods
+
+Expose plugin functionality through the grid API:
+
+```ts title="API Registration"
+setup(store: GridStore, api: GridApi): PluginDisposable {
+  // ... previous code ...
+
+  // Register API methods
+  api.register('highlighter', {
+    enable: () => {
+      store.set('highlighter.enabled', true);
+    },
+
+    disable: () => {
+      store.set('highlighter.enabled', false);
+    },
+
+    setColor: (color: string) => {
+      store.set('highlighter.color', color);
+    },
+
+    highlightRow: (row: number) => {
+      const rows = new Set(store.get('highlighter.rows'));
+      rows.add(row);
+      store.set('highlighter.rows', rows);
+    },
+
+    unhighlightRow: (row: number) => {
+      const rows = new Set(store.get('highlighter.rows'));
+      rows.delete(row);
+      store.set('highlighter.rows', rows);
+    },
+
+    clearHighlights: () => {
+      store.set('highlighter.rows', new Set());
+    },
+
+    getHighlightedRows: () => {
+      return Array.from(store.get('highlighter.rows'));
+    }
+  });
+
+  return { teardown: [] };
+}
+```
+
+## Step 7: Add Cleanup
+
+Return cleanup functions in the `PluginDisposable`:
+
+```ts title="Cleanup Functions"
+setup(store: GridStore, api: GridApi): PluginDisposable {
+  // ... previous code ...
+
+  // Add event listeners
+  const handleRowClick = (event: MouseEvent) => {
+    const row = this.getRowFromEvent(event);
+    if (row !== null && event.ctrlKey) {
+      api.highlighter.highlightRow(row);
+    }
+  };
+
+  document.addEventListener('click', handleRowClick);
+
+  // Return disposable with cleanup
+  return {
+    teardown: [
+      () => {
+        document.removeEventListener('click', handleRowClick);
+      },
+      () => {
+        this.clearHighlights();
+      }
+    ]
+  };
+}
+```
+
+<Callout type="info">
+The teardown array is executed in order when the plugin is destroyed.
+</Callout>
+
+## Step 8: Register the Plugin
+
+Use the plugin with your grid:
+
+```ts title="Using the Plugin"
+import { createGrid } from '@zengrid/core';
+import { RowHighlighterPlugin } from './row-highlighter-plugin';
+
+const grid = createGrid(container, {
+  columns: [...],
+  data: [...]
+});
+
+// Register the plugin
+grid.usePlugin(RowHighlighterPlugin);
+
+// Use the plugin API
+grid.api.highlighter.setColor('#ffeb3b');
+grid.api.highlighter.highlightRow(5);
+grid.api.highlighter.highlightRow(10);
+
+// Get highlighted rows
+const highlighted = grid.api.highlighter.getHighlightedRows();
+console.log('Highlighted rows:', highlighted);
+```
+
+## Step 9: Optional Dispose Method
+
+Add a dispose method for additional cleanup:
+
+```ts title="Dispose Method"
+const RowHighlighterPlugin: GridPlugin = {
+  name: 'RowHighlighterPlugin',
+  phase: 60,
+  dependencies: ['CorePlugin', 'SelectionPlugin'],
+
+  setup(store: GridStore, api: GridApi): PluginDisposable {
+    // ... setup code ...
+    return { teardown: [] };
+  },
+
+  dispose() {
+    // Optional: cleanup that happens after teardown
+    console.log('RowHighlighterPlugin disposed');
+  }
+};
+```
+
+## Complete Working Example
+
+Here's the complete plugin implementation:
+
+```ts title="row-highlighter-plugin.ts"
+import { GridPlugin, GridStore, GridApi, PluginDisposable } from '@zengrid/core';
+
+export const RowHighlighterPlugin: GridPlugin = {
+  name: 'RowHighlighterPlugin',
+  phase: 60,
+  dependencies: ['CorePlugin', 'SelectionPlugin'],
+
+  setup(store: GridStore, api: GridApi): PluginDisposable {
+    // 1. Extend store with custom signals
+    store.extend('highlighter.enabled', true, 'RowHighlighterPlugin', this.phase);
+    store.extend('highlighter.color', '#ffeb3b', 'RowHighlighterPlugin', this.phase);
+    store.extend('highlighter.rows', new Set<number>(), 'RowHighlighterPlugin', this.phase);
+
+    // 2. Create computed signals
+    store.computed('highlighter.count', () => {
+      const rows = store.get('highlighter.rows');
+      return rows.size;
+    }, 'RowHighlighterPlugin', this.phase);
+
+    store.computed('highlighter.hasHighlights', () => {
+      const count = store.get('highlighter.count');
+      return count > 0;
+    }, 'RowHighlighterPlugin', this.phase);
+
+    // 3. Create effects
+    store.effect('updateHighlightUI', () => {
+      const enabled = store.get('highlighter.enabled');
+      const rows = store.get('highlighter.rows');
+      const color = store.get('highlighter.color');
+
+      if (enabled) {
+        applyHighlights(rows, color);
+      } else {
+        clearHighlights();
+      }
+    }, 'RowHighlighterPlugin', this.phase);
+
+    // 4. Register API methods
+    api.register('highlighter', {
+      enable: () => store.set('highlighter.enabled', true),
+      disable: () => store.set('highlighter.enabled', false),
+      setColor: (color: string) => store.set('highlighter.color', color),
+
+      highlightRow: (row: number) => {
+        const rows = new Set(store.get('highlighter.rows'));
+        rows.add(row);
+        store.set('highlighter.rows', rows);
+      },
+
+      unhighlightRow: (row: number) => {
+        const rows = new Set(store.get('highlighter.rows'));
+        rows.delete(row);
+        store.set('highlighter.rows', rows);
+      },
+
+      clearHighlights: () => store.set('highlighter.rows', new Set()),
+      getHighlightedRows: () => Array.from(store.get('highlighter.rows'))
+    });
+
+    // 5. Add event listeners
+    const handleRowClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const rowElement = target.closest('[data-row]');
+      if (rowElement && event.ctrlKey) {
+        const row = parseInt(rowElement.getAttribute('data-row')!, 10);
+        api.highlighter.highlightRow(row);
+      }
+    };
+
+    document.addEventListener('click', handleRowClick);
+
+    // 6. Return disposable with cleanup
+    return {
+      teardown: [
+        () => document.removeEventListener('click', handleRowClick),
+        () => clearHighlights()
+      ]
+    };
+  },
+
+  dispose() {
+    console.log('RowHighlighterPlugin disposed');
+  }
+};
+
+// Helper functions
+function applyHighlights(rows: Set<number>, color: string): void {
+  rows.forEach(row => {
+    const rowElement = document.querySelector(`[data-row="${row}"]`);
+    if (rowElement) {
+      (rowElement as HTMLElement).style.backgroundColor = color;
+    }
+  });
+}
+
+function clearHighlights(): void {
+  const highlightedRows = document.querySelectorAll('[style*="background-color"]');
+  highlightedRows.forEach(row => {
+    (row as HTMLElement).style.backgroundColor = '';
+  });
+}
+```
+
+## Usage Example
+
+```ts title="Using RowHighlighterPlugin"
+import { createGrid } from '@zengrid/core';
+import { RowHighlighterPlugin } from './row-highlighter-plugin';
+
+const grid = createGrid(document.getElementById('grid')!, {
+  columns: [
+    { id: 'name', field: 'name', header: 'Name' },
+    { id: 'age', field: 'age', header: 'Age' }
+  ],
+  data: [
+    { name: 'Alice', age: 25 },
+    { name: 'Bob', age: 30 },
+    { name: 'Charlie', age: 35 }
+  ]
+});
+
+grid.usePlugin(RowHighlighterPlugin);
+
+// Highlight rows
+grid.api.highlighter.highlightRow(0);
+grid.api.highlighter.highlightRow(2);
+
+// Change color
+grid.api.highlighter.setColor('#4caf50');
+
+// Get highlighted rows
+console.log(grid.api.highlighter.getHighlightedRows()); // [0, 2]
+
+// Clear highlights
+grid.api.highlighter.clearHighlights();
+```
+
+<Callout type="tip">
+This plugin demonstrates all key concepts: store integration, computed signals, effects, API registration, and cleanup.
+</Callout>

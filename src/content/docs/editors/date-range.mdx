@@ -1,0 +1,487 @@
+---
+title: Date Range Editor
+description: Date range editor with dual calendar for selecting start and end dates.
+order: 39
+category: Cell Editors
+tags: [editors, date-range, dual-calendar]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `DateRangeEditor` provides a dual calendar interface for selecting date ranges with start and end dates.
+
+## Basic Usage
+
+```ts title="Basic Date Range Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'vacationDates',
+    header: 'Vacation Period',
+    editor: 'date-range'
+  }
+];
+```
+
+## Editor Options
+
+```ts title="DateRangeEditor Options"
+interface DateRangeEditorOptions {
+  format?: string; // Default: 'YYYY-MM-DD'
+  placeholder?: string;
+  className?: string;
+  theme?: 'light' | 'dark' | 'auto';
+  autoFocus?: boolean;
+  required?: boolean;
+  minDate?: string;
+  maxDate?: string;
+  allowSameDate?: boolean;
+  commitOnBlur?: boolean;
+  closeOnScroll?: boolean;
+  validator?: (value: DateRange) => boolean | string;
+}
+```
+
+## DateRange Type
+
+The editor works with DateRange objects:
+
+```ts title="DateRange Interface"
+interface DateRange {
+  start: string; // ISO 8601 date string
+  end: string;   // ISO 8601 date string
+}
+
+// Example value
+{
+  start: '2024-12-01',
+  end: '2024-12-15'
+}
+```
+
+## Dual Calendar UI
+
+The Date Range editor displays two calendars side by side:
+
+```ts title="Date Range with Dual Calendar"
+{
+  field: 'projectPeriod',
+  header: 'Project Period',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'YYYY-MM-DD',
+    placeholder: 'Select start and end dates'
+  }
+}
+```
+
+The UI shows:
+- **Left calendar**: For selecting the start date
+- **Right calendar**: For selecting the end date (typically next month)
+- **Visual highlight**: Shows the selected range between dates
+
+<Callout type="info">
+The dual calendar automatically scrolls months to provide a seamless date selection experience.
+</Callout>
+
+## Date Formats
+
+Customize how dates are displayed:
+
+```ts title="ISO Format (Default)"
+{
+  editor: 'date-range',
+  editorOptions: {
+    format: 'YYYY-MM-DD' // 2024-12-01 to 2024-12-15
+  }
+}
+```
+
+```ts title="US Format"
+{
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MM/DD/YYYY' // 12/01/2024 to 12/15/2024
+  }
+}
+```
+
+```ts title="European Format"
+{
+  editor: 'date-range',
+  editorOptions: {
+    format: 'DD/MM/YYYY' // 01/12/2024 to 15/12/2024
+  }
+}
+```
+
+```ts title="Long Format"
+{
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MMMM DD, YYYY' // December 01, 2024 to December 15, 2024
+  }
+}
+```
+
+## Same Date Selection
+
+Control whether start and end dates can be the same:
+
+```ts title="Allow Same Date"
+{
+  editor: 'date-range',
+  editorOptions: {
+    allowSameDate: true // Single-day ranges allowed
+  }
+}
+```
+
+```ts title="Require Different Dates (Default)"
+{
+  editor: 'date-range',
+  editorOptions: {
+    allowSameDate: false // Start must be before end
+  }
+}
+```
+
+<Callout type="tip">
+Enable `allowSameDate` for scenarios like single-day events or bookings.
+</Callout>
+
+## Date Constraints
+
+Restrict the selectable date range:
+
+```ts title="Future Dates Only"
+{
+  field: 'bookingPeriod',
+  header: 'Booking Period',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MM/DD/YYYY',
+    minDate: new Date().toISOString().split('T')[0]
+  }
+}
+```
+
+```ts title="Specific Date Range"
+{
+  editor: 'date-range',
+  editorOptions: {
+    minDate: '2024-01-01',
+    maxDate: '2024-12-31',
+    format: 'YYYY-MM-DD'
+  }
+}
+```
+
+```ts title="Past Dates Only"
+{
+  field: 'historicalPeriod',
+  header: 'Historical Period',
+  editor: 'date-range',
+  editorOptions: {
+    maxDate: new Date().toISOString().split('T')[0]
+  }
+}
+```
+
+## Validation
+
+Add custom validation for date ranges:
+
+```ts title="Maximum Range Duration"
+{
+  field: 'vacationDates',
+  header: 'Vacation',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MM/DD/YYYY',
+    validator: (value: DateRange) => {
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (days > 14) {
+        return 'Vacation period cannot exceed 14 days';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Minimum Range Duration"
+{
+  editor: 'date-range',
+  editorOptions: {
+    validator: (value: DateRange) => {
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (days < 3) {
+        return 'Minimum booking period is 3 days';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Weekday Validation"
+{
+  editor: 'date-range',
+  editorOptions: {
+    validator: (value: DateRange) => {
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+
+      // Check if start is a weekday (Monday-Friday)
+      if (start.getDay() === 0 || start.getDay() === 6) {
+        return 'Start date must be a weekday';
+      }
+
+      // Check if end is a weekday
+      if (end.getDay() === 0 || end.getDay() === 6) {
+        return 'End date must be a weekday';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+<Callout type="info">
+The validator receives a `DateRange` object with `start` and `end` properties as ISO date strings.
+</Callout>
+
+## Popup Behavior
+
+Configure calendar popup behavior:
+
+```ts title="Popup Configuration"
+{
+  editor: 'date-range',
+  editorOptions: {
+    closeOnScroll: true,  // Close popup when grid scrolls
+    commitOnBlur: true    // Save when clicking outside
+  }
+}
+```
+
+## Theming
+
+Customize the calendar appearance:
+
+```ts title="Theme Options"
+{
+  editor: 'date-range',
+  editorOptions: {
+    theme: 'dark' // 'light', 'dark', or 'auto'
+  }
+}
+```
+
+## Keyboard Navigation
+
+The Date Range editor supports:
+
+- **Arrow keys**: Navigate between dates in calendar
+- **Enter**: Commit selected range
+- **Escape**: Cancel and close editor
+- **Tab**: Navigate between start and end date inputs
+
+## Complete Examples
+
+### Vacation Booking
+
+```ts title="Vacation Period Selector"
+{
+  field: 'vacationPeriod',
+  header: 'Vacation Period',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MM/DD/YYYY',
+    minDate: new Date().toISOString().split('T')[0],
+    allowSameDate: false,
+    theme: 'auto',
+    placeholder: 'Select vacation dates',
+    validator: (value: DateRange) => {
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+      if (days > 21) {
+        return 'Maximum vacation period is 21 days';
+      }
+
+      if (days < 1) {
+        return 'Minimum vacation period is 1 day';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+### Project Timeline
+
+```ts title="Project Duration"
+{
+  field: 'projectTimeline',
+  header: 'Project Timeline',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MMMM DD, YYYY',
+    minDate: new Date().toISOString().split('T')[0],
+    required: true,
+    closeOnScroll: true,
+    commitOnBlur: true,
+    validator: (value: DateRange) => {
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+      const weeks = Math.ceil((end - start) / (1000 * 60 * 60 * 24 * 7));
+
+      if (weeks < 2) {
+        return 'Project must be at least 2 weeks long';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+### Event Period
+
+```ts title="Event Date Range"
+{
+  field: 'eventPeriod',
+  header: 'Event Period',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'YYYY-MM-DD',
+    allowSameDate: true, // Allow single-day events
+    minDate: new Date().toISOString().split('T')[0],
+    placeholder: 'Select event dates'
+  }
+}
+```
+
+### Reporting Period
+
+```ts title="Report Date Range"
+{
+  field: 'reportingPeriod',
+  header: 'Reporting Period',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'DD/MM/YYYY',
+    maxDate: new Date().toISOString().split('T')[0], // Past dates only
+    required: true,
+    validator: (value: DateRange) => {
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+      const months = (end.getFullYear() - start.getFullYear()) * 12 +
+                     (end.getMonth() - start.getMonth());
+
+      if (months > 12) {
+        return 'Reporting period cannot exceed 12 months';
+      }
+
+      return true;
+    }
+  }
+}
+```
+
+## Display Format
+
+The date range is displayed in the cell as:
+
+```ts title="Cell Display Format"
+// With format: 'YYYY-MM-DD'
+"2024-12-01 to 2024-12-15"
+
+// With format: 'MM/DD/YYYY'
+"12/01/2024 to 12/15/2024"
+
+// With format: 'MMMM DD, YYYY'
+"December 01, 2024 to December 15, 2024"
+```
+
+## Value Storage
+
+The DateRange value is stored as an object:
+
+```ts title="Stored Value Format"
+// In grid data
+{
+  vacationPeriod: {
+    start: '2024-12-01',
+    end: '2024-12-15'
+  }
+}
+
+// Access in code
+const range = row.vacationPeriod;
+const startDate = new Date(range.start);
+const endDate = new Date(range.end);
+const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+```
+
+<Callout type="warning">
+Ensure your data model supports object values for date range fields, or provide custom serialization.
+</Callout>
+
+## Best Practices
+
+1. **Validate range duration**: Set reasonable min/max duration limits
+2. **Use appropriate format**: Match user locale and expectations
+3. **Consider same-date cases**: Enable `allowSameDate` for single-day events
+4. **Set date constraints**: Use minDate/maxDate to prevent invalid selections
+5. **Provide clear feedback**: Use validation messages to guide users
+6. **Handle edge cases**: Validate weekends, holidays, or business days if needed
+
+```ts title="Well-Configured Date Range Editor"
+{
+  field: 'rentalPeriod',
+  header: 'Rental Period',
+  editor: 'date-range',
+  editorOptions: {
+    format: 'MM/DD/YYYY',
+    minDate: new Date().toISOString().split('T')[0],
+    allowSameDate: false,
+    theme: 'auto',
+    closeOnScroll: true,
+    commitOnBlur: true,
+    required: true,
+    placeholder: 'Select rental period',
+    validator: (value: DateRange) => {
+      if (!value.start || !value.end) {
+        return 'Both start and end dates are required';
+      }
+
+      const start = new Date(value.start);
+      const end = new Date(value.end);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+      if (days < 1) {
+        return 'Minimum rental period is 1 day';
+      }
+
+      if (days > 30) {
+        return 'Maximum rental period is 30 days';
+      }
+
+      return true;
+    }
+  }
+}
+```

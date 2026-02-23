@@ -1,0 +1,156 @@
+---
+import DemoContainer from './DemoContainer.astro';
+---
+
+<DemoContainer id="million-demo-grid" height="420px">
+  <div slot="controls" class="million-controls">
+    <div class="nav-buttons">
+      <button class="nav-btn" id="million-start">Start</button>
+      <button class="nav-btn" id="million-middle">Middle</button>
+      <button class="nav-btn" id="million-end">End</button>
+      <div class="jump-group">
+        <input type="number" id="million-row-input" class="row-input" placeholder="Row #" min="1" max="100000" />
+        <button class="nav-btn go" id="million-go">Go</button>
+      </div>
+    </div>
+  </div>
+  <div slot="status" class="million-stats">
+    <span id="million-stats-text">100,000 rows | Virtual scrolling active</span>
+  </div>
+</DemoContainer>
+
+<script>
+  import { Grid } from '@zengrid/core';
+  import '@zengrid/core/dist/styles.css';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('million-demo-grid');
+    if (!container) return;
+
+    const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance'];
+    const statuses = ['Active', 'On Leave', 'Remote', 'Office'];
+    const rowCount = 100_000;
+
+    const data: (string | number)[][] = [];
+    for (let i = 0; i < rowCount; i++) {
+      data.push([
+        i + 1,
+        `Employee ${i + 1}`,
+        `emp${i + 1}@company.com`,
+        departments[i % departments.length],
+        `$${(50000 + (i * 137) % 100000).toLocaleString()}`,
+        statuses[i % statuses.length],
+      ]);
+    }
+
+    const columns = [
+      { field: 'id', header: 'ID', width: 80 },
+      { field: 'name', header: 'Name', width: 180 },
+      { field: 'email', header: 'Email', width: 220 },
+      { field: 'department', header: 'Department', width: 140 },
+      { field: 'salary', header: 'Salary', width: 120 },
+      { field: 'status', header: 'Status', width: 110 },
+    ];
+
+    const grid = new Grid(container, {
+      rowCount,
+      colCount: columns.length,
+      rowHeight: 32,
+      colWidth: columns.map(c => c.width),
+      columns,
+      enableSelection: true,
+    });
+
+    grid.setData(data);
+    grid.render();
+
+    // Navigation
+    document.getElementById('million-start')?.addEventListener('click', () => {
+      grid.scrollToCell(0, 0);
+    });
+
+    document.getElementById('million-middle')?.addEventListener('click', () => {
+      grid.scrollToCell(50_000, 0);
+    });
+
+    document.getElementById('million-end')?.addEventListener('click', () => {
+      grid.scrollToCell(99_999, 0);
+    });
+
+    document.getElementById('million-go')?.addEventListener('click', () => {
+      const input = document.getElementById('million-row-input') as HTMLInputElement;
+      const row = parseInt(input.value, 10) - 1;
+      if (!isNaN(row) && row >= 0 && row < rowCount) {
+        grid.scrollToCell(row, 0);
+      }
+    });
+  });
+</script>
+
+<style>
+  .million-controls {
+    padding: 0.6rem 1rem;
+  }
+
+  .nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 0.35rem 0.7rem;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .nav-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #e2e8f0;
+  }
+
+  .nav-btn.go {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+
+  .nav-btn.go:hover {
+    background: rgba(16, 185, 129, 0.2);
+  }
+
+  .jump-group {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.5rem;
+  }
+
+  .row-input {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 0.35rem 0.5rem;
+    color: #e2e8f0;
+    font-size: 0.75rem;
+    width: 90px;
+    outline: none;
+  }
+
+  .row-input:focus {
+    border-color: #10b981;
+  }
+
+  .million-stats {
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-family: 'Fira Code', monospace;
+  }
+</style>

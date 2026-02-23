@@ -1,0 +1,663 @@
+---
+title: Plugin Architecture Deep Dive
+description: Deep dive into plugin phases, dependency resolution, store extension, and action registration.
+order: 49
+category: Advanced
+tags: [advanced, plugins, architecture]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+ZenGrid's plugin architecture provides a powerful way to extend grid functionality. Plugins can add features, modify behavior, and integrate with the reactive system.
+
+## Plugin Overview
+
+A plugin is a module that:
+
+- Declares dependencies on other plugins
+- Runs in a specific phase during initialization
+- Extends the reactive store with signals and computed values
+- Registers API methods for external access
+- Cleans up resources on disposal
+
+<Callout type="info">
+ZenGrid's core features (sorting, filtering, editing) are implemented as plugins. This architecture ensures modularity and extensibility.
+</Callout>
+
+## Plugin Structure
+
+```typescript title="basic-plugin.ts"
+import type { Plugin, GridApi, GridStore } from '@zengrid/core';
+
+export const MyPlugin: Plugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  phase: 30,
+  dependencies: ['core-plugin', 'data-plugin'],
+
+  setup(api: GridApi, store: GridStore) {
+    // Extend store with signals
+    store.extend('myState', initialValue, 'my-plugin', 30);
+
+    // Add computed values
+    store.computed('myComputed', () => {
+      return store.get('myState').value * 2;
+    }, 'my-plugin', 30);
+
+    // Register API methods
+    api.register('my-plugin', {
+      doSomething: () => {
+        console.log('Doing something!');
+      },
+    });
+
+    // Return cleanup function
+    return () => {
+      console.log('Cleaning up my-plugin');
+    };
+  },
+};
+```
+
+## Plugin Phases
+
+Phases control when plugins initialize. Lower phases run before higher phases.
+
+### Standard Phase Ranges
+
+```typescript title="plugin-phases.ts"
+// Phase 0: Core infrastructure
+const CorePlugin: Plugin = {
+  name: 'core',
+  phase: 0,
+  // ...
+};
+
+// Phase 10: Data layer
+const DataPlugin: Plugin = {
+  name: 'data',
+  phase: 10,
+  dependencies: ['core'],
+  // ...
+};
+
+// Phase 20: Sorting
+const SortPlugin: Plugin = {
+  name: 'sort',
+  phase: 20,
+  dependencies: ['data'],
+  // ...
+};
+
+// Phase 30: Filtering
+const FilterPlugin: Plugin = {
+  name: 'filter',
+  phase: 30,
+  dependencies: ['data', 'sort'],
+  // ...
+};
+
+// Phase 40: Viewport
+const ViewportPlugin: Plugin = {
+  name: 'viewport',
+  phase: 40,
+  dependencies: ['data', 'filter'],
+  // ...
+};
+
+// Phase 50: Rendering
+const RenderPlugin: Plugin = {
+  name: 'render',
+  phase: 50,
+  dependencies: ['viewport'],
+  // ...
+};
+```
+
+<Callout type="warning">
+Plugin phase determines initialization order. A plugin at phase 30 can safely depend on plugins at phases 0-20, but cannot depend on plugins at phases 40+.
+</Callout>
+
+### Why Phases Matter
+
+```typescript title="phase-dependencies.ts"
+// SortPlugin (phase 20) depends on DataPlugin (phase 10)
+const SortPlugin: Plugin = {
+  name: 'sort',
+  phase: 20,
+  dependencies: ['data'],  // phase 10
+
+  setup(api, store) {
+    // Safe: DataPlugin already initialized
+    const data = store.get('data').value;
+
+    // Add sorting functionality
+    store.computed('sortedData', () => {
+      return sortData(data);
+    }, 'sort', 20);
+  },
+};
+
+// FilterPlugin (phase 30) depends on SortPlugin (phase 20)
+const FilterPlugin: Plugin = {
+  name: 'filter',
+  phase: 30,
+  dependencies: ['data', 'sort'],
+
+  setup(api, store) {
+    // Safe: Both DataPlugin and SortPlugin initialized
+    const sortedData = store.get('sortedData').value;
+
+    store.computed('filteredData', () => {
+      return filterData(sortedData);
+    }, 'filter', 30);
+  },
+};
+```
+
+## Dependency Resolution
+
+The `PluginHost` validates and resolves plugin dependencies before initialization.
+
+### Declaring Dependencies
+
+```typescript title="dependencies.ts"
+const MyPlugin: Plugin = {
+  name: 'my-plugin',
+  dependencies: ['core', 'data', 'sort'],
+
+  setup(api, store) {
+    // All dependencies are guaranteed to be initialized
+    // before this setup() runs
+  },
+};
+```
+
+### Circular Dependency Detection
+
+```typescript title="circular-deps.ts"
+const PluginA: Plugin = {
+  name: 'plugin-a',
+  dependencies: ['plugin-b'],  // Depends on B
+  setup() {},
+};
+
+const PluginB: Plugin = {
+  name: 'plugin-b',
+  dependencies: ['plugin-a'],  // Depends on A (circular!)
+  setup() {},
+};
+
+// PluginHost will throw error:
+// "Circular dependency detected: plugin-a -> plugin-b -> plugin-a"
+```
+
+<Callout type="danger">
+Circular dependencies are not allowed and will cause an error during grid initialization. Design plugins to have a clear dependency hierarchy.
+</Callout>
+
+### Missing Dependency Detection
+
+```typescript title="missing-deps.ts"
+const MyPlugin: Plugin = {
+  name: 'my-plugin',
+  dependencies: ['non-existent-plugin'],
+  setup() {},
+};
+
+// PluginHost will throw error:
+// "Missing dependency: non-existent-plugin required by my-plugin"
+```
+
+## Store Extension
+
+Plugins extend the shared reactive store to add state and computed values.
+
+### Adding Signals
+
+```typescript title="add-signals.ts"
+const SortPlugin: Plugin = {
+  name: 'sort',
+  phase: 20,
+
+  setup(api, store) {
+    // Add mutable signal
+    store.extend('sortColumn', null, 'sort', 20);
+    store.extend('sortDirection', 'asc', 'sort', 20);
+
+    // Add computed value
+    store.computed('sortedIndices', () => {
+      const column = store.get('sortColumn').value;
+      const direction = store.get('sortDirection').value;
+      const data = store.get('data').value;
+
+      if (!column) return null;
+
+      return computeSortedIndices(data, column, direction);
+    }, 'sort', 20);
+
+    // Add effect
+    store.effect('log-sort', () => {
+      const column = store.get('sortColumn').value;
+      console.log('Sorting by:', column);
+    }, 'sort', 100);
+  },
+};
+```
+
+### Signal Ownership
+
+Each plugin owns its signals for cleanup:
+
+```typescript title="signal-ownership.ts"
+const MyPlugin: Plugin = {
+  name: 'my-plugin',
+
+  setup(api, store) {
+    // These signals are owned by 'my-plugin'
+    store.extend('state1', 0, 'my-plugin', 30);
+    store.extend('state2', '', 'my-plugin', 30);
+    store.computed('derived', () => { /* ... */ }, 'my-plugin', 30);
+
+    return () => {
+      // Cleanup: All signals owned by 'my-plugin' are disposed
+      store.disposePlugin('my-plugin');
+    };
+  },
+};
+```
+
+<Callout type="tip">
+Always use the plugin name as the owner parameter when extending the store. This ensures proper cleanup when the plugin is disposed.
+</Callout>
+
+## Action Registration
+
+Plugins register callable actions via the `GridApi`.
+
+### Registering Actions
+
+```typescript title="register-actions.ts"
+const SortPlugin: Plugin = {
+  name: 'sort',
+
+  setup(api, store) {
+    // Register plugin actions
+    api.register('sort', {
+      // Sort by column
+      sortBy: (colId: string, direction: 'asc' | 'desc' | null) => {
+        store.set('sortColumn', colId);
+        store.set('sortDirection', direction);
+      },
+
+      // Get sort state
+      getSortState: () => {
+        return {
+          column: store.get('sortColumn').value,
+          direction: store.get('sortDirection').value,
+        };
+      },
+
+      // Clear sort
+      clearSort: () => {
+        store.set('sortColumn', null);
+        store.set('sortDirection', 'asc');
+      },
+    });
+  },
+};
+```
+
+### Using Actions
+
+```typescript title="use-actions.ts"
+import { createGrid } from '@zengrid/core';
+
+const grid = createGrid(container, options);
+
+// Call plugin actions via api.exec()
+grid.api.exec('sort:sortBy', 'name', 'asc');
+
+// Get sort state
+const sortState = grid.api.exec('sort:getSortState');
+console.log('Sort state:', sortState);
+
+// Clear sort
+grid.api.exec('sort:clearSort');
+```
+
+<Callout type="info">
+Action names follow the pattern `plugin-name:action-name`. This namespacing prevents conflicts between plugins.
+</Callout>
+
+## GridApi Methods
+
+The `GridApi` provides core functionality for plugins.
+
+### register()
+
+Register plugin actions:
+
+```typescript title="api-register.ts"
+api.register('my-plugin', {
+  action1: () => { /* ... */ },
+  action2: (arg1, arg2) => { /* ... */ },
+});
+```
+
+### exec()
+
+Execute plugin actions:
+
+```typescript title="api-exec.ts"
+// Execute action without arguments
+api.exec('my-plugin:action1');
+
+// Execute action with arguments
+api.exec('my-plugin:action2', arg1, arg2);
+
+// Get return value
+const result = api.exec('my-plugin:getValue');
+```
+
+### fireEvent()
+
+Emit grid events:
+
+```typescript title="api-fire-event.ts"
+const SortPlugin: Plugin = {
+  name: 'sort',
+
+  setup(api, store) {
+    store.effect('emit-sort-event', () => {
+      const sortState = {
+        column: store.get('sortColumn').value,
+        direction: store.get('sortDirection').value,
+      };
+
+      // Emit event
+      api.fireEvent('sort:changed', sortState);
+    }, 'sort', 100);
+  },
+};
+
+// Listen to events
+grid.on('sort:changed', (event) => {
+  console.log('Sort changed:', event);
+});
+```
+
+### onLegacy()
+
+Listen to legacy events (for backward compatibility):
+
+```typescript title="api-on-legacy.ts"
+api.onLegacy('scroll', (event) => {
+  console.log('Legacy scroll event:', event);
+});
+```
+
+<Callout type="tip">
+Use `fireEvent()` for new event types and `onLegacy()` only for backward compatibility with existing code.
+</Callout>
+
+## Pipeline Pattern
+
+Use pipelines for data transformations:
+
+```typescript title="pipeline.ts"
+import type { Pipeline } from '@zengrid/core';
+
+const DataTransformPlugin: Plugin = {
+  name: 'data-transform',
+
+  setup(api, store) {
+    // Create transformation pipeline
+    const pipeline: Pipeline<Row[]> = {
+      stages: [],
+
+      execute(data: Row[]): Row[] {
+        return this.stages.reduce((result, stage) => {
+          return stage(result);
+        }, data);
+      },
+
+      addStage(name: string, fn: (data: Row[]) => Row[]) {
+        this.stages.push(fn);
+      },
+    };
+
+    // Register stages
+    pipeline.addStage('filter', (data) => {
+      const filterText = store.get('filterText').value;
+      return data.filter(row => matchesFilter(row, filterText));
+    });
+
+    pipeline.addStage('sort', (data) => {
+      const sortColumn = store.get('sortColumn').value;
+      return sortData(data, sortColumn);
+    });
+
+    // Apply pipeline
+    store.computed('transformedData', () => {
+      const rawData = store.get('rawData').value;
+      return pipeline.execute(rawData);
+    }, 'data-transform', 30);
+
+    // Register API
+    api.register('data-transform', {
+      addStage: pipeline.addStage.bind(pipeline),
+    });
+  },
+};
+```
+
+## DevToolsConnector
+
+Debug plugins with DevTools integration:
+
+```typescript title="devtools.ts"
+import { DevToolsConnector } from '@zengrid/core';
+
+const MyPlugin: Plugin = {
+  name: 'my-plugin',
+
+  setup(api, store) {
+    // Connect to DevTools
+    const devtools = new DevToolsConnector(store, {
+      name: 'my-plugin',
+      enabled: process.env.NODE_ENV === 'development',
+    });
+
+    // Log state changes
+    store.effect('devtools-log', () => {
+      const state = {
+        myState: store.get('myState').value,
+        myComputed: store.get('myComputed').value,
+      };
+
+      devtools.logState('State updated', state);
+    }, 'my-plugin', 110);
+
+    return () => {
+      devtools.disconnect();
+    };
+  },
+};
+```
+
+<Callout type="tip">
+Use DevToolsConnector in development to inspect plugin state and debug issues. Disable it in production to avoid performance overhead.
+</Callout>
+
+## Complete Plugin Example
+
+```typescript title="complete-plugin.ts"
+import type { Plugin, GridApi, GridStore } from '@zengrid/core';
+
+interface SelectionState {
+  selectedRows: Set<number>;
+  selectedCells: Set<string>;
+}
+
+export const SelectionPlugin: Plugin = {
+  name: 'selection',
+  version: '1.0.0',
+  phase: 25,
+  dependencies: ['core', 'data'],
+
+  setup(api: GridApi, store: GridStore) {
+    // Extend store with selection state
+    store.extend<Set<number>>('selectedRows', new Set(), 'selection', 25);
+    store.extend<Set<string>>('selectedCells', new Set(), 'selection', 25);
+    store.extend<boolean>('multiSelect', true, 'selection', 25);
+
+    // Computed: selection count
+    store.computed('selectionCount', () => {
+      const selectedRows = store.get('selectedRows').value;
+      const selectedCells = store.get('selectedCells').value;
+      return selectedRows.size + selectedCells.size;
+    }, 'selection', 25);
+
+    // Effect: log selection changes
+    store.effect('log-selection', () => {
+      const count = store.get('selectionCount').value;
+      console.log('Selection count:', count);
+
+      // Emit event
+      api.fireEvent('selection:changed', {
+        selectedRows: Array.from(store.get('selectedRows').value),
+        selectedCells: Array.from(store.get('selectedCells').value),
+      });
+    }, 'selection', 100);
+
+    // Register API actions
+    api.register('selection', {
+      selectRow: (rowIndex: number) => {
+        const selectedRows = store.get('selectedRows').value;
+        const newSelection = new Set(selectedRows);
+        newSelection.add(rowIndex);
+        store.set('selectedRows', newSelection);
+      },
+
+      deselectRow: (rowIndex: number) => {
+        const selectedRows = store.get('selectedRows').value;
+        const newSelection = new Set(selectedRows);
+        newSelection.delete(rowIndex);
+        store.set('selectedRows', newSelection);
+      },
+
+      selectCell: (rowIndex: number, colId: string) => {
+        const selectedCells = store.get('selectedCells').value;
+        const newSelection = new Set(selectedCells);
+        newSelection.add(`${rowIndex}:${colId}`);
+        store.set('selectedCells', newSelection);
+      },
+
+      clearSelection: () => {
+        store.set('selectedRows', new Set());
+        store.set('selectedCells', new Set());
+      },
+
+      getSelection: (): SelectionState => {
+        return {
+          selectedRows: store.get('selectedRows').value,
+          selectedCells: store.get('selectedCells').value,
+        };
+      },
+
+      isRowSelected: (rowIndex: number): boolean => {
+        return store.get('selectedRows').value.has(rowIndex);
+      },
+    });
+
+    // Cleanup function
+    return () => {
+      console.log('Disposing selection plugin');
+      store.disposePlugin('selection');
+    };
+  },
+};
+
+// Usage
+import { createGrid } from '@zengrid/core';
+
+const grid = createGrid(container, {
+  plugins: [SelectionPlugin],
+  // ... other options
+});
+
+// Use plugin actions
+grid.api.exec('selection:selectRow', 5);
+grid.api.exec('selection:selectCell', 10, 'name');
+
+const selection = grid.api.exec('selection:getSelection');
+console.log('Selected rows:', selection.selectedRows);
+
+// Listen to events
+grid.on('selection:changed', (event) => {
+  console.log('Selection changed:', event);
+});
+```
+
+<Callout type="info">
+This example shows a complete selection plugin with state management, computed values, events, and API actions. Use this as a template for building your own plugins.
+</Callout>
+
+## Best Practices
+
+### 1. Use Appropriate Phases
+
+Place your plugin in the correct phase based on its dependencies.
+
+### 2. Declare All Dependencies
+
+Explicitly declare all plugin dependencies to ensure correct initialization order.
+
+### 3. Namespace Actions
+
+Prefix all API actions with the plugin name to avoid conflicts.
+
+### 4. Clean Up Resources
+
+Always return a cleanup function from `setup()` that disposes plugin-owned resources.
+
+### 5. Use Store for State
+
+Store all plugin state in the reactive store, not in module-level variables.
+
+```typescript
+// Bad: Module-level state
+let selectedRows = new Set<number>();
+
+// Good: Store-based state
+store.extend('selectedRows', new Set<number>(), 'selection', 25);
+```
+
+### 6. Emit Events for External Integration
+
+Use `api.fireEvent()` to notify external code of state changes.
+
+## Plugin Loading
+
+Load plugins during grid initialization:
+
+```typescript title="load-plugins.ts"
+import { createGrid } from '@zengrid/core';
+import { SortPlugin, FilterPlugin, SelectionPlugin } from '@zengrid/plugins';
+
+const grid = createGrid(container, {
+  plugins: [
+    SortPlugin,
+    FilterPlugin,
+    SelectionPlugin,
+  ],
+  // ... other options
+});
+```
+
+## Next Steps
+
+- Learn about the [reactive system](/advanced/reactive-system) used by plugins
+- Explore [custom plugin development](/advanced/custom-plugins)
+- Read about [plugin testing strategies](/advanced/plugin-testing)

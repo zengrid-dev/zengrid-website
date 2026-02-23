@@ -1,0 +1,353 @@
+---
+title: EditingPlugin
+description: EditingPlugin manages the cell editing lifecycle, editor registration, and popup coordination.
+order: 26
+category: Plugins
+tags: [plugins, editing, lifecycle]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `EditingPlugin` integrates ZenGrid's cell editing functionality with the reactive store system, managing the editing lifecycle and coordinating with editors.
+
+## Overview
+
+EditingPlugin runs at phase 45 and provides:
+
+- Cell editing lifecycle management
+- Editor registration and coordination
+- Popup positioning for dropdowns and date pickers
+- Keyboard integration (Enter/Escape/Tab)
+- Integration with SelectionPlugin for edit-on-select
+
+<Callout type="info">
+EditingPlugin depends on CorePlugin and coordinates with SelectionPlugin when available.
+</Callout>
+
+## Creation
+
+Create the EditingPlugin using the factory function:
+
+```ts title="Creating EditingPlugin"
+import { createEditingPlugin } from '@zengrid/core';
+
+const editingPlugin = createEditingPlugin();
+grid.usePlugin(editingPlugin);
+```
+
+## Editor Registration
+
+Register built-in and custom editors:
+
+```ts title="Registering Editors"
+import {
+  TextEditor,
+  NumberEditor,
+  DropdownEditor,
+  DateEditor,
+  CheckboxEditor
+} from '@zengrid/core';
+
+const grid = createGrid(container, {
+  columns: [
+    { id: 'name', field: 'name', editor: TextEditor },
+    { id: 'age', field: 'age', editor: NumberEditor },
+    { id: 'status', field: 'status', editor: DropdownEditor },
+    { id: 'date', field: 'date', editor: DateEditor },
+    { id: 'active', field: 'active', editor: CheckboxEditor }
+  ]
+});
+
+grid.usePlugin(createEditingPlugin());
+```
+
+### Built-in Editors
+
+| Editor | Purpose | Features |
+|--------|---------|----------|
+| TextEditor | Plain text input | Validation, masking |
+| NumberEditor | Numeric input | Min/max, decimals |
+| DropdownEditor | Select from list | Search, custom options |
+| DateEditor | Date picker | Calendar, formats |
+| DateTimeEditor | Date and time | Combined picker |
+| TimeEditor | Time picker | 12/24 hour |
+| CheckboxEditor | Boolean toggle | Tri-state support |
+| SelectEditor | Multi-select | Chips, tags |
+
+## Editing Lifecycle
+
+EditingPlugin manages the complete editing lifecycle:
+
+```ts title="Editing Lifecycle Phases"
+// 1. Start editing
+grid.api.editing.startEditing(row, col);
+
+// 2. Editor opens and receives focus
+// - EditingPlugin creates editor instance
+// - Positions popup if needed
+// - Attaches event listeners
+
+// 3. User edits value
+// - Editor validates input
+// - Provides visual feedback
+
+// 4. Commit or cancel
+grid.api.editing.commitEdit();  // Save changes
+grid.api.editing.cancelEdit();  // Discard changes
+
+// 5. Editor closes
+// - Cleanup event listeners
+// - Destroy editor instance
+```
+
+<Callout type="tip">
+EditingPlugin automatically handles keyboard shortcuts: Enter commits, Escape cancels, Tab moves to next cell.
+</Callout>
+
+## Reactive State
+
+EditingPlugin creates these reactive signals:
+
+```ts title="Editing State Signals"
+// Active editor
+store.get('editing.active')      // { row: number, col: number, editor: Editor } | null
+store.set('editing.active', state)
+
+// Editing state
+store.get('editing.isEditing')   // Boolean: currently editing
+store.get('editing.editValue')   // Current value being edited
+store.get('editing.isDirty')     // Boolean: value changed
+```
+
+## API Methods
+
+EditingPlugin registers these methods on `grid.api.editing`:
+
+```ts title="Editing API Methods"
+// Start editing
+grid.api.editing.startEditing(row, col);
+
+// Commit changes
+grid.api.editing.commitEdit();
+
+// Cancel editing
+grid.api.editing.cancelEdit();
+
+// Check if editing
+const isEditing = grid.api.editing.isEditing();
+
+// Get active editor
+const editor = grid.api.editing.getActiveEditor();
+
+// Move to next editable cell
+grid.api.editing.moveToNextEditableCell();
+
+// Move to previous editable cell
+grid.api.editing.moveToPreviousEditableCell();
+```
+
+## Keyboard Integration
+
+EditingPlugin handles keyboard events:
+
+```ts title="Keyboard Shortcuts"
+// Enter: Start editing or commit edit
+grid.on('editing:keydown:enter', () => {
+  if (!isEditing) {
+    grid.api.editing.startEditing(row, col);
+  } else {
+    grid.api.editing.commitEdit();
+  }
+});
+
+// Escape: Cancel editing
+grid.on('editing:keydown:escape', () => {
+  grid.api.editing.cancelEdit();
+});
+
+// Tab: Move to next cell and start editing
+grid.on('editing:keydown:tab', (event) => {
+  grid.api.editing.commitEdit();
+  grid.api.editing.moveToNextEditableCell();
+  event.preventDefault();
+});
+
+// Shift+Tab: Move to previous cell
+grid.on('editing:keydown:shifttab', (event) => {
+  grid.api.editing.commitEdit();
+  grid.api.editing.moveToPreviousEditableCell();
+  event.preventDefault();
+});
+```
+
+## Popup Coordination
+
+EditingPlugin manages popup positioning for dropdown and date editors:
+
+```ts title="Popup Positioning"
+// Dropdown editor with popup
+const grid = createGrid(container, {
+  columns: [
+    {
+      id: 'status',
+      field: 'status',
+      editor: DropdownEditor,
+      editorParams: {
+        options: ['Active', 'Inactive', 'Pending'],
+        popupPosition: 'auto' // 'auto' | 'top' | 'bottom'
+      }
+    }
+  ]
+});
+
+// EditingPlugin automatically positions popup
+// - Detects available space above/below
+// - Adjusts position to stay in viewport
+// - Handles scroll events
+```
+
+<Callout type="info">
+EditingPlugin uses PopupPositioner from datetime-core for intelligent popup placement.
+</Callout>
+
+## Edit-on-Select
+
+Integrate with SelectionPlugin for edit-on-select:
+
+```ts title="Edit-on-Select"
+const grid = createGrid(container, {
+  editing: {
+    editOnSelect: true, // Start editing when cell selected
+    editOnDoubleClick: false
+  }
+});
+
+grid.usePlugin(createSelectionPlugin());
+grid.usePlugin(createEditingPlugin());
+
+// Single click selects and starts editing
+grid.api.selection.selectCell(5, 2);
+// EditingPlugin automatically starts editing
+```
+
+## Events
+
+EditingPlugin emits events for editing lifecycle:
+
+```ts title="Editing Events"
+grid.on('editing:start', (event) => {
+  console.log('Editing started:', event.row, event.col);
+});
+
+grid.on('editing:commit', (event) => {
+  console.log('Edit committed:', event.oldValue, event.newValue);
+});
+
+grid.on('editing:cancel', (event) => {
+  console.log('Edit cancelled:', event.row, event.col);
+});
+
+grid.on('editing:validation', (event) => {
+  console.log('Validation:', event.valid, event.message);
+});
+```
+
+## Custom Editors
+
+Create custom editors that integrate with EditingPlugin:
+
+```ts title="Custom Editor"
+import { IEditor } from '@zengrid/core';
+
+class CustomEditor implements IEditor {
+  private element: HTMLElement;
+  private value: any;
+
+  init(params: EditorParams): void {
+    this.element = document.createElement('input');
+    this.element.value = params.value;
+    params.container.appendChild(this.element);
+  }
+
+  getValue(): any {
+    return this.element.value;
+  }
+
+  destroy(): void {
+    this.element.remove();
+  }
+
+  focus(): void {
+    this.element.focus();
+  }
+}
+
+// Use custom editor
+const grid = createGrid(container, {
+  columns: [
+    { id: 'custom', field: 'custom', editor: CustomEditor }
+  ]
+});
+```
+
+## Validation
+
+EditingPlugin supports editor validation:
+
+```ts title="Editor Validation"
+const grid = createGrid(container, {
+  columns: [
+    {
+      id: 'email',
+      field: 'email',
+      editor: TextEditor,
+      editorParams: {
+        validate: (value: string) => {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return emailRegex.test(value) || 'Invalid email address';
+        }
+      }
+    }
+  ]
+});
+
+// Validation runs on commit
+grid.on('editing:validation', (event) => {
+  if (!event.valid) {
+    console.error('Validation failed:', event.message);
+  }
+});
+```
+
+<Callout type="warning">
+EditingPlugin prevents commit if validation fails and displays error message.
+</Callout>
+
+## Integration with Store
+
+EditingPlugin integrates seamlessly with the reactive store:
+
+```ts title="Store Integration"
+// Watch editing changes
+store.effect('logEditingChanges', () => {
+  const isEditing = store.get('editing.isEditing');
+  const editValue = store.get('editing.editValue');
+  console.log('Editing:', isEditing, editValue);
+}, 'MyComponent', 100);
+
+// Computed from editing state
+store.computed('editing.canCommit', () => {
+  const isDirty = store.get('editing.isDirty');
+  const isValid = store.get('editing.isValid');
+  return isDirty && isValid;
+}, 'MyComponent', 100);
+```
+
+## Performance
+
+EditingPlugin optimizes editing operations:
+
+- **Lazy editor creation**: Editors created only when needed
+- **Editor pooling**: Reuses editor instances
+- **Event delegation**: Single event listener per grid
+- **Popup caching**: Cached popup calculations

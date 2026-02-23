@@ -1,0 +1,214 @@
+---
+title: Installation
+description: Install ZenGrid and set up your project for high-performance data grids.
+order: 1
+category: Getting Started
+tags: [installation, setup, getting-started]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+## Prerequisites
+
+- **Node.js** 18 or later
+- **TypeScript** 5.0+ (recommended but optional)
+- A package manager: npm, yarn, or pnpm
+
+## Install ZenGrid
+
+Install the core package using your preferred package manager:
+
+```bash title="npm"
+npm install @zengrid/core
+```
+
+```bash title="yarn"
+yarn add @zengrid/core
+```
+
+```bash title="pnpm"
+pnpm add @zengrid/core
+```
+
+<Callout type="info">
+  ZenGrid has zero runtime dependencies. The `@zengrid/shared` package is included automatically as a dependency of `@zengrid/core`.
+</Callout>
+
+## Quick Verification
+
+Create a simple grid to verify everything works:
+
+```ts title="main.ts"
+import { Grid } from '@zengrid/core';
+
+const container = document.getElementById('grid');
+
+const grid = new Grid(container, {
+  rowCount: 100,
+  colCount: 5,
+  data: (row, col) => `Cell ${row},${col}`,
+});
+```
+
+```html title="index.html"
+<div id="grid" style="width: 800px; height: 400px;"></div>
+```
+
+You should see a grid with 100 rows and 5 columns rendered in your container.
+
+## TypeScript Setup
+
+ZenGrid is written in TypeScript and ships with full type definitions. No additional `@types` packages are needed.
+
+For the best experience, ensure your `tsconfig.json` includes:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true
+  }
+}
+```
+
+## Framework Integration
+
+ZenGrid works with any framework or vanilla JavaScript. Here are quick setup examples:
+
+### Vanilla JavaScript / TypeScript
+
+```ts title="main.ts"
+import { Grid } from '@zengrid/core';
+
+const grid = new Grid(document.getElementById('grid')!, {
+  rowCount: 1000,
+  colCount: 10,
+  data: (row, col) => `Row ${row}, Col ${col}`,
+  columns: [
+    { header: 'ID', width: 60 },
+    { header: 'Name', width: 200 },
+    { header: 'Email', width: 250 },
+    // ...
+  ],
+});
+
+// Clean up when done
+// grid.destroy();
+```
+
+### React
+
+```tsx title="GridComponent.tsx"
+import { useRef, useEffect } from 'react';
+import { Grid } from '@zengrid/core';
+
+export function GridComponent() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<Grid | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    gridRef.current = new Grid(containerRef.current, {
+      rowCount: 1000,
+      colCount: 5,
+      data: (row, col) => `Cell ${row},${col}`,
+    });
+
+    return () => gridRef.current?.destroy();
+  }, []);
+
+  return <div ref={containerRef} style={{ width: '100%', height: 500 }} />;
+}
+```
+
+### Vue
+
+```vue title="GridComponent.vue"
+<template>
+  <div ref="container" style="width: 100%; height: 500px" />
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
+import { Grid } from '@zengrid/core';
+
+const container = ref<HTMLDivElement>();
+let grid: Grid | null = null;
+
+onMounted(() => {
+  if (!container.value) return;
+  grid = new Grid(container.value, {
+    rowCount: 1000,
+    colCount: 5,
+    data: (row, col) => `Cell ${row},${col}`,
+  });
+});
+
+onUnmounted(() => grid?.destroy());
+</script>
+```
+
+### Angular
+
+```ts title="grid.component.ts"
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Grid } from '@zengrid/core';
+
+@Component({
+  selector: 'app-grid',
+  template: '<div #gridContainer style="width: 100%; height: 500px"></div>',
+})
+export class GridComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('gridContainer') container!: ElementRef<HTMLDivElement>;
+  private grid: Grid | null = null;
+
+  ngAfterViewInit() {
+    this.grid = new Grid(this.container.nativeElement, {
+      rowCount: 1000,
+      colCount: 5,
+      data: (row, col) => `Cell ${row},${col}`,
+    });
+  }
+
+  ngOnDestroy() {
+    this.grid?.destroy();
+  }
+}
+```
+
+## Troubleshooting
+
+### Module resolution errors
+
+If you see `Cannot find module '@zengrid/core'`, ensure your bundler supports the `exports` field in `package.json`. Most modern bundlers (Vite, webpack 5, esbuild) handle this automatically.
+
+### Container sizing
+
+ZenGrid requires the container element to have explicit dimensions. If the grid appears empty, check that your container has both `width` and `height` set.
+
+```css
+/* Ensure the container has dimensions */
+#grid {
+  width: 100%;
+  height: 500px;
+}
+```
+
+### SSR / Server-Side Rendering
+
+ZenGrid renders to the DOM and requires a browser environment. When using SSR frameworks (Next.js, Nuxt, SvelteKit), initialize the grid only on the client side:
+
+```ts
+// Next.js example — use dynamic import
+if (typeof window !== 'undefined') {
+  const { Grid } = await import('@zengrid/core');
+  // initialize grid
+}
+```
+
+## Next Steps
+
+Now that ZenGrid is installed, head to the [Quick Start](/docs/getting-started/quick-start) guide to build your first interactive grid with sorting, filtering, and selection.

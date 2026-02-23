@@ -1,0 +1,141 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Sidebar from '../components/docs/Sidebar.astro';
+import TableOfContents from '../components/docs/TableOfContents.astro';
+import Breadcrumbs from '../components/docs/Breadcrumbs.astro';
+import PrevNext from '../components/docs/PrevNext.astro';
+import '../styles/docs.css';
+
+interface Props {
+  title: string;
+  description: string;
+  slug: string;
+  headings: { depth: number; slug: string; text: string }[];
+  toc?: boolean;
+}
+
+const { title, description, slug, headings, toc = true } = Astro.props;
+---
+
+<BaseLayout title={`${title} - ZenGrid Docs`} description={description}>
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-content">
+        <a href="/" class="logo">
+          <span class="logo-text">ZenGrid</span>
+        </a>
+        <div class="nav-links">
+          <a href="/docs" class="nav-link">Docs</a>
+          <a href="https://github.com/zengrid-dev/zengrid" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <Sidebar currentSlug={slug} />
+
+    <main class="docs-content">
+      <Breadcrumbs slug={slug} />
+      <article class="prose">
+        <h1>{title}</h1>
+        {description && <p class="description">{description}</p>}
+        <slot />
+      </article>
+      <PrevNext slug={slug} />
+    </main>
+
+    {toc && headings.length > 0 && (
+      <TableOfContents headings={headings} />
+    )}
+  </div>
+
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle" aria-label="Toggle sidebar">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+  <div class="sidebar-overlay"></div>
+</BaseLayout>
+
+<style>
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(2, 6, 23, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+  }
+
+  .nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 0;
+    gap: 2rem;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 1.125rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--text-main);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-link:hover {
+    color: #f8fafc;
+  }
+</style>
+
+<script>
+  const toggle = document.querySelector('.sidebar-toggle');
+  const sidebar = document.querySelector('.docs-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+
+  function openSidebar() {
+    sidebar?.classList.add('open');
+    overlay?.classList.add('visible');
+  }
+
+  function closeSidebar() {
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('visible');
+  }
+
+  toggle?.addEventListener('click', () => {
+    if (sidebar?.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+
+  overlay?.addEventListener('click', closeSidebar);
+</script>

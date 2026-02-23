@@ -1,0 +1,515 @@
+---
+title: Editable Grid
+description: Grid with inline editing, multiple editor types, validation, and undo/redo.
+order: 46
+category: Examples
+tags: [examples, editing, undo-redo]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+import EditableDemo from '../../../components/demos/EditableDemo.astro';
+
+This example demonstrates how to enable inline editing with various editor types, implement validation, and use undo/redo functionality.
+
+<EditableDemo />
+
+## Enable Column Editing
+
+Add `editable: true` and specify an `editor` type for each column:
+
+```typescript title="editable-columns.ts"
+import { createGrid } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+const columns: Column[] = [
+  {
+    id: 'id',
+    header: 'ID',
+    width: 60,
+    // ID is not editable
+  },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    editable: true,
+    editor: 'text',  // Text input
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+    editable: true,
+    editor: 'text',
+  },
+  {
+    id: 'age',
+    header: 'Age',
+    width: 100,
+    editable: true,
+    editor: 'number',  // Number input
+  },
+  {
+    id: 'active',
+    header: 'Active',
+    width: 100,
+    editable: true,
+    editor: 'checkbox',  // Checkbox
+  },
+];
+
+const grid = createGrid(container, {
+  columns,
+  rowCount: 100,
+  rowHeight: 40,
+  data: (rowIndex, colId) => {
+    // Data callback implementation
+    return dataStore[rowIndex]?.[colId];
+  },
+});
+```
+
+<Callout type="info">
+Double-click a cell or press Enter to start editing. Press Enter to commit changes, or Escape to cancel.
+</Callout>
+
+## Editor Types
+
+ZenGrid supports multiple built-in editor types:
+
+### Text Editor
+
+```typescript title="text-editor.ts"
+{
+  id: 'name',
+  header: 'Name',
+  width: 200,
+  editable: true,
+  editor: 'text',
+  editorParams: {
+    placeholder: 'Enter name...',
+    maxLength: 100,
+  },
+}
+```
+
+### Number Editor
+
+```typescript title="number-editor.ts"
+{
+  id: 'age',
+  header: 'Age',
+  width: 100,
+  editable: true,
+  editor: 'number',
+  editorParams: {
+    min: 0,
+    max: 120,
+    step: 1,
+    placeholder: '0',
+  },
+}
+```
+
+### Checkbox Editor
+
+```typescript title="checkbox-editor.ts"
+{
+  id: 'active',
+  header: 'Active',
+  width: 100,
+  editable: true,
+  editor: 'checkbox',
+  editorParams: {
+    checkedValue: true,
+    uncheckedValue: false,
+  },
+}
+```
+
+### Date Editor
+
+```typescript title="date-editor.ts"
+{
+  id: 'birthdate',
+  header: 'Birth Date',
+  width: 150,
+  editable: true,
+  editor: 'date',
+  editorParams: {
+    format: 'yyyy-MM-dd',
+    min: '1900-01-01',
+    max: '2025-12-31',
+  },
+}
+```
+
+### Select Editor
+
+```typescript title="select-editor.ts"
+{
+  id: 'role',
+  header: 'Role',
+  width: 150,
+  editable: true,
+  editor: 'select',
+  editorParams: {
+    options: [
+      { value: 'admin', label: 'Administrator' },
+      { value: 'editor', label: 'Editor' },
+      { value: 'viewer', label: 'Viewer' },
+    ],
+  },
+}
+```
+
+### Dropdown Editor
+
+```typescript title="dropdown-editor.ts"
+{
+  id: 'country',
+  header: 'Country',
+  width: 150,
+  editable: true,
+  editor: 'dropdown',
+  editorParams: {
+    options: [
+      'United States',
+      'United Kingdom',
+      'Canada',
+      'Australia',
+      'Germany',
+      'France',
+    ],
+    allowCustomValue: false,
+    searchable: true,
+  },
+}
+```
+
+<Callout type="tip">
+Use `select` for a small fixed list of options, and `dropdown` for a larger searchable list.
+</Callout>
+
+## Validation
+
+Add validation to columns to ensure data integrity:
+
+```typescript title="validation.ts"
+import type { Column } from '@zengrid/core';
+
+const columns: Column[] = [
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+    editable: true,
+    editor: 'text',
+    validator: (value: string) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        return 'Invalid email format';
+      }
+      return null; // Valid
+    },
+  },
+  {
+    id: 'age',
+    header: 'Age',
+    width: 100,
+    editable: true,
+    editor: 'number',
+    validator: (value: number) => {
+      if (value < 18) {
+        return 'Must be at least 18 years old';
+      }
+      if (value > 120) {
+        return 'Invalid age';
+      }
+      return null; // Valid
+    },
+  },
+  {
+    id: 'username',
+    header: 'Username',
+    width: 150,
+    editable: true,
+    editor: 'text',
+    validator: async (value: string) => {
+      // Async validation (e.g., check availability)
+      const response = await fetch(`/api/check-username?username=${value}`);
+      const data = await response.json();
+
+      if (!data.available) {
+        return 'Username already taken';
+      }
+      return null; // Valid
+    },
+  },
+];
+```
+
+<Callout type="warning">
+Validation errors prevent the edit from being committed. The error message is displayed to the user.
+</Callout>
+
+## Edit Events
+
+Handle edit events to update data and trigger side effects:
+
+```typescript title="edit-events.ts"
+// Before edit starts (can cancel)
+grid.on('edit:start', (event) => {
+  console.log('Edit started:', event.rowIndex, event.colId);
+
+  // Cancel edit conditionally
+  if (event.rowIndex === 0) {
+    event.preventDefault();
+  }
+});
+
+// Edit value changed
+grid.on('edit:change', (event) => {
+  console.log('Edit changed:', event.value);
+});
+
+// Edit committed
+grid.on('edit:commit', (event) => {
+  console.log('Edit committed:', {
+    rowIndex: event.rowIndex,
+    colId: event.colId,
+    oldValue: event.oldValue,
+    newValue: event.newValue,
+  });
+
+  // Update data store
+  dataStore[event.rowIndex][event.colId] = event.newValue;
+
+  // Trigger save to backend
+  saveToBackend(event.rowIndex, event.colId, event.newValue);
+});
+
+// Edit cancelled
+grid.on('edit:cancel', (event) => {
+  console.log('Edit cancelled:', event.rowIndex, event.colId);
+});
+
+// Validation error
+grid.on('edit:validation-error', (event) => {
+  console.error('Validation error:', event.error);
+
+  // Show custom error UI
+  showErrorToast(event.error);
+});
+```
+
+## Undo/Redo
+
+Enable undo/redo functionality for edit operations:
+
+```typescript title="undo-redo.ts"
+import { createGrid, UndoRedoManager } from '@zengrid/core';
+
+const grid = createGrid(container, options);
+
+// Create undo/redo manager
+const undoRedo = new UndoRedoManager(grid, {
+  maxHistorySize: 50,  // Keep last 50 actions
+});
+
+// Undo last edit
+undoRedo.undo();
+
+// Redo last undone edit
+undoRedo.redo();
+
+// Check if undo/redo available
+console.log('Can undo:', undoRedo.canUndo());
+console.log('Can redo:', undoRedo.canRedo());
+
+// Clear history
+undoRedo.clear();
+
+// Listen to undo/redo events
+undoRedo.on('undo', (event) => {
+  console.log('Undone:', event.action);
+});
+
+undoRedo.on('redo', (event) => {
+  console.log('Redone:', event.action);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'z') {
+    e.preventDefault();
+    undoRedo.undo();
+  }
+  if (e.ctrlKey && e.key === 'y') {
+    e.preventDefault();
+    undoRedo.redo();
+  }
+});
+```
+
+<Callout type="tip">
+UndoRedoManager automatically tracks all edit operations. You don't need to manually record changes.
+</Callout>
+
+## Complete Editable Example
+
+```typescript title="complete-editable.ts"
+import { createGrid, UndoRedoManager } from '@zengrid/core';
+import type { Column, GridOptions } from '@zengrid/core';
+
+// Data store
+const dataStore = [
+  { id: 1, name: 'Alice', email: 'alice@example.com', age: 30, role: 'admin', active: true },
+  { id: 2, name: 'Bob', email: 'bob@example.com', age: 25, role: 'editor', active: true },
+  { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35, role: 'viewer', active: false },
+  // ... more rows
+];
+
+// Column definitions with various editors
+const columns: Column[] = [
+  {
+    id: 'id',
+    header: 'ID',
+    width: 60,
+  },
+  {
+    id: 'name',
+    header: 'Name',
+    width: 200,
+    editable: true,
+    editor: 'text',
+    editorParams: {
+      placeholder: 'Enter name...',
+    },
+    validator: (value: string) => {
+      if (value.trim().length < 2) {
+        return 'Name must be at least 2 characters';
+      }
+      return null;
+    },
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    width: 250,
+    editable: true,
+    editor: 'text',
+    validator: (value: string) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        return 'Invalid email format';
+      }
+      return null;
+    },
+  },
+  {
+    id: 'age',
+    header: 'Age',
+    width: 100,
+    editable: true,
+    editor: 'number',
+    editorParams: {
+      min: 18,
+      max: 120,
+    },
+  },
+  {
+    id: 'role',
+    header: 'Role',
+    width: 150,
+    editable: true,
+    editor: 'select',
+    editorParams: {
+      options: [
+        { value: 'admin', label: 'Administrator' },
+        { value: 'editor', label: 'Editor' },
+        { value: 'viewer', label: 'Viewer' },
+      ],
+    },
+  },
+  {
+    id: 'active',
+    header: 'Active',
+    width: 100,
+    editable: true,
+    editor: 'checkbox',
+  },
+];
+
+// Create grid
+const grid = createGrid(container, {
+  columns,
+  rowCount: dataStore.length,
+  rowHeight: 40,
+  data: (rowIndex, colId) => {
+    return dataStore[rowIndex]?.[colId] ?? '';
+  },
+});
+
+// Setup undo/redo
+const undoRedo = new UndoRedoManager(grid, {
+  maxHistorySize: 50,
+});
+
+// Handle edit commits
+grid.on('edit:commit', (event) => {
+  // Update data store
+  dataStore[event.rowIndex][event.colId] = event.newValue;
+
+  // Save to backend
+  console.log('Saving to backend:', {
+    id: dataStore[event.rowIndex].id,
+    field: event.colId,
+    value: event.newValue,
+  });
+});
+
+// Add undo/redo buttons
+const toolbar = document.createElement('div');
+toolbar.innerHTML = `
+  <button id="undo">Undo</button>
+  <button id="redo">Redo</button>
+`;
+document.body.prepend(toolbar);
+
+document.getElementById('undo')?.addEventListener('click', () => {
+  undoRedo.undo();
+});
+
+document.getElementById('redo')?.addEventListener('click', () => {
+  undoRedo.redo();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'z') {
+    e.preventDefault();
+    undoRedo.undo();
+  }
+  if (e.ctrlKey && e.key === 'y') {
+    e.preventDefault();
+    undoRedo.redo();
+  }
+});
+```
+
+<Callout type="info">
+Editing works seamlessly with sorting and filtering. Edits are applied to the underlying data, not the sorted/filtered view.
+</Callout>
+
+## Performance Considerations
+
+- Validation functions should be fast; use debouncing for async validation
+- UndoRedoManager keeps actions in memory; limit history size for large grids
+- Batch multiple edits when possible to reduce event overhead
+
+## Next Steps
+
+- Combine with [sorting](/examples/sortable) and [filtering](/examples/filterable)
+- Learn about [custom editors](/advanced/custom-editors)
+- Explore [form integration patterns](/advanced/form-integration)

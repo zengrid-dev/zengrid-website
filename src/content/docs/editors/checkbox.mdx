@@ -1,0 +1,336 @@
+---
+title: Checkbox Editor
+description: Checkbox editor for boolean values with optional tri-state support.
+order: 35
+category: Cell Editors
+tags: [editors, checkbox, boolean]
+---
+
+import Callout from '../../../components/docs/Callout.astro';
+
+The `CheckboxEditor` provides a checkbox input for boolean values with support for tri-state (true/false/null) operation.
+
+## Basic Usage
+
+```ts title="Basic Checkbox Editor"
+const columns: ColumnDef[] = [
+  {
+    field: 'active',
+    header: 'Active',
+    editor: 'checkbox'
+  }
+];
+```
+
+## Editor Options
+
+```ts title="CheckboxEditor Options"
+interface CheckboxEditorOptions {
+  allowIndeterminate?: boolean;
+  label?: string;
+  disabled?: boolean;
+  checkedText?: string;
+  uncheckedText?: string;
+  indeterminateText?: string;
+  autoFocus?: boolean;
+  className?: string;
+  validator?: (value: CheckboxState) => boolean | string;
+  stopOnBlur?: boolean;
+}
+```
+
+## Checkbox States
+
+The checkbox supports three states:
+
+```ts title="CheckboxState Type"
+type CheckboxState = true | false | null;
+```
+
+- **true**: Checkbox is checked
+- **false**: Checkbox is unchecked
+- **null**: Checkbox is indeterminate (tri-state mode)
+
+### Two-State Mode (Default)
+
+```ts title="Boolean Checkbox"
+{
+  field: 'isActive',
+  header: 'Active',
+  editor: 'checkbox',
+  editorOptions: {
+    checkedText: 'Active',
+    uncheckedText: 'Inactive'
+  }
+}
+```
+
+### Tri-State Mode
+
+Enable indeterminate state with `allowIndeterminate`:
+
+```ts title="Tri-State Checkbox"
+{
+  field: 'status',
+  header: 'Status',
+  editor: 'checkbox',
+  editorOptions: {
+    allowIndeterminate: true,
+    checkedText: 'Completed',
+    uncheckedText: 'Not Started',
+    indeterminateText: 'In Progress'
+  }
+}
+```
+
+<Callout type="info">
+In tri-state mode, the checkbox cycles through: unchecked → checked → indeterminate → unchecked
+</Callout>
+
+## Labels and Text
+
+### Checkbox Label
+
+Display text next to the checkbox:
+
+```ts title="With Label"
+{
+  field: 'agreed',
+  header: 'Terms',
+  editor: 'checkbox',
+  editorOptions: {
+    label: 'I agree to the terms and conditions'
+  }
+}
+```
+
+### State Text
+
+Provide descriptive text for each state:
+
+```ts title="Descriptive State Text"
+{
+  field: 'emailNotifications',
+  header: 'Email Notifications',
+  editor: 'checkbox',
+  editorOptions: {
+    checkedText: 'Enabled',
+    uncheckedText: 'Disabled'
+  }
+}
+```
+
+```ts title="Tri-State with Text"
+{
+  field: 'taskStatus',
+  header: 'Task Status',
+  editor: 'checkbox',
+  editorOptions: {
+    allowIndeterminate: true,
+    checkedText: 'Done',
+    indeterminateText: 'Working',
+    uncheckedText: 'To Do'
+  }
+}
+```
+
+## Keyboard Interaction
+
+The checkbox editor supports these keyboard shortcuts:
+
+- **Space**: Toggle checkbox state
+- **Enter**: Commit and close editor
+- **Escape**: Cancel and close editor
+- **Tab**: Commit and move to next cell
+
+<Callout type="tip">
+Pressing Space immediately toggles the state, making checkbox editing very fast.
+</Callout>
+
+## Click Behavior
+
+Clicking the checkbox or its label toggles the state:
+
+```ts title="Interactive Example"
+{
+  field: 'featured',
+  header: 'Featured',
+  editor: 'checkbox',
+  editorOptions: {
+    label: 'Mark as featured',
+    autoFocus: true
+  }
+}
+```
+
+## Validation
+
+Add custom validation for checkbox values:
+
+```ts title="Required Checkbox"
+{
+  field: 'agreedToTerms',
+  header: 'Terms',
+  editor: 'checkbox',
+  editorOptions: {
+    label: 'I agree to the terms',
+    validator: (value: CheckboxState) => {
+      if (value !== true) {
+        return 'You must agree to the terms';
+      }
+      return true;
+    }
+  }
+}
+```
+
+```ts title="Tri-State Validation"
+{
+  field: 'verification',
+  header: 'Verified',
+  editor: 'checkbox',
+  editorOptions: {
+    allowIndeterminate: true,
+    validator: (value: CheckboxState) => {
+      if (value === null) {
+        return 'Please complete verification (cannot be indeterminate)';
+      }
+      return true;
+    }
+  }
+}
+```
+
+## Styling
+
+Customize the checkbox appearance:
+
+```ts title="Custom Styling"
+{
+  field: 'priority',
+  header: 'Priority',
+  editor: 'checkbox',
+  editorOptions: {
+    label: 'High Priority',
+    className: 'priority-checkbox'
+  }
+}
+```
+
+```css title="Custom CSS"
+.priority-checkbox {
+  accent-color: #ff6b6b;
+}
+
+.priority-checkbox:checked {
+  background-color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+```
+
+## Complete Examples
+
+### Simple Active/Inactive Toggle
+
+```ts title="Active Status"
+{
+  field: 'active',
+  header: 'Active',
+  editor: 'checkbox',
+  editorOptions: {
+    checkedText: 'Active',
+    uncheckedText: 'Inactive',
+    autoFocus: true
+  }
+}
+```
+
+### Task Status with Tri-State
+
+```ts title="Task Progress"
+{
+  field: 'taskStatus',
+  header: 'Status',
+  editor: 'checkbox',
+  editorOptions: {
+    allowIndeterminate: true,
+    checkedText: 'Completed',
+    indeterminateText: 'In Progress',
+    uncheckedText: 'Not Started',
+    label: 'Task completion status'
+  }
+}
+```
+
+### Consent Checkbox with Validation
+
+```ts title="Terms Agreement"
+{
+  field: 'consent',
+  header: 'Consent',
+  editor: 'checkbox',
+  editorOptions: {
+    label: 'I consent to data processing',
+    validator: (value: CheckboxState) => {
+      return value === true || 'Consent is required';
+    }
+  }
+}
+```
+
+### Feature Flags
+
+```ts title="Feature Toggle"
+{
+  field: 'featureEnabled',
+  header: 'Feature',
+  editor: 'checkbox',
+  editorOptions: {
+    checkedText: 'Enabled',
+    uncheckedText: 'Disabled',
+    className: 'feature-toggle'
+  }
+}
+```
+
+## Blur Behavior
+
+Control what happens when focus leaves the checkbox:
+
+```ts title="Commit on Blur"
+{
+  field: 'selected',
+  header: 'Selected',
+  editor: 'checkbox',
+  editorOptions: {
+    stopOnBlur: true // Auto-commit when clicking outside
+  }
+}
+```
+
+<Callout type="warning">
+With `stopOnBlur: false` (default), the edit is cancelled when clicking outside. Set to `true` to auto-commit instead.
+</Callout>
+
+## Best Practices
+
+1. **Use appropriate state text**: Make it clear what each state means
+2. **Consider tri-state carefully**: Only use when truly needed (e.g., task progress, partial selections)
+3. **Add labels for clarity**: Help users understand what the checkbox controls
+4. **Validate when required**: Use validator for mandatory checkboxes
+5. **Enable auto-focus**: Let users immediately interact with keyboard
+
+```ts title="Well-Configured Checkbox"
+{
+  field: 'verified',
+  header: 'Verified',
+  editor: 'checkbox',
+  editorOptions: {
+    checkedText: 'Verified',
+    uncheckedText: 'Unverified',
+    autoFocus: true,
+    stopOnBlur: true,
+    validator: (value) => value !== null || 'Verification status required'
+  }
+}
+```
