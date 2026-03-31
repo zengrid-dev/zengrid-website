@@ -7,7 +7,7 @@ export interface BreadcrumbItem {
 export const SITE = {
   url: 'https://www.zengrid.dev',
   name: 'ZenGrid',
-  twitter: '@zengrid',
+  twitter: '@Zengrid_dev',
   github: 'https://github.com/zengrid-dev/zengrid',
   npm: 'https://www.npmjs.com/package/@zengrid/core',
 };
