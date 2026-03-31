@@ -21,7 +21,7 @@ export const sidebar: SidebarSection[] = [
   {
     title: 'User Guide',
     items: [
-      { title: 'Grid Basics', slug: 'user-guide/grid-basics' },
+      { title: 'Core Grid System', slug: 'user-guide/grid-basics' },
       { title: 'Loading Data', slug: 'user-guide/loading-data' },
       { title: 'Virtual Scrolling', slug: 'user-guide/virtual-scrolling' },
       { title: 'Performance', slug: 'user-guide/performance' },

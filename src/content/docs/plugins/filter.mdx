@@ -95,28 +95,33 @@ Built-in operators for filtering:
 
 ## Backend Mode
 
-Backend mode delegates filtering to a callback:
+In explicit backend data mode, FilterPlugin contributes canonical filter AST state to `request.query` before `onDataRequest` is called:
 
 ```ts title="Backend Filtering"
-const grid = createGrid(container, {
+const grid = new Grid(container, {
+  rowCount: 100000,
+  colCount: 1,
   columns: [
     { id: 'name', field: 'name', filterable: true }
   ],
-  filtering: {
-    mode: 'backend',
-    onFilterRequest: async (filters) => {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ filters })
-      });
-      const data = await response.json();
-      grid.api.data.setData(data);
-    }
+  dataMode: 'backend',
+  onDataRequest: async ({ startRow, endRow, query }) => {
+    const response = await fetch('/api/users/window', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startRow, endRow, query })
+    });
+
+    return response.json();
   }
 });
 
 grid.usePlugin(createFilterPlugin());
 ```
+
+<Callout type="warning">
+If a structured filter cannot execute in frontend mode, ZenGrid now raises `filter:error` and throws instead of silently letting every row pass. Use `dataMode: 'backend'` when the backend should own unsupported query execution.
+</Callout>
 
 ## Export Adapters
 
@@ -188,18 +193,23 @@ For async filtering with loading states:
 ```ts title="Async Filtering"
 import { createAsyncFilterPlugin } from '@zengrid/core';
 
-const grid = createGrid(container, {
-  filtering: {
-    mode: 'backend',
-    onFilterRequest: async (filters) => {
-      grid.api.loading.show();
+const grid = new Grid(container, {
+  rowCount: 100000,
+  colCount: 1,
+  dataMode: 'backend',
+  onDataRequest: async ({ startRow, endRow, query }) => {
+    grid.api.loading.show();
 
-      try {
-        const data = await fetchFilteredData(filters);
-        grid.api.data.setData(data);
-      } finally {
-        grid.api.loading.hide();
-      }
+    try {
+      const response = await fetch('/api/users/window', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startRow, endRow, query })
+      });
+
+      return response.json();
+    } finally {
+      grid.api.loading.hide();
     }
   }
 });

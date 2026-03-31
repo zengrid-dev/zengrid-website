@@ -19,13 +19,13 @@ interface GridPlugin {
   name: string;
   phase: number;
   dependencies?: string[];
-  setup(store: GridStore, api: GridApi): PluginDisposable;
+  setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable | void;
   dispose?(): void;
 }
 ```
 
 <Callout type="info">
-The `setup` method receives both the reactive store and the grid API, giving plugins full access to state management and grid operations.
+The `setup` method receives the reactive store, the grid API, and a live plugin context for reading and subscribing to runtime option changes.
 </Callout>
 
 ## Lifecycle Phases
@@ -58,7 +58,7 @@ const myPlugin: GridPlugin = {
   name: 'MyPlugin',
   phase: 60,
   dependencies: ['CorePlugin', 'SelectionPlugin'],
-  setup(store, api) {
+  setup(store, api, context) {
     // CorePlugin and SelectionPlugin are guaranteed to be initialized
     return { teardown: [] };
   }
@@ -84,15 +84,24 @@ pluginHost.destroy();
 
 ## Plugin Setup
 
-The `setup` method receives two key objects:
+The `setup` method receives three key objects:
 
 - **GridStore**: Reactive state management system
 - **GridApi**: Grid operations and methods
+- **GridPluginSetupContext**: Live access to current options plus change subscriptions
 
 ```ts title="Plugin Setup Example"
-setup(store: GridStore, api: GridApi) {
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext) {
   // Create reactive state
   store.extend('myFeature.enabled', true, 'MyPlugin', this.phase);
+
+  const unsubscribeOptions = context.subscribeOptions((change) => {
+    if (change.changedKeys.includes('rowHeight')) {
+      api.fireEvent('myFeature:rowHeightChanged', {
+        rowHeight: change.currentOptions.rowHeight,
+      });
+    }
+  });
 
   // Create computed values
   store.computed('myFeature.status', () => {
@@ -105,7 +114,7 @@ setup(store: GridStore, api: GridApi) {
     disable: () => store.set('myFeature.enabled', false)
   });
 
-  return { teardown: [] };
+  return { teardown: [unsubscribeOptions] };
 }
 ```
 

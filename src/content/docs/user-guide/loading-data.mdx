@@ -81,25 +81,24 @@ Backend mode is designed for server-side data sources where you fetch data on-de
 Enable backend mode with `dataMode: 'backend'` and provide an `onDataRequest` handler:
 
 ```ts title="backend-mode.ts"
-import { createGrid, DataLoadRequest, DataLoadResponse } from '@zengrid/core';
+import { Grid, DataLoadRequest, DataLoadResponse } from '@zengrid/core';
 
-const grid = createGrid({
-  container: element,
+const grid = new Grid(element, {
   rowCount: 1000000, // Total rows on server
   colCount: 10,
   dataMode: 'backend',
   onDataRequest: async (request: DataLoadRequest): Promise<DataLoadResponse> => {
-    const { startRow, endRow, startCol, endCol } = request;
+    const { startRow, endRow, query, signal } = request;
 
     // Fetch data from your API
-    const response = await fetch('/api/grid-data', {
+    const response = await fetch('/api/grid-data/window', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal,
       body: JSON.stringify({
         startRow,
         endRow,
-        startCol,
-        endCol
+        query,
       })
     });
 
@@ -107,7 +106,9 @@ const grid = createGrid({
 
     return {
       data: data.rows, // 2D array of cell values
-      totalRows: data.totalCount
+      totalRows: data.totalCount,
+      startRow,
+      endRow,
     };
   }
 });
@@ -115,19 +116,21 @@ const grid = createGrid({
 
 ### DataLoadRequest
 
-The request object contains viewport information:
+The request object contains the requested row window plus the canonical query envelope:
 
 ```ts title="data-request.ts"
 interface DataLoadRequest {
-  startRow: number;    // First visible row index
-  endRow: number;      // Last visible row index
-  startCol: number;    // First visible column index
-  endCol: number;      // Last visible column index
-  sortBy?: string;     // Optional sort column
-  sortDir?: 'asc' | 'desc'; // Optional sort direction
-  filters?: Filter[];  // Optional filter conditions
+  startRow: number;
+  endRow: number;
+  requestId?: number;
+  signal?: AbortSignal;
+  query: QueryState;
 }
 ```
+
+<Callout type="info">
+`request.query` is sparse by design. `filter`, `sort`, and `pagination` may be omitted or set to `null` when inactive. In `dataMode: 'auto'`, ZenGrid only populates the pagination/range slice because sort and filter stay frontend.
+</Callout>
 
 ### DataLoadResponse
 
@@ -135,9 +138,10 @@ Return data and metadata from your handler:
 
 ```ts title="data-response.ts"
 interface DataLoadResponse {
-  data: any[][];       // 2D array of cell values
-  totalRows?: number;  // Optional: update total row count
-  totalCols?: number;  // Optional: update total column count
+  data: any[][];
+  totalRows: number;
+  startRow: number;
+  endRow: number;
 }
 ```
 
@@ -150,19 +154,20 @@ ZenGrid automatically manages request deduplication and cancellation. If the use
 Auto mode automatically detects the appropriate data mode based on your configuration:
 
 ```ts title="auto-mode.ts"
-const grid = createGrid({
-  container: element,
+const grid = new Grid(element, {
   rowCount: 5000,
   colCount: 8,
-  dataMode: 'auto', // Auto-detect based on config
-  // If onDataRequest is provided, uses backend mode
-  // Otherwise uses frontend mode
+  dataMode: 'auto',
   onDataRequest: async (request) => {
-    // Backend data fetching
-    return { data: fetchedData };
+    // Backend row loading
+    return { data: fetchedData, totalRows: 5000, startRow: request.startRow, endRow: request.endRow };
   }
 });
 ```
+
+<Callout type="info">
+`dataMode: 'auto'` uses `onDataRequest` for row loading when a callback is present, but sort and filter still execute in the browser. Use `dataMode: 'backend'` when the backend should own sort/filter/pagination query execution too.
+</Callout>
 
 ## DataManager
 
@@ -276,7 +281,7 @@ grid.refresh();
 ## Complete Backend Example
 
 ```ts title="backend-example.ts"
-import { createGrid, DataLoadRequest, DataLoadResponse } from '@zengrid/core';
+import { Grid, DataLoadRequest, DataLoadResponse } from '@zengrid/core';
 
 interface GridRow {
   id: number;
@@ -286,8 +291,7 @@ interface GridRow {
   created: string;
 }
 
-const grid = createGrid({
-  container: document.getElementById('grid')!,
+const grid = new Grid(document.getElementById('grid')!, {
   rowCount: 0, // Will be set by first response
   colCount: 5,
   dataMode: 'backend',
@@ -316,11 +320,13 @@ const grid = createGrid({
 
       return {
         data,
-        totalRows: result.totalCount
+        totalRows: result.totalCount,
+        startRow,
+        endRow,
       };
     } catch (error) {
       console.error('Failed to load data:', error);
-      return { data: [] };
+      return { data: [], totalRows: 0, startRow, endRow };
     }
   }
 });

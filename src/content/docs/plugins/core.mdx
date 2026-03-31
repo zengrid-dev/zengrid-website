@@ -79,7 +79,7 @@ const CorePlugin: GridPlugin = {
   phase: 0,
   dependencies: undefined,
 
-  setup(store, api) {
+  setup(store, api, context) {
     // Initialize core state
     store.extend('rows.raw', [], 'CorePlugin', 0);
     store.extend('rows.indices', [], 'CorePlugin', 0);
@@ -119,7 +119,7 @@ const sortPlugin = {
   name: 'SortPlugin',
   phase: 10,
   dependencies: ['CorePlugin'],
-  setup(store, api) {
+  setup(store, api, context) {
     const rawData = store.get('rows.raw');
     // Sort operations...
   }
@@ -130,7 +130,7 @@ const filterPlugin = {
   name: 'FilterPlugin',
   phase: 20,
   dependencies: ['CorePlugin'],
-  setup(store, api) {
+  setup(store, api, context) {
     const indices = store.get('rows.indices');
     // Filter operations...
   }

@@ -24,14 +24,20 @@ Every ZenGrid plugin must:
 ## Step 1: Define the Plugin Interface
 
 ```ts title="Plugin Structure"
-import { GridPlugin, GridStore, GridApi, PluginDisposable } from '@zengrid/core';
+import {
+  GridPlugin,
+  GridStore,
+  GridApi,
+  GridPluginSetupContext,
+  PluginDisposable
+} from '@zengrid/core';
 
 const RowHighlighterPlugin: GridPlugin = {
   name: 'RowHighlighterPlugin',
   phase: 60,
   dependencies: ['CorePlugin', 'SelectionPlugin'],
 
-  setup(store: GridStore, api: GridApi): PluginDisposable {
+  setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
     // Plugin implementation
     return { teardown: [] };
   },
@@ -63,7 +69,7 @@ const RowHighlighterPlugin: GridPlugin = {
 Add custom signals to the reactive store:
 
 ```ts title="Store Extension"
-setup(store: GridStore, api: GridApi): PluginDisposable {
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
   // Extend store with custom signals
   store.extend('highlighter.enabled', true, 'RowHighlighterPlugin', this.phase);
   store.extend('highlighter.color', '#ffeb3b', 'RowHighlighterPlugin', this.phase);
@@ -82,7 +88,7 @@ Use `store.extend()` to create new signals owned by your plugin. The store autom
 Add derived state using computed signals:
 
 ```ts title="Computed Signals"
-setup(store: GridStore, api: GridApi): PluginDisposable {
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
   // Extend store
   store.extend('highlighter.enabled', true, 'RowHighlighterPlugin', this.phase);
   store.extend('highlighter.rows', new Set<number>(), 'RowHighlighterPlugin', this.phase);
@@ -107,7 +113,7 @@ setup(store: GridStore, api: GridApi): PluginDisposable {
 React to store changes using effects:
 
 ```ts title="Effects"
-setup(store: GridStore, api: GridApi): PluginDisposable {
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
   // ... previous code ...
 
   // Create effect to update UI when rows change
@@ -147,12 +153,34 @@ private clearHighlights(): void {
 Effects run automatically when their dependencies change. Be careful not to create infinite loops.
 </Callout>
 
+## Step 5.5: React to Runtime Option Changes
+
+Use the plugin setup context when your plugin depends on options that may change after initialization.
+
+```ts title="Option Subscriptions"
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
+  const unsubscribeOptions = context.subscribeOptions((change) => {
+    if (change.changedKeys.includes('rowHeight')) {
+      store.set('highlighter.enabled', (change.currentOptions.rowHeight ?? 0) > 0);
+    }
+  });
+
+  return {
+    teardown: [unsubscribeOptions]
+  };
+}
+```
+
+<Callout type="tip">
+`context.options` is a live shared object. Use `context.getOptionsSnapshot()` when you need an immutable snapshot and `context.subscribeOptions()` when your plugin must react to `grid.updateOptions(...)`.
+</Callout>
+
 ## Step 6: Register API Methods
 
 Expose plugin functionality through the grid API:
 
 ```ts title="API Registration"
-setup(store: GridStore, api: GridApi): PluginDisposable {
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
   // ... previous code ...
 
   // Register API methods
@@ -199,7 +227,7 @@ setup(store: GridStore, api: GridApi): PluginDisposable {
 Return cleanup functions in the `PluginDisposable`:
 
 ```ts title="Cleanup Functions"
-setup(store: GridStore, api: GridApi): PluginDisposable {
+setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
   // ... previous code ...
 
   // Add event listeners
@@ -266,7 +294,7 @@ const RowHighlighterPlugin: GridPlugin = {
   phase: 60,
   dependencies: ['CorePlugin', 'SelectionPlugin'],
 
-  setup(store: GridStore, api: GridApi): PluginDisposable {
+  setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
     // ... setup code ...
     return { teardown: [] };
   },
@@ -283,14 +311,20 @@ const RowHighlighterPlugin: GridPlugin = {
 Here's the complete plugin implementation:
 
 ```ts title="row-highlighter-plugin.ts"
-import { GridPlugin, GridStore, GridApi, PluginDisposable } from '@zengrid/core';
+import {
+  GridPlugin,
+  GridStore,
+  GridApi,
+  GridPluginSetupContext,
+  PluginDisposable
+} from '@zengrid/core';
 
 export const RowHighlighterPlugin: GridPlugin = {
   name: 'RowHighlighterPlugin',
   phase: 60,
   dependencies: ['CorePlugin', 'SelectionPlugin'],
 
-  setup(store: GridStore, api: GridApi): PluginDisposable {
+  setup(store: GridStore, api: GridApi, context: GridPluginSetupContext): PluginDisposable {
     // 1. Extend store with custom signals
     store.extend('highlighter.enabled', true, 'RowHighlighterPlugin', this.phase);
     store.extend('highlighter.color', '#ffeb3b', 'RowHighlighterPlugin', this.phase);

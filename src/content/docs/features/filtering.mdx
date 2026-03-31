@@ -8,7 +8,7 @@ tags: [filtering, query, export]
 
 import Callout from '../../../components/docs/Callout.astro';
 
-ZenGrid provides a comprehensive filtering system with support for multiple operators, SQL-like queries, and the ability to export filters to various backend formats.
+ZenGrid provides a comprehensive filtering system with support for multiple operators, SQL-like queries, and the ability to export filters to various backend formats. Internally, all filter inputs are normalized into a typed filter AST.
 
 ## Filter Operators
 
@@ -98,6 +98,10 @@ const filterQuery = {
 // Apply the SQL-like filter
 grid.applyFilterQuery(filterQuery);
 ```
+
+<Callout type="info">
+SQL-like input is parsed into `filter.ast`, which is the canonical filter contract used by frontend and backend integrations. `models`, `fieldState`, and `getFilterExports()` are derived from that AST when the current filter can be projected into those formats.
+</Callout>
 
 ## Filter Export
 

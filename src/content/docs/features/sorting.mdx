@@ -15,7 +15,7 @@ ZenGrid provides powerful sorting capabilities with support for both single and 
 ZenGrid supports two sorting modes:
 
 - **frontend**: Data is sorted in the browser using the configured comparators
-- **backend**: Sorting is delegated to the server via the `onSortRequest` callback
+- **backend**: Sorting is delegated through `onDataRequest` when `dataMode: 'backend'`
 
 ## Basic Sorting
 
@@ -42,7 +42,6 @@ const grid = new ZenGrid(container, {
     { id: 'age', field: 'age', sortable: true },
     { id: 'email', field: 'email', sortable: false }
   ],
-  sortMode: 'frontend', // 'frontend' | 'backend'
   sortIcons: {
     asc: '▲',
     desc: '▼'
@@ -117,22 +116,21 @@ For large datasets, delegate sorting to the server:
 
 ```js title="backend-sort.js"
 const grid = new ZenGrid(container, {
-  sortMode: 'backend',
-  onSortRequest: async (sortState) => {
-    // sortState: SortState[]
+  dataMode: 'backend',
+  onDataRequest: async ({ startRow, endRow, query }) => {
     const response = await fetch('/api/data', {
       method: 'POST',
-      body: JSON.stringify({ sort: sortState })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startRow, endRow, query })
     });
 
-    const newData = await response.json();
-    grid.setData(newData);
+    return response.json();
   }
 });
 ```
 
 <Callout type="warning">
-In backend mode, you are responsible for fetching and setting the sorted data. The grid will not perform any client-side sorting.
+Sorting only runs in backend mode when `dataMode` is explicitly set to `'backend'`. In `auto` mode, `onDataRequest` is still used for row loading, but sorting stays frontend.
 </Callout>
 
 ## Custom Sort Icons

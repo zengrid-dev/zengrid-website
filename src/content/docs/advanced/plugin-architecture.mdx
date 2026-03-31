@@ -35,7 +35,7 @@ export const MyPlugin: Plugin = {
   phase: 30,
   dependencies: ['core-plugin', 'data-plugin'],
 
-  setup(api: GridApi, store: GridStore) {
+  setup(store: GridStore, api: GridApi, context) {
     // Extend store with signals
     store.extend('myState', initialValue, 'my-plugin', 30);
 
@@ -127,7 +127,7 @@ const SortPlugin: Plugin = {
   phase: 20,
   dependencies: ['data'],  // phase 10
 
-  setup(api, store) {
+  setup(store, api, context) {
     // Safe: DataPlugin already initialized
     const data = store.get('data').value;
 
@@ -144,7 +144,7 @@ const FilterPlugin: Plugin = {
   phase: 30,
   dependencies: ['data', 'sort'],
 
-  setup(api, store) {
+  setup(store, api, context) {
     // Safe: Both DataPlugin and SortPlugin initialized
     const sortedData = store.get('sortedData').value;
 
@@ -166,7 +166,7 @@ const MyPlugin: Plugin = {
   name: 'my-plugin',
   dependencies: ['core', 'data', 'sort'],
 
-  setup(api, store) {
+  setup(store, api, context) {
     // All dependencies are guaranteed to be initialized
     // before this setup() runs
   },
@@ -220,7 +220,7 @@ const SortPlugin: Plugin = {
   name: 'sort',
   phase: 20,
 
-  setup(api, store) {
+  setup(store, api, context) {
     // Add mutable signal
     store.extend('sortColumn', null, 'sort', 20);
     store.extend('sortDirection', 'asc', 'sort', 20);
@@ -253,7 +253,7 @@ Each plugin owns its signals for cleanup:
 const MyPlugin: Plugin = {
   name: 'my-plugin',
 
-  setup(api, store) {
+  setup(store, api, context) {
     // These signals are owned by 'my-plugin'
     store.extend('state1', 0, 'my-plugin', 30);
     store.extend('state2', '', 'my-plugin', 30);
@@ -281,7 +281,7 @@ Plugins register callable actions via the `GridApi`.
 const SortPlugin: Plugin = {
   name: 'sort',
 
-  setup(api, store) {
+  setup(store, api, context) {
     // Register plugin actions
     api.register('sort', {
       // Sort by column
@@ -368,7 +368,7 @@ Emit grid events:
 const SortPlugin: Plugin = {
   name: 'sort',
 
-  setup(api, store) {
+  setup(store, api, context) {
     store.effect('emit-sort-event', () => {
       const sortState = {
         column: store.get('sortColumn').value,
@@ -411,7 +411,7 @@ import type { Pipeline } from '@zengrid/core';
 const DataTransformPlugin: Plugin = {
   name: 'data-transform',
 
-  setup(api, store) {
+  setup(store, api, context) {
     // Create transformation pipeline
     const pipeline: Pipeline<Row[]> = {
       stages: [],
@@ -462,7 +462,7 @@ import { DevToolsConnector } from '@zengrid/core';
 const MyPlugin: Plugin = {
   name: 'my-plugin',
 
-  setup(api, store) {
+  setup(store, api, context) {
     // Connect to DevTools
     const devtools = new DevToolsConnector(store, {
       name: 'my-plugin',
@@ -506,7 +506,7 @@ export const SelectionPlugin: Plugin = {
   phase: 25,
   dependencies: ['core', 'data'],
 
-  setup(api: GridApi, store: GridStore) {
+  setup(store: GridStore, api: GridApi, context) {
     // Extend store with selection state
     store.extend<Set<number>>('selectedRows', new Set(), 'selection', 25);
     store.extend<Set<string>>('selectedCells', new Set(), 'selection', 25);

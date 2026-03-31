@@ -303,7 +303,7 @@ type FilterOperator =
 
 ### FilterQuery
 
-SQL query representation of filter state.
+SQL-like input format for parsing filter state.
 
 ```typescript title="FilterQuery interface"
 interface FilterQuery {
@@ -314,8 +314,8 @@ interface FilterQuery {
 
 **Properties:**
 
-- `sql: string` - SQL WHERE clause
-- `params?: any[]` - Parameterized values
+- `sql: string` - SQL-like WHERE expression provided by the caller
+- `params?: any[]` - Parameterized values used during parsing
 
 ```typescript title="Example usage"
 const query: FilterQuery = {
@@ -326,25 +326,102 @@ const query: FilterQuery = {
 
 ### FilterExpression
 
-Complete filter expression in multiple formats.
+Complete filter expression with a canonical AST plus compatibility projections.
 
 ```typescript title="FilterExpression interface"
 interface FilterExpression {
+  ast?: FilterAst | null;
   type: 'sql' | 'model';
   sql?: string;
   boundSql?: string;
   params?: any[];
   models?: FilterModel[];
+  quickFilter?: FilterQuickState;
+  fieldState?: FieldFilterState | null;
+  filterExport?: FilterExportResult | null;
 }
 ```
 
 **Properties:**
 
-- `type: 'sql' | 'model'` - Expression type
-- `sql?: string` - SQL WHERE clause with placeholders
-- `boundSql?: string` - SQL with values bound
+- `ast?: FilterAst | null` - Canonical typed filter tree used by core
+- `type: 'sql' | 'model'` - Original input type
+- `sql?: string` - Original SQL-like expression, when provided
+- `boundSql?: string` - SQL with positional placeholders
 - `params?: any[]` - Parameterized values
-- `models?: FilterModel[]` - Filter model representation
+- `models?: FilterModel[]` - Column-model projection when representable
+- `quickFilter?: FilterQuickState` - Quick filter state
+- `fieldState?: FieldFilterState | null` - Field-oriented backend projection
+- `filterExport?: FilterExportResult | null` - Prebuilt REST / GraphQL / SQL exports
+
+<Callout type="info">
+`filter.ast` is the canonical filter contract. `models`, `fieldState`, and `filterExport` are derived projections that may be partial when a structured filter cannot be expressed in an older format.
+</Callout>
+
+### FilterAst
+
+Structured filter tree used by core state, frontend execution, and backend requests.
+
+```typescript title="FilterAst interface"
+interface FilterAst {
+  version: 1;
+  root: FilterAstGroupNode | null;
+}
+```
+
+**Properties:**
+
+- `version: 1` - Current AST schema version
+- `root: FilterAstGroupNode | null` - Root group node, or `null` when no structured filter is active
+
+### FilterAstTarget
+
+Shared target reference for AST predicates and search nodes.
+
+```typescript title="FilterAstTarget type"
+type FilterAstTarget =
+  | { field: string; column?: number; columnId?: string }
+  | { field?: string; column: number; columnId?: string }
+  | { field?: string; column?: number; columnId: string };
+```
+
+**Notes:**
+
+- At least one of `field`, `column`, or `columnId` must be present
+- `field` is the preferred public identifier
+- `column` remains available for index-based compatibility
+
+### QueryPaginationState
+
+Pagination slice embedded in backend query requests.
+
+```typescript title="QueryPaginationState interface"
+interface QueryPaginationState {
+  page: number;
+  pageSize: number;
+  offset: number;
+  cursor?: string | null;
+}
+```
+
+### QueryState
+
+Canonical backend query envelope used by `onDataRequest`.
+
+```typescript title="QueryState interface"
+interface QueryState {
+  version: 1;
+  filter?: FilterAst | null;
+  sort?: SortDescriptor[] | null;
+  pagination?: QueryPaginationState | null;
+}
+```
+
+**Notes:**
+
+- Query slices may be omitted when inactive
+- Slices may also be present with `null` values when a caller wants to be explicit
+- In `dataMode: 'auto'`, ZenGrid typically only populates the pagination/range slice because sort and filter still execute in the browser
 
 ## Pagination Types
 
@@ -693,9 +770,9 @@ Interface for grid plugins.
 ```typescript title="GridPlugin interface"
 interface GridPlugin {
   name: string;
-  phase: 'pre-init' | 'init' | 'post-init';
+  phase: number;
   dependencies?: string[];
-  setup(store: any, api: any): void;
+  setup(store: GridStore, api: GridApiInterface, context: GridPluginSetupContext): PluginDisposable | void;
   dispose?(): void;
 }
 ```
@@ -703,20 +780,36 @@ interface GridPlugin {
 **Properties:**
 
 - `name: string` - Unique plugin name
-- `phase: 'pre-init' | 'init' | 'post-init'` - Initialization phase
+- `phase: number` - Initialization phase
 - `dependencies?: string[]` - Names of required plugins
-- `setup(store, api): void` - Setup function called during initialization
+- `setup(store, api, context)` - Setup function called during initialization
 - `dispose?(): void` - Cleanup function (optional)
+
+### GridPluginSetupContext
+
+Live runtime option access for plugins.
+
+```typescript title="GridPluginSetupContext interface"
+interface GridPluginSetupContext {
+  options: GridOptions;
+  getOptions(): GridOptions;
+  getOptionsSnapshot(): GridOptions;
+  subscribeOptions(listener: GridOptionsListener): () => void;
+}
+```
 
 ```typescript title="Example plugin"
 const customPlugin: GridPlugin = {
   name: 'custom-plugin',
-  phase: 'init',
-  setup(store, api) {
-    // Plugin initialization
-    api.on('cell:click', (event) => {
-      console.log('Plugin handling click:', event.cell);
+  phase: 60,
+  setup(store, api, context) {
+    const unsubscribeOptions = context.subscribeOptions((change) => {
+      console.log('Updated option keys:', change.changedKeys);
     });
+
+    return {
+      teardown: [unsubscribeOptions]
+    };
   },
   dispose() {
     // Cleanup

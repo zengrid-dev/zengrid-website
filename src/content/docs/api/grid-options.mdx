@@ -309,104 +309,43 @@ Controls where data operations are performed.
 // Frontend mode - all operations in browser
 const grid1 = new Grid(container, { dataMode: 'frontend' });
 
-// Backend mode - operations delegated to server
+// Backend mode - row loading and query execution delegated to the server
 const grid2 = new Grid(container, { dataMode: 'backend' });
 
-// Auto mode - automatically choose based on dataset size
+// Auto mode - backend loading when onDataRequest is present, frontend sort/filter
 const grid3 = new Grid(container, { dataMode: 'auto' });
 ```
 
 **Type:** `'frontend' | 'backend' | 'auto'`
-**Default:** `'auto'`
+**Default:** `'frontend'`
 
-### sortMode
-
-Controls where sorting is performed.
-
-```typescript title="Sort mode"
-const grid = new Grid(container, {
-  sortMode: 'backend',
-  onSortRequest: async (sortState) => {
-    // Fetch sorted data from server
-  }
-});
-```
-
-**Type:** `'frontend' | 'backend' | 'auto'`
-**Default:** Inherits from `dataMode`
-
-### filterMode
-
-Controls where filtering is performed.
-
-```typescript title="Filter mode"
-const grid = new Grid(container, {
-  filterMode: 'backend',
-  onFilterRequest: async (filterState) => {
-    // Fetch filtered data from server
-  }
-});
-```
-
-**Type:** `'frontend' | 'backend' | 'auto'`
-**Default:** Inherits from `dataMode`
+<Callout type="info">
+`dataMode: 'backend'` is the explicit server-query path. In that mode, `onDataRequest` receives canonical sort, filter, and pagination state in `request.query`. `dataMode: 'auto'` only switches row loading to the backend when `onDataRequest` is present, while sort and filter continue to run in the browser.
+</Callout>
 
 ## Callback Options
 
 ### onDataRequest
 
-Called when data is needed (for virtual/infinite scrolling).
+Called when data is needed in backend loading mode.
 
 ```typescript title="Data request callback"
 const grid = new Grid(container, {
-  onDataRequest: async (startRow, endRow) => {
-    const response = await fetch(`/api/data?start=${startRow}&end=${endRow}`);
-    return response.json();
-  }
-});
-```
-
-**Type:** `(startRow: number, endRow: number) => Promise<any[][]>`
-**Default:** `undefined`
-
-### onSortRequest
-
-Called when sorting is requested in backend mode.
-
-```typescript title="Sort request callback"
-const grid = new Grid(container, {
-  sortMode: 'backend',
-  onSortRequest: async (sortState) => {
-    const response = await fetch('/api/data/sort', {
+  dataMode: 'backend',
+  onDataRequest: async ({ startRow, endRow, query, signal }) => {
+    const response = await fetch('/api/data/window', {
       method: 'POST',
-      body: JSON.stringify({ sortState })
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({ startRow, endRow, query }),
     });
+
     return response.json();
   }
 });
 ```
 
-**Type:** `(sortState: SortState[]) => Promise<any[][]>`
-**Default:** `undefined`
-
-### onFilterRequest
-
-Called when filtering is requested in backend mode.
-
-```typescript title="Filter request callback"
-const grid = new Grid(container, {
-  filterMode: 'backend',
-  onFilterRequest: async (filterState) => {
-    const response = await fetch('/api/data/filter', {
-      method: 'POST',
-      body: JSON.stringify({ filterState })
-    });
-    return response.json();
-  }
-});
-```
-
-**Type:** `(filterState: FilterModel[]) => Promise<any[][]>`
+**Type:** `(request: DataLoadRequest) => Promise<DataLoadResponse>`
 **Default:** `undefined`
 
 ### onScroll

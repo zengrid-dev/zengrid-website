@@ -105,23 +105,24 @@ Multi-column sorting maintains sort priority based on array order.
 
 ## Backend Mode
 
-Backend mode delegates sorting to a callback:
+In explicit backend data mode, SortPlugin serializes the active sort state into `request.query.sort` before `onDataRequest` runs:
 
 ```ts title="Backend Sorting"
-const grid = createGrid(container, {
+const grid = new Grid(container, {
+  rowCount: 100000,
+  colCount: 1,
   columns: [
     { id: 'name', field: 'name', sortable: true }
   ],
-  sorting: {
-    mode: 'backend',
-    onSortRequest: async (sortState) => {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ sort: sortState })
-      });
-      const data = await response.json();
-      grid.api.data.setData(data);
-    }
+  dataMode: 'backend',
+  onDataRequest: async ({ startRow, endRow, query }) => {
+    const response = await fetch('/api/users/window', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startRow, endRow, query })
+    });
+
+    return response.json();
   }
 });
 
@@ -135,19 +136,23 @@ For async sorting operations with loading states:
 ```ts title="Async Sorting"
 import { createAsyncSortPlugin } from '@zengrid/core';
 
-const grid = createGrid(container, {
-  sorting: {
-    mode: 'backend',
-    onSortRequest: async (sortState) => {
-      // Show loading indicator
-      grid.api.loading.show();
+const grid = new Grid(container, {
+  rowCount: 100000,
+  colCount: 1,
+  dataMode: 'backend',
+  onDataRequest: async ({ startRow, endRow, query }) => {
+    grid.api.loading.show();
 
-      try {
-        const data = await fetchSortedData(sortState);
-        grid.api.data.setData(data);
-      } finally {
-        grid.api.loading.hide();
-      }
+    try {
+      const response = await fetch('/api/users/window', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startRow, endRow, query })
+      });
+
+      return response.json();
+    } finally {
+      grid.api.loading.hide();
     }
   }
 });
