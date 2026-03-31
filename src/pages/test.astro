@@ -2,7 +2,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout>
+<BaseLayout
+  title="ZenGrid Test Page"
+  description="Internal test page for validating the Astro setup."
+  pathname="/test"
+  noindex={true}
+>
   <div style="padding: 2rem; text-align: center;">
     <h1>ZenGrid Test Page</h1>
     <p>If you see this, Astro is working!</p>

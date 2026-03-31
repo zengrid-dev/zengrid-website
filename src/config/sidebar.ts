@@ -4,13 +4,17 @@ export interface SidebarItem {
 }
 
 export interface SidebarSection {
+  slug: string;
   title: string;
+  description: string;
   items: SidebarItem[];
 }
 
 export const sidebar: SidebarSection[] = [
   {
+    slug: 'getting-started',
     title: 'Getting Started',
+    description: 'Install ZenGrid and create your first high-performance grid.',
     items: [
       { title: 'Installation', slug: 'getting-started/installation' },
       { title: 'Quick Start', slug: 'getting-started/quick-start' },
@@ -19,7 +23,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'user-guide',
     title: 'User Guide',
+    description: 'Learn how to load data, configure virtual scrolling, and optimize performance.',
     items: [
       { title: 'Core Grid System', slug: 'user-guide/grid-basics' },
       { title: 'Loading Data', slug: 'user-guide/loading-data' },
@@ -28,7 +34,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'features',
     title: 'Features',
+    description: 'Selection, sorting, filtering, editing, pagination, and more.',
     items: [
       { title: 'Selection', slug: 'features/selection' },
       { title: 'Sorting', slug: 'features/sorting' },
@@ -41,7 +49,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'api',
     title: 'API Reference',
+    description: 'Complete API documentation for the Grid class, options, events, and types.',
     items: [
       { title: 'Grid Class', slug: 'api/grid-class' },
       { title: 'Grid Options', slug: 'api/grid-options' },
@@ -50,7 +60,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'plugins',
     title: 'Plugins',
+    description: 'Extend ZenGrid with built-in and custom plugins.',
     items: [
       { title: 'Overview', slug: 'plugins/overview' },
       { title: 'Core Plugin', slug: 'plugins/core' },
@@ -63,7 +75,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'rendering',
     title: 'Rendering',
+    description: 'Customize cell and header rendering with built-in and custom renderers.',
     items: [
       { title: 'Cell Renderers', slug: 'rendering/cell-renderers' },
       { title: 'Header Renderers', slug: 'rendering/header-renderers' },
@@ -71,7 +85,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'editors',
     title: 'Cell Editors',
+    description: 'Built-in editors for text, numbers, dates, dropdowns, and more.',
     items: [
       { title: 'Overview', slug: 'editors/overview' },
       { title: 'Text Editor', slug: 'editors/text' },
@@ -87,7 +103,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'examples',
     title: 'Examples',
+    description: 'Interactive examples showing ZenGrid in action.',
     items: [
       { title: 'Basic Grid', slug: 'examples/basic' },
       { title: 'Sortable Grid', slug: 'examples/sortable' },
@@ -97,7 +115,9 @@ export const sidebar: SidebarSection[] = [
     ],
   },
   {
+    slug: 'advanced',
     title: 'Advanced',
+    description: 'Deep dives into the reactive system, plugin architecture, and accessibility.',
     items: [
       { title: 'Reactive System', slug: 'advanced/reactive-system' },
       { title: 'Plugin Architecture', slug: 'advanced/plugin-architecture' },
@@ -109,6 +129,14 @@ export const sidebar: SidebarSection[] = [
 /** Get all slugs as a flat list */
 function getAllSlugs(): string[] {
   return sidebar.flatMap((section) => section.items.map((item) => item.slug));
+}
+
+export function getSectionPath(sectionSlug: string) {
+  return `/docs/${sectionSlug}`;
+}
+
+export function getSectionBySlug(sectionSlug: string) {
+  return sidebar.find((section) => section.slug === sectionSlug) ?? null;
 }
 
 /** Get previous and next pages for navigation */
@@ -133,7 +161,7 @@ export function getBreadcrumbs(
     if (item) {
       return [
         { title: 'Docs', slug: '/docs' },
-        { title: section.title },
+        { title: section.title, slug: getSectionPath(section.slug) },
         { title: item.title },
       ];
     }

@@ -1,0 +1,30 @@
+---
+import SectionHub from '../components/SectionHub.astro';
+import { getSectionLinks } from '../lib/docs-sections';
+
+const section = await getSectionLinks('features');
+
+if (!section) {
+  throw new Error('Features section metadata is missing.');
+}
+
+const items = section.items.map((item) => ({
+  href: `/docs/${item.slug}`,
+  title: item.title,
+  description: item.description,
+}));
+---
+
+<SectionHub
+  title="ZenGrid Features | Sorting, Filtering, Editing, and More"
+  description="Explore ZenGrid features for selection, sorting, filtering, editing, pagination, export, columns, and infinite scrolling."
+  pathname="/features"
+  eyebrow="Product"
+  intro="ZenGrid combines high-volume rendering with practical data-grid features, so you can ship tables that stay fast while handling real workflows."
+  items={items}
+  keywords={['ZenGrid features', 'TypeScript data grid features', 'virtual grid sorting', 'virtual grid filtering']}
+  actions={[
+    { href: '/docs/features', label: 'Browse Feature Docs' },
+    { href: '/examples', label: 'See Examples', variant: 'secondary' },
+  ]}
+/>

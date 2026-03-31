@@ -5,10 +5,20 @@ import Footer from '../components/Footer.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import GridDemo from '../components/GridDemo.astro';
 import FrameworkBadges from '../components/FrameworkBadges.astro';
+import QuickLinks from '../components/QuickLinks.astro';
 import { Code2 } from 'lucide-astro';
+import { createHomeStructuredData, DEFAULT_KEYWORDS } from '../lib/seo';
+
+const structuredData = createHomeStructuredData();
 ---
 
-<BaseLayout>
+<BaseLayout
+  title="ZenGrid | Performance-First TypeScript Data Grid for the Web"
+  description="ZenGrid is a zero-dependency TypeScript data grid with virtual scrolling, filtering, sorting, editing, and plugin APIs for high-volume web apps."
+  pathname="/"
+  keywords={[...DEFAULT_KEYWORDS, 'TypeScript grid library', 'data table virtualization', 'grid plugins']}
+  structuredData={structuredData}
+>
   <Navbar />
 
   <!-- Hero Section -->
@@ -36,7 +46,7 @@ import { Code2 } from 'lucide-astro';
             <a href="/docs" class="btn btn-primary">
               <Code2 size={20} /> Start Coding
             </a>
-            <a href="/demo" class="btn btn-secondary">View Demo</a>
+            <a href="/examples" class="btn btn-secondary">View Examples</a>
           </div>
           <div style="margin-top: 2rem;">
             <FrameworkBadges />
@@ -51,6 +61,8 @@ import { Code2 } from 'lucide-astro';
       </div>
     </div>
   </section>
+
+  <QuickLinks />
 
   <!-- Stats Bar -->
   <section class="stats-bar">

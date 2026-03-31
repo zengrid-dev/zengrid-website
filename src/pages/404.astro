@@ -4,7 +4,12 @@ import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<BaseLayout>
+<BaseLayout
+  title="Page Not Found | ZenGrid"
+  description="The page you were looking for could not be found."
+  pathname="/404"
+  noindex={true}
+>
   <Navbar />
 
   <section class="error-page">
@@ -27,7 +32,7 @@ import Footer from '../components/Footer.astro';
           <ul>
             <li><a href="/features">Features</a></li>
             <li><a href="/examples">Examples</a></li>
-            <li><a href="/benchmarks">Benchmarks</a></li>
+            <li><a href="/performance">Performance</a></li>
           </ul>
         </div>
       </div>

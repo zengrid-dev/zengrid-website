@@ -1,15 +1,37 @@
 ---
 import '../styles/global.css';
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  SITE,
+  type StructuredData,
+  toAbsoluteUrl,
+} from '../lib/seo';
 
 interface Props {
   title?: string;
   description?: string;
+  pathname?: string;
+  keywords?: string[];
+  noindex?: boolean;
+  ogType?: 'website' | 'article';
+  structuredData?: StructuredData | StructuredData[];
 }
 
 const {
-  title = 'ZenGrid - Performance-first Virtual Grid for the Web',
-  description = 'Handle millions of rows with advanced filtering, sorting, and selection. Built with TypeScript and 14 optimized data structures.',
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
+  pathname = Astro.url.pathname,
+  keywords = [],
+  noindex = false,
+  ogType = 'website',
+  structuredData,
 } = Astro.props;
+
+const canonicalUrl = toAbsoluteUrl(pathname);
+const robotsContent = noindex ? 'noindex, nofollow' : 'index, follow';
+const keywordsContent = keywords.length > 0 ? [...new Set(keywords)].join(', ') : undefined;
+const structuredDataJson = structuredData ? JSON.stringify(structuredData) : undefined;
 ---
 
 <!doctype html>
@@ -18,16 +40,23 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <meta name="robots" content={robotsContent} />
+    <meta name="author" content={SITE.name} />
     <meta name="generator" content={Astro.generator} />
+    {keywordsContent && <meta name="keywords" content={keywordsContent} />}
+    <link rel="canonical" href={canonicalUrl} />
 
     <!-- Open Graph / Social -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content="ZenGrid" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content={SITE.twitter} />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
 
@@ -42,6 +71,17 @@ const {
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token":"93885e248e654b94952498996d47649c"}'
+    ></script>
+
+    {structuredDataJson && (
+      <script type="application/ld+json" set:html={structuredDataJson}></script>
+    )}
   </head>
   <body>
     <slot />

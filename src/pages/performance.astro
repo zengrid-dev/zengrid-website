@@ -1,0 +1,50 @@
+---
+import SectionHub from '../components/SectionHub.astro';
+
+const items = [
+  {
+    href: '/docs/user-guide/performance',
+    title: 'Performance Guide',
+    description: 'Review the core performance model, rendering strategy, and optimization techniques.',
+  },
+  {
+    href: '/docs/examples/million-rows',
+    title: 'Million Rows Example',
+    description: 'See ZenGrid configured for high-volume datasets and smooth virtual scrolling.',
+  },
+  {
+    href: '/docs/features/infinite-scroll',
+    title: 'Infinite Scroll',
+    description: 'Load large datasets progressively without sacrificing grid responsiveness.',
+  },
+  {
+    href: '/docs/user-guide/virtual-scrolling',
+    title: 'Virtual Scrolling',
+    description: 'Understand how ZenGrid renders only what is visible and keeps the DOM light.',
+  },
+  {
+    href: '/docs/user-guide/loading-data',
+    title: 'Loading Data',
+    description: 'Connect backend data sources and control query envelopes for large result sets.',
+  },
+  {
+    href: '/docs/features/filtering',
+    title: 'Filtering at Scale',
+    description: 'Combine query-state filtering with large datasets and server-driven data flows.',
+  },
+];
+---
+
+<SectionHub
+  title="ZenGrid Performance | Virtual Scrolling and Million-Row Grids"
+  description="Learn how ZenGrid handles large datasets with virtual scrolling, incremental loading, and high-performance rendering."
+  pathname="/performance"
+  eyebrow="Performance"
+  intro="Performance is the core promise of ZenGrid. These guides and examples show how the library keeps scrolling fluid, startup work bounded, and data-heavy interfaces manageable."
+  items={items}
+  keywords={['ZenGrid performance', 'virtual scrolling performance', 'million row grid', 'high performance data grid']}
+  actions={[
+    { href: '/docs/user-guide/performance', label: 'Read the Guide' },
+    { href: '/docs/examples/million-rows', label: 'Open the Example', variant: 'secondary' },
+  ]}
+/>

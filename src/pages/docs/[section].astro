@@ -1,0 +1,52 @@
+---
+import SectionHub from '../../components/SectionHub.astro';
+import { sidebar } from '../../config/sidebar';
+import { getSectionLinks } from '../../lib/docs-sections';
+
+export async function getStaticPaths() {
+  return sidebar.map((section) => ({
+    params: { section: section.slug },
+  }));
+}
+
+const { section: sectionSlug } = Astro.params;
+const section = sectionSlug ? await getSectionLinks(sectionSlug) : null;
+
+if (!section) {
+  throw new Error(`Unknown docs section: ${sectionSlug}`);
+}
+
+const title = `${section.title} | ZenGrid Docs`;
+const pathname = `/docs/${section.slug}`;
+const items = section.items.map((item) => ({
+  href: `/docs/${item.slug}`,
+  title: item.title,
+  description: item.description,
+}));
+const overviewPath =
+  section.slug === 'user-guide'
+    ? '/performance'
+    : ['features', 'examples', 'api', 'plugins'].includes(section.slug)
+      ? `/${section.slug}`
+      : '/docs';
+const overviewLabel = overviewPath === '/docs' ? 'Docs Home' : 'Overview Page';
+---
+
+<SectionHub
+  title={title}
+  description={section.description}
+  pathname={pathname}
+  eyebrow="Documentation"
+  intro={section.description}
+  items={items}
+  keywords={[`ZenGrid ${section.title}`, 'ZenGrid docs', ...section.items.map((item) => item.title)]}
+  actions={[
+    { href: '/docs', label: 'All Docs' },
+    { href: overviewPath, label: overviewLabel, variant: 'secondary' },
+  ]}
+  breadcrumbs={[
+    { title: 'Home', path: '/' },
+    { title: 'Docs', path: '/docs' },
+    { title: section.title, path: pathname },
+  ]}
+/>

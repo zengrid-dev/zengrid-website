@@ -1,0 +1,30 @@
+---
+import SectionHub from '../components/SectionHub.astro';
+import { getSectionLinks } from '../lib/docs-sections';
+
+const section = await getSectionLinks('plugins');
+
+if (!section) {
+  throw new Error('Plugins section metadata is missing.');
+}
+
+const items = section.items.map((item) => ({
+  href: `/docs/${item.slug}`,
+  title: item.title,
+  description: item.description,
+}));
+---
+
+<SectionHub
+  title="ZenGrid Plugins | Core, Sort, Filter, Selection, Editing"
+  description="Learn how ZenGrid plugins work and how to use the core, sort, filter, selection, editing, and undo/redo plugins."
+  pathname="/plugins"
+  eyebrow="Extensibility"
+  intro="ZenGrid’s plugin system lets you compose behavior without turning the grid into a monolith. Start with the built-in plugins, then build your own when you need tighter control."
+  items={items}
+  keywords={['ZenGrid plugins', 'filter plugin', 'sort plugin', 'selection plugin', 'editing plugin']}
+  actions={[
+    { href: '/docs/plugins', label: 'Browse Plugin Docs' },
+    { href: '/api', label: 'Read the API', variant: 'secondary' },
+  ]}
+/>

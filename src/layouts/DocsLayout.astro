@@ -5,6 +5,8 @@ import TableOfContents from '../components/docs/TableOfContents.astro';
 import Breadcrumbs from '../components/docs/Breadcrumbs.astro';
 import PrevNext from '../components/docs/PrevNext.astro';
 import '../styles/docs.css';
+import { getBreadcrumbs } from '../config/sidebar';
+import { createBreadcrumbStructuredData, createDocStructuredData } from '../lib/seo';
 
 interface Props {
   title: string;
@@ -12,12 +14,40 @@ interface Props {
   slug: string;
   headings: { depth: number; slug: string; text: string }[];
   toc?: boolean;
+  tags?: string[];
 }
 
-const { title, description, slug, headings, toc = true } = Astro.props;
+const { title, description, slug, headings, toc = true, tags = [] } = Astro.props;
+const pathname = `/docs/${slug}`;
+const breadcrumbItems = getBreadcrumbs(slug)
+  .filter((crumb) => crumb.slug)
+  .map((crumb) => ({
+    title: crumb.title,
+    path: crumb.slug!,
+  }));
+const structuredData = [
+  createDocStructuredData({
+    title: `${title} | ZenGrid Docs`,
+    description,
+    pathname,
+    keywords: tags,
+  }),
+  createBreadcrumbStructuredData([
+    { title: 'Home', path: '/' },
+    ...breadcrumbItems,
+    { title, path: pathname },
+  ]),
+];
 ---
 
-<BaseLayout title={`${title} - ZenGrid Docs`} description={description}>
+<BaseLayout
+  title={`${title} | ZenGrid Docs`}
+  description={description}
+  pathname={pathname}
+  keywords={tags}
+  ogType="article"
+  structuredData={structuredData}
+>
   <nav class="navbar">
     <div class="container">
       <div class="nav-content">

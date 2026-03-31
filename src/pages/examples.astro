@@ -1,0 +1,30 @@
+---
+import SectionHub from '../components/SectionHub.astro';
+import { getSectionLinks } from '../lib/docs-sections';
+
+const section = await getSectionLinks('examples');
+
+if (!section) {
+  throw new Error('Examples section metadata is missing.');
+}
+
+const items = section.items.map((item) => ({
+  href: `/docs/${item.slug}`,
+  title: item.title,
+  description: item.description,
+}));
+---
+
+<SectionHub
+  title="ZenGrid Examples | Basic, Sortable, Filterable, Editable, Million Rows"
+  description="Start from practical ZenGrid examples covering basic setup, sorting, filtering, editing, and million-row performance."
+  pathname="/examples"
+  eyebrow="Examples"
+  intro="These examples are the fastest way to understand how ZenGrid behaves in real code. Use them as entry points for prototypes, benchmarks, and production integrations."
+  items={items}
+  keywords={['ZenGrid examples', 'JavaScript grid examples', 'TypeScript data grid demo', 'million row grid example']}
+  actions={[
+    { href: '/docs/examples', label: 'Browse Example Docs' },
+    { href: '/docs/getting-started/quick-start', label: 'Quick Start', variant: 'secondary' },
+  ]}
+/>

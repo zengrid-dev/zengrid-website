@@ -3,21 +3,18 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Sidebar from '../../components/docs/Sidebar.astro';
 import '../../styles/docs.css';
 import { sidebar } from '../../config/sidebar';
+import { createDocsStructuredData } from '../../lib/seo';
 
-const categoryDescriptions: Record<string, string> = {
-  'Getting Started': 'Install ZenGrid and create your first high-performance grid.',
-  'User Guide': 'Learn how to load data, configure virtual scrolling, and optimize performance.',
-  'Features': 'Selection, sorting, filtering, editing, pagination, and more.',
-  'API Reference': 'Complete API documentation for the Grid class, options, events, and types.',
-  'Plugins': 'Extend ZenGrid with built-in and custom plugins.',
-  'Rendering': 'Customize cell and header rendering with built-in and custom renderers.',
-  'Cell Editors': 'Built-in editors for text, numbers, dates, dropdowns, and more.',
-  'Examples': 'Interactive examples showing ZenGrid in action.',
-  'Advanced': 'Deep dives into the reactive system, plugin architecture, and accessibility.',
-};
+const structuredData = createDocsStructuredData();
 ---
 
-<BaseLayout title="Documentation - ZenGrid" description="ZenGrid documentation — guides, API reference, and examples.">
+<BaseLayout
+  title="ZenGrid Documentation | Guides, API Reference, and Examples"
+  description="ZenGrid documentation with installation guides, API reference, performance tuning, plugins, and interactive examples."
+  pathname="/docs"
+  keywords={['ZenGrid docs', 'TypeScript data grid docs', 'JavaScript grid examples', 'virtual grid API']}
+  structuredData={structuredData}
+>
   <nav class="navbar">
     <div class="container">
       <div class="nav-content">
@@ -45,9 +42,9 @@ const categoryDescriptions: Record<string, string> = {
 
         <div class="docs-category-grid">
           {sidebar.map((section) => (
-            <a href={`/docs/${section.items[0].slug}`} class="docs-category-card">
+            <a href={`/docs/${section.slug}`} class="docs-category-card">
               <h3>{section.title}</h3>
-              <p>{categoryDescriptions[section.title] || `${section.items.length} articles`}</p>
+              <p>{section.description || `${section.items.length} articles`}</p>
             </a>
           ))}
         </div>

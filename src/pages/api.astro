@@ -1,0 +1,30 @@
+---
+import SectionHub from '../components/SectionHub.astro';
+import { getSectionLinks } from '../lib/docs-sections';
+
+const section = await getSectionLinks('api');
+
+if (!section) {
+  throw new Error('API section metadata is missing.');
+}
+
+const items = section.items.map((item) => ({
+  href: `/docs/${item.slug}`,
+  title: item.title,
+  description: item.description,
+}));
+---
+
+<SectionHub
+  title="ZenGrid API Reference | Grid, GridOptions, Events, and Types"
+  description="Use the ZenGrid API reference for Grid, GridOptions, events, and TypeScript types when integrating the library into your app."
+  pathname="/api"
+  eyebrow="API"
+  intro="The API reference covers the public entry points you need when wiring data sources, responding to grid events, and composing advanced behavior with plugins."
+  items={items}
+  keywords={['ZenGrid API', 'GridOptions API', 'TypeScript grid events', 'ZenGrid types']}
+  actions={[
+    { href: '/docs/api', label: 'Browse API Docs' },
+    { href: '/plugins', label: 'Explore Plugins', variant: 'secondary' },
+  ]}
+/>
