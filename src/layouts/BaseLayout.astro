@@ -37,37 +37,23 @@ const structuredDataJson = structuredData ? JSON.stringify(structuredData) : und
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Google tag (gtag.js) -->
+    <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-R9KJFDG6N7"></script>
     <script is:inline>
-      const scheduleAfterLoad = (task) => {
-        const idleCallback = window.requestIdleCallback;
-        if (idleCallback) {
-          window.addEventListener('load', () => idleCallback(task, { timeout: 3000 }), { once: true });
-          return;
-        }
-
-        window.addEventListener('load', () => window.setTimeout(task, 1500), { once: true });
-      };
-
-      scheduleAfterLoad(() => {
-        if (window.__zenAnalyticsLoaded) return;
-        window.__zenAnalyticsLoaded = true;
-
-        window.dataLayer = window.dataLayer || [];
-        window.gtag = function () { window.dataLayer.push(arguments); };
-        window.gtag('js', new Date());
-        window.gtag('config', 'AW-18054799964');
-
-        const gtagScript = document.createElement('script');
-        gtagScript.async = true;
-        gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=AW-18054799964';
-        document.head.appendChild(gtagScript);
-
-        const beaconScript = document.createElement('script');
-        beaconScript.defer = true;
-        beaconScript.src = 'https://static.cloudflareinsights.com/beacon.min.js';
-        beaconScript.setAttribute('data-cf-beacon', '{"token":"93885e248e654b94952498996d47649c"}');
-        document.head.appendChild(beaconScript);
-      });
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-R9KJFDG6N7');
+      gtag('config', 'AW-18054799964');
+    </script>
+    <script is:inline>
+      window.addEventListener('load', function () {
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+        s.setAttribute('data-cf-beacon', '{"token":"93885e248e654b94952498996d47649c"}');
+        document.head.appendChild(s);
+      }, { once: true });
     </script>
 
     <meta charset="UTF-8" />
