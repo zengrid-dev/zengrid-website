@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "zengrid.dev"
+        }
+      ],
+      "destination": "https://www.zengrid.dev/:path*",
+      "permanent": true
+    }
+  ]
+}

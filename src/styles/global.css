@@ -20,6 +20,7 @@
     --text-main: #f8fafc;         /* Slate 50 */
     --text-muted: #94a3b8;        /* Slate 400 */
     --text-dim: #64748b;          /* Slate 500 */
+    --font-sans: "Inter", "Aptos", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
     /* Borders & Lines */
     --border-subtle: #1e293b;     /* Slate 800 */
@@ -38,7 +39,7 @@
 html, body {
   background-color: var(--bg-dark);
   color: var(--text-main);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   scroll-behavior: smooth;
   position: relative;
 }
@@ -216,6 +217,6 @@ p {
 .stats-bar {
   border-top: 1px solid var(--border-subtle) !important;
   border-bottom: 1px solid var(--border-subtle) !important;
-  background: rgba(2, 6, 23, 0.5) !important;
+  background: rgba(2, 6, 23, 0.82) !important;
   backdrop-filter: blur(10px);
 }
