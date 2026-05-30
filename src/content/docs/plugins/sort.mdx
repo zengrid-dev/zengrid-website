@@ -1,273 +1,77 @@
 ---
-title: SortPlugin
-description: SortPlugin and AsyncSortPlugin integrate sorting with the reactive store system.
-order: 23
+title: Sort Plugin
+description: Use ZenGrid sorting through the public grid.sort API.
+order: 22
 category: Plugins
-tags: [plugins, sort, reactive]
+tags: [plugins, sort, sorting]
 ---
 
 import Callout from '../../../components/docs/Callout.astro';
 
-The `SortPlugin` integrates ZenGrid's sorting functionality with the reactive store system, supporting both frontend and backend sorting modes.
+The sort plugin is installed automatically by `Grid`. Application code should use `grid.sort`.
 
-## Overview
+## Public API
 
-SortPlugin runs at phase 10 and provides:
+```ts title="sort-api.ts"
+grid.sort.toggle(1);
+grid.sort.apply([{ column: 1, direction: 'asc' }]);
+grid.sort.setState([{ column: 2, direction: 'desc' }]);
+grid.sort.clear();
 
-- Reactive sort state management
-- Frontend in-memory sorting
-- Backend sort delegation
-- Single and multi-column sorting
-- Sort state persistence
-
-<Callout type="info">
-SortPlugin depends on CorePlugin and must be registered after it.
-</Callout>
-
-## Creation
-
-Create the SortPlugin using factory functions:
-
-```ts title="Creating SortPlugin"
-import { createSortPlugin, createAsyncSortPlugin } from '@zengrid/core';
-
-// Synchronous sorting
-const sortPlugin = createSortPlugin();
-grid.usePlugin(sortPlugin);
-
-// Asynchronous sorting
-const asyncSortPlugin = createAsyncSortPlugin();
-grid.usePlugin(asyncSortPlugin);
+const state = grid.sort.getState();
+const mode = grid.sort.getMode();
+const icons = grid.sort.getIcons();
 ```
 
-## Frontend Mode
+## Column Setup
 
-Frontend mode sorts data in-memory using built-in sorters:
+```ts title="columns.ts"
+import type { ColumnDef } from '@zengrid/core';
 
-```ts title="Frontend Sorting"
-import { createGrid, createSortPlugin } from '@zengrid/core';
-
-const grid = createGrid(container, {
-  columns: [
-    { id: 'name', field: 'name', sortable: true },
-    { id: 'age', field: 'age', sortable: true }
-  ],
-  data: users,
-  sorting: {
-    mode: 'frontend',
-    multiColumn: true
-  }
-});
-
-grid.usePlugin(createSortPlugin());
-
-// Sort by name ascending
-grid.api.sort.setSortState([
-  { field: 'name', direction: 'asc' }
-]);
-```
-
-### Single Column Sorting
-
-Uses `SingleColumnSorter` for single-column operations:
-
-```ts title="Single Column Sort"
-// Only one column sorted at a time
-grid.api.sort.setSortState([
-  { field: 'age', direction: 'desc' }
-]);
-
-// Previous sort is replaced
-store.get('sort.state'); // [{ field: 'age', direction: 'desc' }]
-```
-
-### Multi-Column Sorting
-
-Uses `MultiColumnSorter` for multi-column operations:
-
-```ts title="Multi-Column Sort"
-const grid = createGrid(container, {
-  sorting: { mode: 'frontend', multiColumn: true }
-});
-
-// Sort by multiple columns
-grid.api.sort.setSortState([
-  { field: 'department', direction: 'asc' },
-  { field: 'name', direction: 'asc' }
-]);
-
-// Data sorted by department, then by name
-```
-
-<Callout type="tip">
-Multi-column sorting maintains sort priority based on array order.
-</Callout>
-
-## Backend Mode
-
-In explicit backend data mode, SortPlugin serializes the active sort state into `request.query.sort` before `onDataRequest` runs:
-
-```ts title="Backend Sorting"
-const grid = new Grid(container, {
-  rowCount: 100000,
-  colCount: 1,
-  columns: [
-    { id: 'name', field: 'name', sortable: true }
-  ],
-  dataMode: 'backend',
-  onDataRequest: async ({ startRow, endRow, query }) => {
-    const response = await fetch('/api/users/window', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startRow, endRow, query })
-    });
-
-    return response.json();
-  }
-});
-
-grid.usePlugin(createSortPlugin());
-```
-
-## AsyncSortPlugin
-
-For async sorting operations with loading states:
-
-```ts title="Async Sorting"
-import { createAsyncSortPlugin } from '@zengrid/core';
-
-const grid = new Grid(container, {
-  rowCount: 100000,
-  colCount: 1,
-  dataMode: 'backend',
-  onDataRequest: async ({ startRow, endRow, query }) => {
-    grid.api.loading.show();
-
-    try {
-      const response = await fetch('/api/users/window', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startRow, endRow, query })
-      });
-
-      return response.json();
-    } finally {
-      grid.api.loading.hide();
-    }
-  }
-});
-
-grid.usePlugin(createAsyncSortPlugin());
-```
-
-## Reactive State
-
-SortPlugin creates these reactive signals:
-
-```ts title="Sort State Signals"
-// Current sort state
-store.get('sort.state')          // Array<{ field: string, direction: 'asc' | 'desc' }>
-store.set('sort.state', newSort)
-
-// Computed signals
-store.get('sort.hasSorting')     // Boolean: any active sorts
-store.get('sort.sortedFields')   // Array<string>: sorted field names
-```
-
-## API Methods
-
-SortPlugin registers these methods on `grid.api.sort`:
-
-```ts title="Sort API Methods"
-// Set sort state
-grid.api.sort.setSortState([
-  { field: 'name', direction: 'asc' }
-]);
-
-// Get current sort state
-const sortState = grid.api.sort.getSortState();
-
-// Toggle sort on a field
-grid.api.sort.toggleSort('age');
-
-// Clear all sorting
-grid.api.sort.clearSort();
-
-// Sort by field with direction
-grid.api.sort.sortByField('name', 'desc');
-```
-
-## Sort State Structure
-
-```ts title="SortState Type"
-interface SortState {
-  field: string;
-  direction: 'asc' | 'desc';
-}
-
-type SortStateArray = SortState[];
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80, sortable: true },
+  { field: 'name', header: 'Name', width: 220, sortable: true },
+  { field: 'status', header: 'Status', width: 140 },
+];
 ```
 
 ## Events
 
-SortPlugin emits events for sort changes:
-
-```ts title="Sort Events"
-grid.on('sort:change', (sortState) => {
-  console.log('Sort changed:', sortState);
+```ts title="sort-events.ts"
+grid.on('sort:change', ({ sortState, previousSortState }) => {
+  console.log({ sortState, previousSortState });
 });
 
-grid.on('sort:clear', () => {
-  console.log('Sort cleared');
+grid.on('header:sort:click', ({ columnIndex, nextDirection }) => {
+  console.log(columnIndex, nextDirection);
 });
 ```
 
-## Integration with Store
+## Backend Mode
 
-SortPlugin integrates seamlessly with the reactive store:
+When `dataMode: 'backend'`, sort state is delegated through `onDataRequest`.
 
-```ts title="Store Integration"
-// Watch sort changes
-store.effect('logSortChanges', () => {
-  const sortState = store.get('sort.state');
-  console.log('Current sort:', sortState);
-}, 'MyComponent', 100);
+```ts title="backend-sort.ts"
+const grid = new Grid(container, {
+  columns,
+  rowCount: 100000,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
+  dataMode: 'backend',
+  onDataRequest: async (request) => {
+    const response = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request.query),
+      signal: request.signal,
+    });
 
-// Computed from sort state
-store.computed('sort.summary', () => {
-  const sortState = store.get('sort.state');
-  return sortState.map(s => `${s.field} ${s.direction}`).join(', ');
-}, 'MyComponent', 100);
+    return response.json();
+  },
+});
 ```
-
-## Performance
-
-SortPlugin optimizes sorting performance:
-
-- **Timsort algorithm**: Uses efficient Timsort from `@zengrid/shared`
-- **Index-based**: Sorts indices, not data
-- **Stable sorting**: Maintains relative order for equal elements
-- **Lazy evaluation**: Only sorts when needed
 
 <Callout type="info">
-Frontend mode uses Timsort with O(n log n) average complexity for optimal performance.
+Flat aliases such as `toggleSort()` and `clearSort()` exist for compatibility, but new docs and app code should prefer `grid.sort`.
 </Callout>
-
-## Custom Comparators
-
-Define custom sort comparators per column:
-
-```ts title="Custom Comparators"
-const grid = createGrid(container, {
-  columns: [
-    {
-      id: 'date',
-      field: 'date',
-      sortable: true,
-      sortComparator: (a, b) => {
-        return new Date(a).getTime() - new Date(b).getTime();
-      }
-    }
-  ]
-});
-```

@@ -32,6 +32,7 @@ const canonicalUrl = toAbsoluteUrl(pathname);
 const robotsContent = noindex ? 'noindex, nofollow' : 'index, follow';
 const keywordsContent = keywords.length > 0 ? [...new Set(keywords)].join(', ') : undefined;
 const structuredDataJson = structuredData ? JSON.stringify(structuredData) : undefined;
+const reportsPageViewConversion = !noindex && pathname === '/';
 ---
 
 <!doctype html>
@@ -46,7 +47,7 @@ const structuredDataJson = structuredData ? JSON.stringify(structuredData) : und
       gtag('config', 'AW-18054799964');
       gtag('config', 'G-R9KJFDG6N7');
     </script>
-    {!noindex && (
+    {reportsPageViewConversion && (
       <script is:inline>
         gtag('event', 'conversion', {'send_to': 'AW-18054799964/bf2RCPyNnZMcENzEmaFD'});
       </script>

@@ -250,13 +250,12 @@ Always clean up event listeners and DOM elements in the `destroy()` method to pr
 }
 ```
 
-### Step 3: Register the Editor
+### Step 3: Create the Editor Instance
 
-```ts title="Register Custom Editor"
+```ts title="Create Custom Editor"
 import { ColorPickerEditor } from './ColorPickerEditor';
 
-// Register globally
-grid.registerEditor('colorPicker', ColorPickerEditor);
+const colorPickerEditor = new ColorPickerEditor();
 ```
 
 ### Step 4: Use in Column Definition
@@ -266,7 +265,7 @@ const columns: ColumnDef[] = [
   {
     field: 'brandColor',
     header: 'Brand Color',
-    editor: 'colorPicker',
+    editor: colorPickerEditor,
     editorOptions: {
       palette: [
         '#FF6B6B', '#4ECDC4', '#45B7D1',

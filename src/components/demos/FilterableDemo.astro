@@ -79,9 +79,9 @@ import DemoContainer from './DemoContainer.astro';
       searchInput.addEventListener('input', () => {
         const query = searchInput.value;
         if (query) {
-          grid.setQuickFilter(query);
+          grid.filter.setQuick(query);
         } else {
-          grid.clearQuickFilter();
+          grid.filter.clearQuick();
         }
       });
     }
@@ -92,19 +92,19 @@ import DemoContainer from './DemoContainer.astro';
         if (filter === 'clear') {
           activeButtonFilter = null;
           if (searchInput) searchInput.value = '';
-          grid.clearFilters();
-          grid.clearQuickFilter();
+          grid.filter.clear();
+          grid.filter.clearQuick();
           document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         } else {
           if (activeButtonFilter === filter) {
             activeButtonFilter = null;
-            grid.clearFilters();
+            grid.filter.clear();
           } else {
             activeButtonFilter = filter ?? null;
             if (filter === 'active') {
-              grid.setFilter(4, 'equals', 'Active');
+              grid.filter.set(4, 'equals', 'Active');
             } else if (filter === 'engineering') {
-              grid.setFilter(3, 'equals', 'Engineering');
+              grid.filter.set(3, 'equals', 'Engineering');
             }
           }
           document.querySelectorAll('.filter-btn:not(.clear)').forEach(b => {

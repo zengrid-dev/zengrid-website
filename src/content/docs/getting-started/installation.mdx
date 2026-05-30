@@ -31,7 +31,7 @@ pnpm add @zengrid/core
 ```
 
 <Callout type="info">
-  ZenGrid has zero runtime dependencies. The `@zengrid/shared` package is included automatically as a dependency of `@zengrid/core`.
+  `@zengrid/core` includes runtime dependencies such as `@zengrid/shared`. Let your package manager resolve transitive dependencies from npm.
 </Callout>
 
 ## Quick Verification
@@ -46,8 +46,16 @@ const container = document.getElementById('grid');
 const grid = new Grid(container, {
   rowCount: 100,
   colCount: 5,
-  data: (row, col) => `Cell ${row},${col}`,
+  rowHeight: 36,
+  colWidth: 140,
 });
+
+grid.setData(
+  Array.from({ length: 100 }, (_, row) =>
+    Array.from({ length: 5 }, (_, col) => `Cell ${row},${col}`)
+  )
+);
+grid.render();
 ```
 
 ```html title="index.html"
@@ -85,14 +93,22 @@ import { Grid } from '@zengrid/core';
 const grid = new Grid(document.getElementById('grid')!, {
   rowCount: 1000,
   colCount: 10,
-  data: (row, col) => `Row ${row}, Col ${col}`,
+  rowHeight: 36,
+  colWidth: 140,
   columns: [
-    { header: 'ID', width: 60 },
-    { header: 'Name', width: 200 },
-    { header: 'Email', width: 250 },
+    { field: 'id', header: 'ID', width: 60 },
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'email', header: 'Email', width: 250 },
     // ...
   ],
 });
+
+grid.setData(
+  Array.from({ length: 1000 }, (_, row) =>
+    Array.from({ length: 10 }, (_, col) => `Row ${row}, Col ${col}`)
+  )
+);
+grid.render();
 
 // Clean up when done
 // grid.destroy();
@@ -114,8 +130,15 @@ export function GridComponent() {
     gridRef.current = new Grid(containerRef.current, {
       rowCount: 1000,
       colCount: 5,
-      data: (row, col) => `Cell ${row},${col}`,
+      rowHeight: 36,
+      colWidth: 140,
     });
+    gridRef.current.setData(
+      Array.from({ length: 1000 }, (_, row) =>
+        Array.from({ length: 5 }, (_, col) => `Cell ${row},${col}`)
+      )
+    );
+    gridRef.current.render();
 
     return () => gridRef.current?.destroy();
   }, []);
@@ -143,8 +166,15 @@ onMounted(() => {
   grid = new Grid(container.value, {
     rowCount: 1000,
     colCount: 5,
-    data: (row, col) => `Cell ${row},${col}`,
+    rowHeight: 36,
+    colWidth: 140,
   });
+  grid.setData(
+    Array.from({ length: 1000 }, (_, row) =>
+      Array.from({ length: 5 }, (_, col) => `Cell ${row},${col}`)
+    )
+  );
+  grid.render();
 });
 
 onUnmounted(() => grid?.destroy());
@@ -171,8 +201,15 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     this.grid = new Grid(this.container.nativeElement, {
       rowCount: 1000,
       colCount: 5,
-      data: (row, col) => `Cell ${row},${col}`,
+      rowHeight: 36,
+      colWidth: 140,
     });
+    this.grid.setData(
+      Array.from({ length: 1000 }, (_, row) =>
+        Array.from({ length: 5 }, (_, col) => `Cell ${row},${col}`)
+      )
+    );
+    this.grid.render();
   }
 
   ngOnDestroy() {

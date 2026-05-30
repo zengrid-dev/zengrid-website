@@ -55,7 +55,7 @@ The editor lifecycle follows these stages:
 2. **Initialize**: `init()` is called with container, current value, and params
 3. **Edit**: Editor renders UI and user interacts with it
 4. **Commit**: User presses Enter, calling `getValue()` to retrieve the value
-5. **Save**: EditorManager calls `commitEdit` to save the value
+5. **Save**: the active edit is committed and the value is written back
 6. **Cleanup**: `destroy()` is called to remove DOM and detach events
 
 ```ts title="Lifecycle Example"
@@ -107,13 +107,7 @@ onKeyDown(event: KeyboardEvent): boolean {
 
 ## Editor Registration
 
-### Global Registration
-
-Register custom editors globally:
-
-```ts title="Global Registration"
-grid.registerEditor('myEditor', MyEditor);
-```
+Use built-in editors by name, or pass a custom `CellEditor` instance directly on the column.
 
 ### Column Configuration
 

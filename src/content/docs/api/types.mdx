@@ -89,7 +89,7 @@ interface CellRef {
 
 ```typescript title="Example usage"
 const cell: CellRef = { row: 5, col: 2 };
-grid.scrollToCell(cell.row, cell.col);
+grid.scroll.toCell(cell.row, cell.col);
 ```
 
 ### CellRange
@@ -150,7 +150,7 @@ interface VisibleRange {
 ```
 
 ```typescript title="Example usage"
-const visibleRange = grid.getVisibleRange();
+const visibleRange = grid.scroll.getVisibleRange();
 console.log('Visible rows:', visibleRange.startRow, 'to', visibleRange.endRow);
 ```
 
@@ -166,7 +166,7 @@ interface ScrollPosition {
 ```
 
 ```typescript title="Example usage"
-const { top, left } = grid.getScrollPosition();
+const { top, left } = grid.scroll.getPosition();
 ```
 
 ## Sort Types
@@ -194,7 +194,7 @@ const sortState: SortState[] = [
   { column: 0, direction: 'asc', sortIndex: 0 },
   { column: 2, direction: 'desc', sortIndex: 1 }
 ];
-grid.setSortState(sortState);
+grid.sort.setState(sortState);
 ```
 
 ### SortDirection
@@ -552,7 +552,7 @@ interface GridExportOptions {
 - `includeHeaders: boolean` - Include column headers
 
 ```typescript title="Example usage"
-const csv = grid.exportCSV({
+const csv = grid.export.csv({
   rows: 'visible',
   columns: 'all',
   includeHeaders: true

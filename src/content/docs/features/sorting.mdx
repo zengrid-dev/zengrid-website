@@ -1,197 +1,69 @@
 ---
 title: Sorting
-description: Sort grid data with single or multi-column sorting, custom comparators, and backend support.
+description: Sort rows with sortable columns and the grid.sort API.
 order: 10
 category: Features
-tags: [sorting, multi-sort, comparator]
+tags: [sorting, features]
 ---
 
 import Callout from '../../../components/docs/Callout.astro';
 
-ZenGrid provides powerful sorting capabilities with support for both single and multi-column sorting, custom comparators, and backend integration.
+Enable sorting on columns, then use header interactions or `grid.sort`.
 
-## Sorting Modes
+## Column Setup
 
-ZenGrid supports two sorting modes:
-
-- **frontend**: Data is sorted in the browser using the configured comparators
-- **backend**: Sorting is delegated through `onDataRequest` when `dataMode: 'backend'`
-
-## Basic Sorting
-
-```js title="basic-sort.js"
-// Sort a column in ascending order
-grid.sort('name', 'asc');
-
-// Sort a column in descending order
-grid.sort('age', 'desc');
-
-// Toggle sort direction (asc → desc → null → asc)
-grid.toggleSort('email');
-
-// Clear all sorting
-grid.clearSort();
+```ts title="columns.ts"
+const columns: ColumnDef[] = [
+  { field: 'name', header: 'Name', width: 220, sortable: true },
+  { field: 'age', header: 'Age', width: 100, sortable: true },
+  { field: 'email', header: 'Email', width: 260, sortable: true },
+];
 ```
 
-## Configuration
+## API
 
-```js title="sort-config.js"
-const grid = new ZenGrid(container, {
-  columns: [
-    { id: 'name', field: 'name', sortable: true },
-    { id: 'age', field: 'age', sortable: true },
-    { id: 'email', field: 'email', sortable: false }
-  ],
-  sortIcons: {
-    asc: '▲',
-    desc: '▼'
-  }
-});
-```
-
-<Callout type="info">
-By default, all columns are sortable. Set `sortable: false` on individual columns to disable sorting.
-</Callout>
-
-## Multi-Column Sorting
-
-ZenGrid automatically supports multi-column sorting:
-
-```js title="multi-sort.js"
-// Sort by name first, then by age
-grid.sort('name', 'asc');
-grid.sort('age', 'asc'); // Adds to existing sort
-
-// Get current sort state
-const sortState = grid.getSortState();
-// Returns: [
-//   { column: 'name', direction: 'asc', sortIndex: 0 },
-//   { column: 'age', direction: 'asc', sortIndex: 1 }
-// ]
-```
-
-<Callout type="tip">
-Hold Shift while clicking column headers to add additional sort levels in the UI.
-</Callout>
-
-## Sort State Management
-
-### Getting Sort State
-
-```js title="get-sort-state.js"
-// Get all active sorts
-const allSorts = grid.getSortState();
-
-// Get sort state for a specific column
-const columnSort = grid.getColumnSort('name');
-// Returns: { column: 'name', direction: 'asc', sortIndex: 0 } | null
-```
-
-### Setting Sort State
-
-```js title="set-sort-state.js"
-// Apply a sort configuration
-grid.setSortState([
-  { column: 'name', direction: 'asc' },
-  { column: 'age', direction: 'desc' }
+```ts title="sorting.ts"
+grid.sort.toggle(0);
+grid.sort.apply([{ column: 1, direction: 'desc' }]);
+grid.sort.setState([
+  { column: 1, direction: 'asc', sortIndex: 0 },
+  { column: 0, direction: 'desc', sortIndex: 1 },
 ]);
 
-// Clear all sorts
-grid.setSortState([]);
+const state = grid.sort.getState();
+grid.sort.clear();
 ```
 
-## Sort State Interface
+## Events
 
-```typescript title="types.ts"
-interface SortState {
-  column: string;           // Column ID
-  direction: 'asc' | 'desc' | null;
-  sortIndex?: number;       // Position in multi-sort sequence
-}
+```ts title="sort-events.ts"
+grid.on('sort:beforeSort', (event) => {
+  console.log(event.sortState);
+});
+
+grid.on('sort:change', ({ sortState, previousSortState }) => {
+  console.log({ sortState, previousSortState });
+});
+
+grid.on('sort:afterSort', ({ rowsAffected }) => {
+  console.log(rowsAffected);
+});
 ```
 
 ## Backend Sorting
 
-For large datasets, delegate sorting to the server:
-
-```js title="backend-sort.js"
-const grid = new ZenGrid(container, {
+```ts title="backend-sorting.ts"
+const grid = new Grid(container, {
+  columns,
+  rowCount: 100000,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
   dataMode: 'backend',
-  onDataRequest: async ({ startRow, endRow, query }) => {
-    const response = await fetch('/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startRow, endRow, query })
-    });
-
-    return response.json();
-  }
+  onDataRequest: async (request) => fetchRows(request),
 });
 ```
 
-<Callout type="warning">
-Sorting only runs in backend mode when `dataMode` is explicitly set to `'backend'`. In `auto` mode, `onDataRequest` is still used for row loading, but sorting stays frontend.
-</Callout>
-
-## Custom Sort Icons
-
-Customize the sort indicator icons:
-
-```js title="custom-icons.js"
-const grid = new ZenGrid(container, {
-  sortIcons: {
-    asc: '↑',
-    desc: '↓'
-  }
-});
-```
-
-## Sorting Architecture
-
-ZenGrid uses different sorter implementations based on your needs:
-
-- **SingleColumnSorter**: Optimized for single-column sorting
-- **MultiColumnSorter**: Handles multi-column sort sequences
-- **SortStateManager**: Tracks and manages sort state changes
-
-## Events
-
-Listen to sort changes with these events:
-
-```js title="sort-events.js"
-grid.on('sort:beforeSort', (event) => {
-  console.log('About to sort:', event.sortState);
-  // Return false to cancel the sort
-});
-
-grid.on('sort:change', (event) => {
-  console.log('Sort changed:', event.sortState);
-});
-
-grid.on('sort:afterSort', (event) => {
-  console.log('Sort completed:', event.sortState);
-});
-```
-
-## Example: Custom Comparator
-
-```js title="custom-comparator.js"
-const grid = new ZenGrid(container, {
-  columns: [
-    {
-      id: 'status',
-      field: 'status',
-      sortable: true,
-      comparator: (a, b, direction) => {
-        const priority = { high: 3, medium: 2, low: 1 };
-        const diff = priority[a] - priority[b];
-        return direction === 'asc' ? diff : -diff;
-      }
-    }
-  ]
-});
-```
-
-<Callout type="tip">
-Custom comparators receive the cell values and the current sort direction, allowing you to implement domain-specific sorting logic.
+<Callout type="info">
+In backend mode, sort state is included in the canonical request query passed to `onDataRequest`.
 </Callout>

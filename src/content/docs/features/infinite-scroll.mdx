@@ -1,6 +1,6 @@
 ---
 title: Infinite Scroll
-description: Load data on demand with infinite scrolling and sliding window memory management.
+description: Load more rows on demand with current ZenGrid infinite scrolling options.
 order: 16
 category: Features
 tags: [infinite-scroll, lazy-loading, sliding-window]
@@ -8,334 +8,135 @@ tags: [infinite-scroll, lazy-loading, sliding-window]
 
 import Callout from '../../../components/docs/Callout.astro';
 
-ZenGrid's infinite scrolling feature enables efficient handling of massive datasets by loading data on demand and managing memory with a sliding window approach.
+ZenGrid infinite scrolling loads additional row batches when the user scrolls near the
+bottom of the loaded data. It is useful when you can append data incrementally and do
+not need a known total row count up front.
 
-## Configuration
+## Basic Setup
 
-Enable infinite scrolling with optional sliding window:
+```ts title="infinite-scroll.ts"
+import { Grid, type ColumnDef } from '@zengrid/core';
+import '@zengrid/core/dist/styles.css';
 
-```js title="infinite-scroll-config.js"
-const grid = new ZenGrid(container, {
-  infiniteScrolling: {
-    enabled: true,
-    threshold: 10,              // Load more when within 10 rows of bottom
-    initialRowCount: 100,       // Initial number of rows to display
-    enableSlidingWindow: true,  // Enable memory management
-    windowSize: 500,            // Keep 500 rows in memory
-    pruneThreshold: 0.3,        // Prune when 30% outside window
-    onDataPruned: (stats) => {
-      console.log('Pruned rows:', stats.prunedRows);
-    }
-  }
-});
-```
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80 },
+  { field: 'name', header: 'Name', width: 180 },
+  { field: 'email', header: 'Email', width: 240 },
+];
 
-<Callout type="info">
-Infinite scrolling is ideal for datasets with thousands or millions of rows where loading all data at once would be impractical.
-</Callout>
+async function loadUsers(offset: number, limit: number): Promise<any[][]> {
+  const response = await fetch(`/api/users?offset=${offset}&limit=${limit}`);
+  if (!response.ok) throw new Error('Failed to load users');
 
-## Data Loading Callback
-
-Implement the `onLoadMoreRows` callback to fetch data:
-
-```js title="load-more-rows.js"
-const grid = new ZenGrid(container, {
-  infiniteScrolling: {
-    enabled: true,
-    threshold: 10,
-    initialRowCount: 100
-  },
-  onLoadMoreRows: async (currentRowCount) => {
-    console.log('Current rows:', currentRowCount);
-
-    // Fetch next batch from server
-    const response = await fetch(
-      `/api/data?offset=${currentRowCount}&limit=100`
-    );
-
-    const newRows = await response.json();
-
-    // Return the new rows
-    return newRows;
-  }
-});
-```
-
-### Callback Signature
-
-```typescript title="callback-signature.ts"
-type LoadMoreRowsCallback = (currentRowCount: number) => Promise<any[][]>;
-```
-
-<Callout type="tip">
-The callback receives the current row count, allowing you to calculate the correct offset for pagination.
-</Callout>
-
-## Sliding Window Memory Management
-
-For extremely large datasets, enable sliding window to limit memory usage:
-
-```js title="sliding-window.js"
-const grid = new ZenGrid(container, {
-  infiniteScrolling: {
-    enabled: true,
-    enableSlidingWindow: true,
-    windowSize: 500,        // Keep 500 rows in memory
-    pruneThreshold: 0.3,    // Prune when 30% of window is off-screen
-    onDataPruned: (stats) => {
-      console.log('Memory management:', {
-        rowsInMemory: stats.rowsInMemory,
-        totalRowsLoaded: stats.totalRowsLoaded,
-        prunedRows: stats.prunedRows,
-        virtualOffset: stats.virtualOffset
-      });
-    }
-  }
-});
-```
-
-### How Sliding Window Works
-
-1. As you scroll, new rows are loaded and added to memory
-2. When memory exceeds `windowSize`, old rows outside the viewport are pruned
-3. The grid maintains a virtual offset to handle scrollbar position correctly
-4. Previously pruned data is re-fetched if you scroll back to it
-
-<Callout type="warning">
-With sliding window enabled, scrolling back to previously viewed data will trigger new data fetches. Cache results on the server side if needed.
-</Callout>
-
-## Memory Stats
-
-Query memory usage statistics:
-
-```js title="memory-stats.js"
-const stats = grid.getSlidingWindowStats();
-console.log(stats);
-// {
-//   virtualOffset: 2000,      // Virtual row offset for pruned rows
-//   rowsInMemory: 500,        // Current rows in DOM
-//   totalRowsLoaded: 2500,    // Total rows loaded so far
-//   prunedRows: 2000          // Total rows pruned
-// }
-```
-
-## Threshold Configuration
-
-The `threshold` parameter controls when to load more data:
-
-```js title="threshold-examples.js"
-// Load when within 10 rows of bottom
-infiniteScrolling: {
-  enabled: true,
-  threshold: 10
+  const result = await response.json();
+  return result.users.map((user: any) => [user.id, user.name, user.email]);
 }
 
-// Load when within 50 rows of bottom (more aggressive)
-infiniteScrolling: {
-  enabled: true,
-  threshold: 50
-}
+const firstPage = await loadUsers(0, 100);
 
-// Load only when at the very bottom
-infiniteScrolling: {
-  enabled: true,
-  threshold: 0
-}
-```
-
-<Callout type="tip">
-A higher threshold provides a smoother experience by preloading data before users reach the bottom.
-</Callout>
-
-## Reset Infinite Scrolling
-
-Reset the infinite scroll state:
-
-```js title="reset-infinite-scroll.js"
-// Reset infinite scrolling state
-grid.resetInfiniteScrolling();
-
-// This will:
-// - Clear all loaded data
-// - Reset row count to initialRowCount
-// - Clear sliding window stats
-// - Trigger initial data load
-```
-
-## Example: Backend Integration
-
-Complete example with backend API:
-
-```js title="backend-integration.js"
-const grid = new ZenGrid(container, {
-  columns: [
-    { id: 'id', field: 'id', header: 'ID', width: 80 },
-    { id: 'name', field: 'name', header: 'Name', width: 200 },
-    { id: 'email', field: 'email', header: 'Email', width: 250 }
-  ],
+const grid = new Grid(container, {
+  rowCount: firstPage.length,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
+  columns,
   infiniteScrolling: {
     enabled: true,
     threshold: 20,
-    initialRowCount: 100,
-    enableSlidingWindow: true,
-    windowSize: 1000,
-    pruneThreshold: 0.2
+    initialRowCount: firstPage.length,
   },
   onLoadMoreRows: async (currentRowCount) => {
-    try {
-      const response = await fetch(
-        `/api/users?offset=${currentRowCount}&limit=100`
-      );
+    return loadUsers(currentRowCount, 100);
+  },
+});
 
-      if (!response.ok) {
-        throw new Error('Failed to load data');
-      }
+grid.setData(firstPage);
+grid.render();
+```
 
-      const result = await response.json();
+<Callout type="info">
+For known-total datasets with server-side sorting, filtering, and paging, backend `dataMode` plus `onDataRequest` is usually easier to reason about.
+</Callout>
 
-      // Transform API response to grid format
-      return result.users.map(user => [
-        user.id,
-        user.name,
-        user.email
-      ]);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      return []; // Return empty array on error
-    }
-  }
+## Callback Signature
+
+```ts title="load-more-signature.ts"
+type LoadMoreRowsCallback = (currentRowCount: number) => Promise<any[][]>;
+```
+
+The callback receives the current loaded row count. Return row arrays in the same
+column order as the grid.
+
+## Sliding Window
+
+Use the sliding window options when loaded data can grow large enough to make memory
+usage matter.
+
+```ts title="sliding-window.ts"
+const grid = new Grid(container, {
+  rowCount: firstPage.length,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
+  columns,
+  infiniteScrolling: {
+    enabled: true,
+    threshold: 30,
+    initialRowCount: firstPage.length,
+    enableSlidingWindow: true,
+    windowSize: 1000,
+    pruneThreshold: 1200,
+    onDataPruned: (prunedRowCount, newVirtualOffset) => {
+      console.log({ prunedRowCount, newVirtualOffset });
+    },
+  },
+  onLoadMoreRows: (currentRowCount) => loadUsers(currentRowCount, 100),
 });
 ```
 
-## Example: Infinite Scroll with Search
+`pruneThreshold` is a row-count threshold. When the in-memory window grows past it,
+older rows can be pruned according to the sliding-window strategy.
 
-Combine infinite scrolling with server-side search:
+## Stats And Reset
 
-```js title="infinite-scroll-search.js"
-let currentSearchQuery = '';
+```ts title="infinite-scroll-controls.ts"
+const stats = grid.getSlidingWindowStats();
+console.log(stats.rowsInMemory, stats.totalRowsLoaded, stats.prunedRows);
 
-const grid = new ZenGrid(container, {
-  infiniteScrolling: {
-    enabled: true,
-    threshold: 15,
-    initialRowCount: 50
-  },
-  onLoadMoreRows: async (currentRowCount) => {
-    const response = await fetch('/api/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: currentSearchQuery,
-        offset: currentRowCount,
-        limit: 50
-      })
-    });
+grid.resetInfiniteScrolling();
+```
 
-    const data = await response.json();
-    return data.results;
-  }
-});
+Use `resetInfiniteScrolling()` after changing a search query or filter that affects
+the append stream.
 
-// Search input handler
-document.getElementById('search-input').addEventListener('input', (e) => {
-  currentSearchQuery = e.target.value;
+## Search Example
 
-  // Reset and reload with new search
+```ts title="infinite-scroll-search.ts"
+let query = '';
+
+async function loadSearchPage(offset: number): Promise<any[][]> {
+  const response = await fetch('/api/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, offset, limit: 100 }),
+  });
+
+  const result = await response.json();
+  return result.rows;
+}
+
+document.querySelector<HTMLInputElement>('#search')?.addEventListener('input', async (event) => {
+  query = event.currentTarget.value;
+
+  const firstPage = await loadSearchPage(0);
+  grid.setData(firstPage);
   grid.resetInfiniteScrolling();
 });
 ```
 
-## Memory Management Tips
+## Production Notes
 
-### Optimize Window Size
-
-Choose appropriate window size based on row height and viewport:
-
-```js title="optimize-window.js"
-const viewportHeight = window.innerHeight;
-const rowHeight = 40; // pixels
-const rowsInViewport = Math.ceil(viewportHeight / rowHeight);
-
-// Keep 10x viewport rows in memory
-const windowSize = rowsInViewport * 10;
-
-infiniteScrolling: {
-  enabled: true,
-  enableSlidingWindow: true,
-  windowSize: windowSize
-}
-```
-
-### Monitor Memory Usage
-
-Track memory consumption:
-
-```js title="monitor-memory.js"
-setInterval(() => {
-  const stats = grid.getSlidingWindowStats();
-  const estimatedMemory = stats.rowsInMemory * 100; // ~100 bytes per row
-
-  console.log(`Memory usage: ~${(estimatedMemory / 1024).toFixed(2)} KB`);
-
-  if (stats.rowsInMemory > 2000) {
-    console.warn('High memory usage detected');
-  }
-}, 5000);
-```
-
-## Loading Indicator
-
-Show a loading indicator while fetching data:
-
-```js title="loading-indicator.js"
-const grid = new ZenGrid(container, {
-  infiniteScrolling: {
-    enabled: true,
-    threshold: 10
-  },
-  onLoadMoreRows: async (currentRowCount) => {
-    // Show loading indicator
-    showLoadingSpinner();
-
-    try {
-      const data = await fetchData(currentRowCount);
-      return data;
-    } finally {
-      // Hide loading indicator
-      hideLoadingSpinner();
-    }
-  }
-});
-```
-
-<Callout type="tip">
-Always provide visual feedback during data loading to improve user experience.
-</Callout>
-
-## Performance Considerations
-
-- **Window Size**: Balance memory usage with scroll performance. Larger windows mean fewer reloads but more memory usage.
-- **Prune Threshold**: Lower values (0.1-0.3) prune more aggressively, saving memory but causing more reloads.
-- **Load Threshold**: Higher values (20-50 rows) provide smoother scrolling by preloading data earlier.
-- **Server Response Time**: Optimize your backend API for quick responses. Consider caching and database indexing.
-
-```js title="performance-config.js"
-// High-performance configuration
-infiniteScrolling: {
-  enabled: true,
-  threshold: 30,              // Preload early
-  enableSlidingWindow: true,
-  windowSize: 1000,           // Large window for fewer reloads
-  pruneThreshold: 0.2         // Moderate pruning
-}
-
-// Memory-optimized configuration
-infiniteScrolling: {
-  enabled: true,
-  threshold: 10,              // Load just in time
-  enableSlidingWindow: true,
-  windowSize: 300,            // Small window to save memory
-  pruneThreshold: 0.1         // Aggressive pruning
-}
-```
+- Handle network errors in `onLoadMoreRows`; returning an empty array is safer than throwing into the UI.
+- Debounce search inputs before resetting the stream.
+- Cache recently fetched pages server-side if users often scroll back through the same data.
+- Tune `threshold`, `windowSize`, and `pruneThreshold` with real row renderers, not synthetic rows only.

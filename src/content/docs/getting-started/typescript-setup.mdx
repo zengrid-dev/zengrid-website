@@ -1,6 +1,6 @@
 ---
 title: TypeScript Setup
-description: Configure TypeScript for type-safe ZenGrid development with full IntelliSense support.
+description: Configure TypeScript for type-safe ZenGrid development with current public APIs.
 order: 4
 category: Getting Started
 tags: [typescript, types, setup]
@@ -8,393 +8,162 @@ tags: [typescript, types, setup]
 
 import Callout from '../../../components/docs/Callout.astro';
 
-Configure TypeScript for type-safe ZenGrid development with full IntelliSense support and compile-time type checking.
+ZenGrid ships TypeScript declarations with `@zengrid/core`. Use the exported `Grid` class for runtime code and `type` imports for interfaces.
 
-## Import Patterns
-
-Import ZenGrid types using TypeScript's `type` keyword:
+## Imports
 
 ```ts title="imports.ts"
-import { Grid, type GridOptions, type ColumnDef, type CellRef } from '@zengrid/core';
-
-// Type-only imports for interfaces
-import type { CellRange, SortState, FilterModel } from '@zengrid/core';
+import { Grid, type ColumnDef, type GridOptions, type GridEvents } from '@zengrid/core';
+import type { CellRange, FilterModel, SortState } from '@zengrid/core';
+import '@zengrid/core/dist/styles.css';
 ```
 
 <Callout type="tip">
-Use `type` imports for interfaces and types to enable proper tree-shaking and avoid runtime import errors.
+Use `type` imports for interfaces and event payload types so bundlers only keep runtime values that are actually needed.
 </Callout>
 
-## GridOptions Interface
+## Typed Options
 
-The `GridOptions` interface provides full type safety for grid configuration:
+`GridOptions` is container-agnostic. Pass the DOM container as the first `Grid` constructor argument.
 
 ```ts title="grid-options.ts"
-import { Grid, type GridOptions } from '@zengrid/core';
+import { Grid, type ColumnDef, type GridOptions } from '@zengrid/core';
+
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 80, sortable: true },
+  { field: 'name', header: 'Name', width: 220, sortable: true, filterable: true },
+  { field: 'department', header: 'Department', width: 180, filterable: true },
+];
 
 const options: GridOptions = {
-  container: document.getElementById('grid')!,
-
-  // Data configuration
-  data: (row: number, col: number) => any,
-  rowCount: 1000,
-  colCount?: 10, // Optional
-
-  // Column definitions
-  columns?: ColumnDef[],
-
-  // Display options
-  rowHeight?: 32,
-  headerHeight?: 40,
-
-  // Feature flags
-  enableSelection?: true,
-  selectionType?: 'single' | 'range' | 'multi',
-  enableColumnReorder?: true,
-  enableColumnResize?: true,
-
-  // Virtualization
-  overscanRowCount?: 5,
-  overscanColCount?: 2,
-
-  // Styling
-  theme?: 'light' | 'dark',
-  className?: 'my-grid',
-
-  // Performance
-  enableVirtualization?: true,
-  batchUpdates?: true
+  rowCount: 2,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
+  columns,
+  enableSelection: true,
+  enableMultiSelection: true,
+  selectionType: 'range',
+  enableKeyboardNavigation: true,
+  overscanRows: 10,
+  overscanCols: 5,
 };
 
-const grid = new Grid(options);
+const grid = new Grid(document.getElementById('grid')!, options);
+grid.setData([
+  [1, 'Alice', 'Engineering'],
+  [2, 'Bob', 'Sales'],
+]);
+grid.render();
 ```
 
-## Typed Column Definitions
+## Mapping Typed Records
 
-Define columns with full type information:
+The frontend data path uses `any[][]`. Keep your application records typed, then map them into row arrays for the grid.
 
-```ts title="columns.ts"
-import type { ColumnDef } from '@zengrid/core';
-
+```ts title="records-to-rows.ts"
 interface Employee {
   id: number;
   name: string;
   email: string;
-  department: string;
-  salary: number;
   active: boolean;
 }
 
-const columns: ColumnDef[] = [
-  {
-    field: 'id',
-    header: 'ID',
-    width: 80,
-
-    // Behavior flags
-    sortable?: true,
-    editable?: false,
-    filterable?: false,
-    resizable?: true,
-    reorderable?: true,
-
-    // Constraints
-    minWidth?: 60,
-    maxWidth?: 120,
-
-    // Rendering
-    renderer?: 'text' | 'number' | 'checkbox' | 'custom',
-
-    // Editing
-    editor?: 'text' | 'number' | 'date' | 'dropdown',
-    editorOptions?: {
-      placeholder?: string,
-      options?: string[],
-      validation?: (value: any) => boolean
-    }
-  },
-  {
-    field: 'name',
-    header: 'Name',
-    width: 200,
-    sortable: true,
-    editable: true,
-    renderer: 'text',
-    editor: 'text',
-    editorOptions: {
-      placeholder: 'Enter name'
-    }
-  },
-  {
-    field: 'department',
-    header: 'Department',
-    width: 180,
-    editable: true,
-    editor: 'dropdown',
-    editorOptions: {
-      options: ['Engineering', 'Sales', 'Marketing', 'HR']
-    }
-  }
-];
-```
-
-<Callout type="info">
-Column properties are all optional except `field`, `header`, and `width`. TypeScript will provide IntelliSense for all available options.
-</Callout>
-
-## Typed Data Accessors
-
-Define type-safe data accessor functions:
-
-```ts title="data-accessor.ts"
-import { Grid, type ColumnDef } from '@zengrid/core';
-
-interface Employee {
-  id: number;
-  name: string;
-  email: string;
-}
-
 const employees: Employee[] = [
-  { id: 1, name: 'Alice', email: 'alice@example.com' },
-  { id: 2, name: 'Bob', email: 'bob@example.com' }
+  { id: 1, name: 'Alice', email: 'alice@example.com', active: true },
+  { id: 2, name: 'Bob', email: 'bob@example.com', active: false },
 ];
 
 const columns: ColumnDef[] = [
   { field: 'id', header: 'ID', width: 80 },
   { field: 'name', header: 'Name', width: 200 },
-  { field: 'email', header: 'Email', width: 250 }
+  { field: 'email', header: 'Email', width: 260 },
+  { field: 'active', header: 'Active', width: 100, renderer: 'checkbox' },
 ];
 
-// Type-safe data accessor
-const dataAccessor = (row: number, col: number): any => {
-  const employee = employees[row];
-  const field = columns[col].field as keyof Employee;
-  return employee[field];
-};
+const rows = employees.map((employee) => [
+  employee.id,
+  employee.name,
+  employee.email,
+  employee.active,
+]);
 
-const grid = new Grid({
-  container: document.getElementById('grid')!,
-  columns,
-  data: dataAccessor,
-  rowCount: employees.length
-});
+grid.setData(rows);
 ```
 
-## Event Handler Types
+## Event Types
 
-Define type-safe event handlers:
+`GridEvents` contains the event payload map. You can either let TypeScript infer payloads from `grid.on()` or name the payload type explicitly.
 
 ```ts title="events.ts"
-import { Grid, type CellRef } from '@zengrid/core';
+type SelectionChange = GridEvents['selection:change'];
 
-const grid = new Grid({ /* options */ });
-
-// Cell click event
-grid.on('cell:click', (payload: {
-  cell: CellRef;
-  value: any;
-  nativeEvent: MouseEvent;
-}) => {
-  console.log(`Clicked cell at row ${payload.cell.row}, col ${payload.cell.col}`);
-  console.log(`Value: ${payload.value}`);
+grid.on('cell:click', ({ cell, value, nativeEvent }) => {
+  console.log(cell.row, cell.col, value, nativeEvent.button);
 });
 
-// Cell double-click event
-grid.on('cell:dblclick', (payload: {
-  cell: CellRef;
-  value: any;
-  nativeEvent: MouseEvent;
-}) => {
-  grid.startEdit(payload.cell.row, payload.cell.col);
+grid.on('cell:doubleClick', ({ cell }) => {
+  console.log('double clicked', cell);
 });
 
-// Selection change event
-grid.on('selection:change', (payload: {
-  ranges: CellRange[];
-  cells: CellRef[];
-}) => {
-  console.log('Selected ranges:', payload.ranges);
+grid.on('selection:change', (event: SelectionChange) => {
+  console.log(event.ranges);
 });
 
-// Cell edit event
-grid.on('cell:edit', (payload: {
-  cell: CellRef;
-  oldValue: any;
-  newValue: any;
-}) => {
-  console.log(`Edited cell at row ${payload.cell.row}, col ${payload.cell.col}`);
-  console.log(`Changed from ${payload.oldValue} to ${payload.newValue}`);
+grid.on('edit:commit', ({ cell, oldValue, newValue }) => {
+  console.log('edited', cell, oldValue, newValue);
 });
 
-// Sort change event
-grid.on('sort:change', (payload: {
-  column: number;
-  direction: 'asc' | 'desc' | null;
-  sortIndex?: number;
-}) => {
-  console.log(`Sorted column ${payload.column} ${payload.direction}`);
+grid.on('sort:change', ({ sortState }) => {
+  console.log(sortState);
 });
 
-// Filter change event
-grid.on('filter:change', (payload: {
-  filters: FilterModel[];
-}) => {
-  console.log('Active filters:', payload.filters);
+grid.on('filter:change', ({ filterState }) => {
+  console.log(filterState);
 });
 ```
 
-<Callout type="tip">
-Enable TypeScript's strict mode in `tsconfig.json` for maximum type safety and catch potential issues at compile time.
-</Callout>
+## Common Types
 
-## Core Type Definitions
-
-### CellRef Type
-
-Represents a cell reference:
-
-```ts title="cell-ref.ts"
-import type { CellRef } from '@zengrid/core';
-
-const cell: CellRef = {
-  row: 5,
-  col: 3
-};
-
-// Use in grid methods
-grid.scrollToCell(cell);
-grid.startEdit(cell.row, cell.col);
-grid.getCellValue(cell.row, cell.col);
-```
-
-### CellRange Type
-
-Represents a rectangular cell range:
-
-```ts title="cell-range.ts"
-import type { CellRange } from '@zengrid/core';
-
+```ts title="common-types.ts"
 const range: CellRange = {
   startRow: 0,
   startCol: 0,
-  endRow: 5,
-  endCol: 3
+  endRow: 4,
+  endCol: 2,
 };
 
-// Use in selection
-grid.setSelection([range]);
-
-// Multiple ranges
-const ranges: CellRange[] = [
-  { startRow: 0, startCol: 0, endRow: 5, endCol: 3 },
-  { startRow: 10, startCol: 2, endRow: 15, endCol: 4 }
-];
-
-grid.setSelection(ranges);
-```
-
-### SortState Type
-
-Represents the current sort state:
-
-```ts title="sort-state.ts"
-import type { SortState } from '@zengrid/core';
-
-const sortState: SortState = {
-  column: 1,
-  direction: 'asc' | 'desc' | null,
-  sortIndex?: 0 // For multi-column sort
-};
-
-// Get current sort state
-const currentSort: SortState | null = grid.getSortState();
-
-// Multi-column sort
-const multiSort: SortState[] = [
+const sortState: SortState[] = [
   { column: 1, direction: 'asc', sortIndex: 0 },
-  { column: 3, direction: 'desc', sortIndex: 1 }
 ];
+
+const filterState: FilterModel[] = [
+  {
+    column: 2,
+    conditions: [{ operator: 'contains', value: '@example.com' }],
+    logic: 'AND',
+  },
+];
+
+grid.sort.setState(sortState);
+grid.filter.setState(filterState);
 ```
 
-### FilterModel Type
+## State Persistence
 
-Represents filter configuration:
-
-```ts title="filter-model.ts"
-import type { FilterModel, FilterCondition } from '@zengrid/core';
-
-interface FilterCondition {
-  operator: 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'gt' | 'lt' | 'gte' | 'lte';
-  value: any;
-}
-
-const filterModel: FilterModel = {
-  column: 2,
-  conditions: [
-    { operator: 'contains', value: '@example.com' }
-  ],
-  logic?: 'AND' | 'OR' // For multiple conditions
-};
-
-// Complex filter with multiple conditions
-const complexFilter: FilterModel = {
-  column: 4,
-  conditions: [
-    { operator: 'gte', value: 50000 },
-    { operator: 'lte', value: 100000 }
-  ],
-  logic: 'AND'
-};
-
-// Apply filter
-grid.setFilterModel(complexFilter);
-
-// Get active filters
-const activeFilters: FilterModel[] = grid.getFilterModel();
-```
-
-## Grid State Persistence
-
-Use `GridStateSnapshot` for saving and restoring grid state:
+Use the namespaced state API for snapshots.
 
 ```ts title="state-persistence.ts"
-import type { GridStateSnapshot } from '@zengrid/core';
+const snapshot = grid.state.getSnapshot();
+localStorage.setItem('gridState', JSON.stringify(snapshot));
 
-interface GridStateSnapshot {
-  selection?: CellRange[];
-  sort?: SortState[];
-  filters?: FilterModel[];
-  columnOrder?: number[];
-  columnWidths?: number[];
-  scrollPosition?: { row: number; col: number };
+const saved = localStorage.getItem('gridState');
+if (saved) {
+  grid.state.applySnapshot(JSON.parse(saved));
 }
-
-// Save state
-const state: GridStateSnapshot = grid.getState();
-localStorage.setItem('gridState', JSON.stringify(state));
-
-// Restore state
-const savedState = localStorage.getItem('gridState');
-if (savedState) {
-  const state: GridStateSnapshot = JSON.parse(savedState);
-  grid.setState(state);
-}
-
-// Partial state updates
-grid.setState({
-  selection: [{ startRow: 0, startCol: 0, endRow: 5, endCol: 3 }],
-  sort: [{ column: 1, direction: 'asc' }]
-});
 ```
 
-<Callout type="info">
-State snapshots are JSON-serializable and can be persisted to localStorage, sessionStorage, or sent to a backend API.
-</Callout>
-
 ## TypeScript Configuration
-
-Recommended `tsconfig.json` settings for ZenGrid:
 
 ```json title="tsconfig.json"
 {
@@ -403,93 +172,42 @@ Recommended `tsconfig.json` settings for ZenGrid:
     "module": "ESNext",
     "lib": ["ES2020", "DOM"],
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-
-    // Strict type checking
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-
-    // Additional checks
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-
-    // Module options
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-
-    // Output
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "forceConsistentCasingInFileNames": true
   }
 }
 ```
 
-## Generic Type Helpers
+## Reusable Helper
 
-Create generic helpers for type-safe grid operations:
-
-```ts title="type-helpers.ts"
-import { Grid, type ColumnDef, type GridOptions } from '@zengrid/core';
-
-// Generic typed grid creator
-function createTypedGrid<T extends Record<string, any>>(
-  container: HTMLElement,
-  data: T[],
-  columns: ColumnDef[]
-): Grid {
-  return new Grid({
-    container,
+```ts title="typed-helper.ts"
+function createEmployeeGrid(container: HTMLElement, employees: Employee[]) {
+  const grid = new Grid(container, {
+    rowCount: employees.length,
+    colCount: columns.length,
+    rowHeight: 36,
+    colWidth: columns.map((column) => column.width ?? 140),
     columns,
-    data: (row, col) => data[row][columns[col].field as keyof T],
-    rowCount: data.length
   });
+
+  grid.setData(
+    employees.map((employee) => [
+      employee.id,
+      employee.name,
+      employee.email,
+      employee.active,
+    ])
+  );
+
+  return grid;
 }
-
-// Usage
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  stock: number;
-}
-
-const products: Product[] = [
-  { id: 1, name: 'Laptop', price: 999, stock: 15 },
-  { id: 2, name: 'Mouse', price: 25, stock: 50 }
-];
-
-const columns: ColumnDef[] = [
-  { field: 'id', header: 'ID', width: 80 },
-  { field: 'name', header: 'Name', width: 200 },
-  { field: 'price', header: 'Price', width: 120 },
-  { field: 'stock', header: 'Stock', width: 100 }
-];
-
-const grid = createTypedGrid<Product>(
-  document.getElementById('grid')!,
-  products,
-  columns
-);
 ```
-
-<Callout type="tip">
-Use generics to create reusable, type-safe grid utilities that work with any data shape while maintaining full IntelliSense support.
-</Callout>
 
 ## Next Steps
 
-Explore more advanced features:
-- [Column Configuration](/docs/features/columns) - Advanced column options
-- [Cell Renderers](/docs/rendering/cell-renderers) - Custom cell rendering
-- [Editing](/docs/features/editing) - In-cell editing
-- [Selection](/docs/features/selection) - Selection modes and APIs
+- [Column Configuration](/docs/features/columns)
+- [Cell Renderers](/docs/rendering/cell-renderers)
+- [Editing](/docs/features/editing)
+- [Selection](/docs/features/selection)

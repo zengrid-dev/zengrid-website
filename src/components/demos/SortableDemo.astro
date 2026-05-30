@@ -54,7 +54,7 @@ import DemoContainer from './DemoContainer.astro';
 
     const statusEl = document.getElementById('sortable-demo-status');
     grid.on('sort:change', () => {
-      const sortState = grid.getSortState();
+      const sortState = grid.sort.getState();
       if (statusEl) {
         if (sortState.length === 0) {
           statusEl.textContent = '';

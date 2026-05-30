@@ -31,9 +31,9 @@ import DemoContainer from './DemoContainer.astro';
     const statuses = ['Active', 'On Leave', 'Remote', 'Office'];
     const rowCount = 100_000;
 
-    const data: (string | number)[][] = [];
+    const rows: (string | number)[][] = [];
     for (let i = 0; i < rowCount; i++) {
-      data.push([
+      rows.push([
         i + 1,
         `Employee ${i + 1}`,
         `emp${i + 1}@company.com`,
@@ -61,27 +61,27 @@ import DemoContainer from './DemoContainer.astro';
       enableSelection: true,
     });
 
-    grid.setData(data);
+    grid.setData(rows);
     grid.render();
 
     // Navigation
     document.getElementById('million-start')?.addEventListener('click', () => {
-      grid.scrollToCell(0, 0);
+      grid.scroll.toCell(0, 0);
     });
 
     document.getElementById('million-middle')?.addEventListener('click', () => {
-      grid.scrollToCell(50_000, 0);
+      grid.scroll.toCell(50_000, 0);
     });
 
     document.getElementById('million-end')?.addEventListener('click', () => {
-      grid.scrollToCell(99_999, 0);
+      grid.scroll.toCell(99_999, 0);
     });
 
     document.getElementById('million-go')?.addEventListener('click', () => {
       const input = document.getElementById('million-row-input') as HTMLInputElement;
       const row = parseInt(input.value, 10) - 1;
       if (!isNaN(row) && row >= 0 && row < rowCount) {
-        grid.scrollToCell(row, 0);
+        grid.scroll.toCell(row, 0);
       }
     });
   });

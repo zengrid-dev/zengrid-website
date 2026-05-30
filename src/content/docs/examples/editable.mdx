@@ -1,430 +1,83 @@
 ---
 title: Editable Grid
-description: Grid with inline editing, multiple editor types, validation, and undo/redo.
+description: Grid with inline editing, editor configuration, and edit events.
 order: 46
 category: Examples
-tags: [examples, editing, undo-redo]
+tags: [examples, editing]
 ---
 
 import Callout from '../../../components/docs/Callout.astro';
 import EditableDemo from '../../../components/demos/EditableDemo.astro';
 
-This example demonstrates how to enable inline editing with various editor types, implement validation, and use undo/redo functionality.
+This example enables editing through `ColumnDef.editable` and editor configuration. Users can start editing with the built-in interaction model, then your app listens for edit events.
 
 <EditableDemo />
 
-## Enable Column Editing
+## Enable Editing
 
-Add `editable: true` and specify an `editor` type for each column:
+```ts title="editable-grid.ts"
+import { Grid, type ColumnDef } from '@zengrid/core';
+import '@zengrid/core/dist/styles.css';
 
-```typescript title="editable-columns.ts"
-import { createGrid } from '@zengrid/core';
-import type { Column, GridOptions } from '@zengrid/core';
-
-const columns: Column[] = [
-  {
-    id: 'id',
-    header: 'ID',
-    width: 60,
-    // ID is not editable
-  },
-  {
-    id: 'name',
-    header: 'Name',
-    width: 200,
-    editable: true,
-    editor: 'text',  // Text input
-  },
-  {
-    id: 'email',
-    header: 'Email',
-    width: 250,
-    editable: true,
-    editor: 'text',
-  },
-  {
-    id: 'age',
-    header: 'Age',
-    width: 100,
-    editable: true,
-    editor: 'number',  // Number input
-  },
-  {
-    id: 'active',
-    header: 'Active',
-    width: 100,
-    editable: true,
-    editor: 'checkbox',  // Checkbox
-  },
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 60 },
+  { field: 'name', header: 'Name', width: 200, editable: true, editor: 'text' },
+  { field: 'email', header: 'Email', width: 260, editable: true, editor: 'text' },
+  { field: 'age', header: 'Age', width: 100, editable: true, editor: 'number' },
+  { field: 'active', header: 'Active', width: 100, editable: true, editor: 'checkbox' },
 ];
 
-const grid = createGrid(container, {
+const rows = [
+  [1, 'Alice', 'alice@example.com', 30, true],
+  [2, 'Bob', 'bob@example.com', 25, true],
+  [3, 'Charlie', 'charlie@example.com', 35, false],
+];
+
+const grid = new Grid(document.getElementById('grid')!, {
   columns,
-  rowCount: 100,
+  rowCount: rows.length,
+  colCount: columns.length,
   rowHeight: 40,
-  data: (rowIndex, colId) => {
-    // Data callback implementation
-    return dataStore[rowIndex]?.[colId];
-  },
+  colWidth: columns.map((column) => column.width ?? 140),
+  enableSelection: true,
+  enableKeyboardNavigation: true,
 });
+
+grid.setData(rows);
+grid.render();
 ```
 
 <Callout type="info">
-Double-click a cell or press Enter to start editing. Press Enter to commit changes, or Escape to cancel.
+Only columns marked with `editable: true` enter edit mode. Use `editor` and `editorOptions` to choose and configure the editor.
 </Callout>
 
-## Editor Types
+## Editor Options
 
-ZenGrid supports multiple built-in editor types:
-
-### Text Editor
-
-```typescript title="text-editor.ts"
-{
-  id: 'name',
-  header: 'Name',
-  width: 200,
-  editable: true,
-  editor: 'text',
-  editorParams: {
-    placeholder: 'Enter name...',
-    maxLength: 100,
-  },
-}
-```
-
-### Number Editor
-
-```typescript title="number-editor.ts"
-{
-  id: 'age',
-  header: 'Age',
-  width: 100,
-  editable: true,
-  editor: 'number',
-  editorParams: {
-    min: 0,
-    max: 120,
-    step: 1,
-    placeholder: '0',
-  },
-}
-```
-
-### Checkbox Editor
-
-```typescript title="checkbox-editor.ts"
-{
-  id: 'active',
-  header: 'Active',
-  width: 100,
-  editable: true,
-  editor: 'checkbox',
-  editorParams: {
-    checkedValue: true,
-    uncheckedValue: false,
-  },
-}
-```
-
-### Date Editor
-
-```typescript title="date-editor.ts"
-{
-  id: 'birthdate',
-  header: 'Birth Date',
-  width: 150,
-  editable: true,
-  editor: 'date',
-  editorParams: {
-    format: 'yyyy-MM-dd',
-    min: '1900-01-01',
-    max: '2025-12-31',
-  },
-}
-```
-
-### Select Editor
-
-```typescript title="select-editor.ts"
-{
-  id: 'role',
-  header: 'Role',
-  width: 150,
-  editable: true,
-  editor: 'select',
-  editorParams: {
-    options: [
-      { value: 'admin', label: 'Administrator' },
-      { value: 'editor', label: 'Editor' },
-      { value: 'viewer', label: 'Viewer' },
-    ],
-  },
-}
-```
-
-### Dropdown Editor
-
-```typescript title="dropdown-editor.ts"
-{
-  id: 'country',
-  header: 'Country',
-  width: 150,
-  editable: true,
-  editor: 'dropdown',
-  editorParams: {
-    options: [
-      'United States',
-      'United Kingdom',
-      'Canada',
-      'Australia',
-      'Germany',
-      'France',
-    ],
-    allowCustomValue: false,
-    searchable: true,
-  },
-}
-```
-
-<Callout type="tip">
-Use `select` for a small fixed list of options, and `dropdown` for a larger searchable list.
-</Callout>
-
-## Validation
-
-Add validation to columns to ensure data integrity:
-
-```typescript title="validation.ts"
-import type { Column } from '@zengrid/core';
-
-const columns: Column[] = [
+```ts title="editor-options.ts"
+const columns: ColumnDef[] = [
   {
-    id: 'email',
-    header: 'Email',
-    width: 250,
-    editable: true,
-    editor: 'text',
-    validator: (value: string) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) {
-        return 'Invalid email format';
-      }
-      return null; // Valid
-    },
-  },
-  {
-    id: 'age',
-    header: 'Age',
-    width: 100,
-    editable: true,
-    editor: 'number',
-    validator: (value: number) => {
-      if (value < 18) {
-        return 'Must be at least 18 years old';
-      }
-      if (value > 120) {
-        return 'Invalid age';
-      }
-      return null; // Valid
-    },
-  },
-  {
-    id: 'username',
-    header: 'Username',
-    width: 150,
-    editable: true,
-    editor: 'text',
-    validator: async (value: string) => {
-      // Async validation (e.g., check availability)
-      const response = await fetch(`/api/check-username?username=${value}`);
-      const data = await response.json();
-
-      if (!data.available) {
-        return 'Username already taken';
-      }
-      return null; // Valid
-    },
-  },
-];
-```
-
-<Callout type="warning">
-Validation errors prevent the edit from being committed. The error message is displayed to the user.
-</Callout>
-
-## Edit Events
-
-Handle edit events to update data and trigger side effects:
-
-```typescript title="edit-events.ts"
-// Before edit starts (can cancel)
-grid.on('edit:start', (event) => {
-  console.log('Edit started:', event.rowIndex, event.colId);
-
-  // Cancel edit conditionally
-  if (event.rowIndex === 0) {
-    event.preventDefault();
-  }
-});
-
-// Edit value changed
-grid.on('edit:change', (event) => {
-  console.log('Edit changed:', event.value);
-});
-
-// Edit committed
-grid.on('edit:commit', (event) => {
-  console.log('Edit committed:', {
-    rowIndex: event.rowIndex,
-    colId: event.colId,
-    oldValue: event.oldValue,
-    newValue: event.newValue,
-  });
-
-  // Update data store
-  dataStore[event.rowIndex][event.colId] = event.newValue;
-
-  // Trigger save to backend
-  saveToBackend(event.rowIndex, event.colId, event.newValue);
-});
-
-// Edit cancelled
-grid.on('edit:cancel', (event) => {
-  console.log('Edit cancelled:', event.rowIndex, event.colId);
-});
-
-// Validation error
-grid.on('edit:validation-error', (event) => {
-  console.error('Validation error:', event.error);
-
-  // Show custom error UI
-  showErrorToast(event.error);
-});
-```
-
-## Undo/Redo
-
-Enable undo/redo functionality for edit operations:
-
-```typescript title="undo-redo.ts"
-import { createGrid, UndoRedoManager } from '@zengrid/core';
-
-const grid = createGrid(container, options);
-
-// Create undo/redo manager
-const undoRedo = new UndoRedoManager(grid, {
-  maxHistorySize: 50,  // Keep last 50 actions
-});
-
-// Undo last edit
-undoRedo.undo();
-
-// Redo last undone edit
-undoRedo.redo();
-
-// Check if undo/redo available
-console.log('Can undo:', undoRedo.canUndo());
-console.log('Can redo:', undoRedo.canRedo());
-
-// Clear history
-undoRedo.clear();
-
-// Listen to undo/redo events
-undoRedo.on('undo', (event) => {
-  console.log('Undone:', event.action);
-});
-
-undoRedo.on('redo', (event) => {
-  console.log('Redone:', event.action);
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.key === 'z') {
-    e.preventDefault();
-    undoRedo.undo();
-  }
-  if (e.ctrlKey && e.key === 'y') {
-    e.preventDefault();
-    undoRedo.redo();
-  }
-});
-```
-
-<Callout type="tip">
-UndoRedoManager automatically tracks all edit operations. You don't need to manually record changes.
-</Callout>
-
-## Complete Editable Example
-
-```typescript title="complete-editable.ts"
-import { createGrid, UndoRedoManager } from '@zengrid/core';
-import type { Column, GridOptions } from '@zengrid/core';
-
-// Data store
-const dataStore = [
-  { id: 1, name: 'Alice', email: 'alice@example.com', age: 30, role: 'admin', active: true },
-  { id: 2, name: 'Bob', email: 'bob@example.com', age: 25, role: 'editor', active: true },
-  { id: 3, name: 'Charlie', email: 'charlie@example.com', age: 35, role: 'viewer', active: false },
-  // ... more rows
-];
-
-// Column definitions with various editors
-const columns: Column[] = [
-  {
-    id: 'id',
-    header: 'ID',
-    width: 60,
-  },
-  {
-    id: 'name',
+    field: 'name',
     header: 'Name',
     width: 200,
     editable: true,
     editor: 'text',
-    editorParams: {
-      placeholder: 'Enter name...',
-    },
-    validator: (value: string) => {
-      if (value.trim().length < 2) {
-        return 'Name must be at least 2 characters';
-      }
-      return null;
-    },
+    editorOptions: { placeholder: 'Enter name' },
   },
   {
-    id: 'email',
-    header: 'Email',
-    width: 250,
-    editable: true,
-    editor: 'text',
-    validator: (value: string) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) {
-        return 'Invalid email format';
-      }
-      return null;
-    },
-  },
-  {
-    id: 'age',
+    field: 'age',
     header: 'Age',
     width: 100,
     editable: true,
     editor: 'number',
-    editorParams: {
-      min: 18,
-      max: 120,
-    },
+    editorOptions: { min: 0, max: 120, step: 1 },
   },
   {
-    id: 'role',
+    field: 'role',
     header: 'Role',
     width: 150,
     editable: true,
     editor: 'select',
-    editorParams: {
+    editorOptions: {
       options: [
         { value: 'admin', label: 'Administrator' },
         { value: 'editor', label: 'Editor' },
@@ -432,82 +85,102 @@ const columns: Column[] = [
       ],
     },
   },
-  {
-    id: 'active',
-    header: 'Active',
-    width: 100,
-    editable: true,
-    editor: 'checkbox',
-  },
 ];
+```
 
-// Create grid
-const grid = createGrid(container, {
-  columns,
-  rowCount: dataStore.length,
-  rowHeight: 40,
-  data: (rowIndex, colId) => {
-    return dataStore[rowIndex]?.[colId] ?? '';
-  },
+## Edit Events
+
+```ts title="edit-events.ts"
+grid.on('edit:start', ({ cell, value }) => {
+  console.log('Edit started:', cell, value);
 });
 
-// Setup undo/redo
-const undoRedo = new UndoRedoManager(grid, {
-  maxHistorySize: 50,
+grid.on('edit:commit', ({ cell, oldValue, newValue }) => {
+  rows[cell.row][cell.col] = newValue;
+  console.log('Committed:', oldValue, newValue);
 });
 
-// Handle edit commits
-grid.on('edit:commit', (event) => {
-  // Update data store
-  dataStore[event.rowIndex][event.colId] = event.newValue;
-
-  // Save to backend
-  console.log('Saving to backend:', {
-    id: dataStore[event.rowIndex].id,
-    field: event.colId,
-    value: event.newValue,
-  });
+grid.on('edit:cancel', ({ cell }) => {
+  console.log('Cancelled:', cell);
 });
 
-// Add undo/redo buttons
-const toolbar = document.createElement('div');
-toolbar.innerHTML = `
-  <button id="undo">Undo</button>
-  <button id="redo">Redo</button>
-`;
-document.body.prepend(toolbar);
-
-document.getElementById('undo')?.addEventListener('click', () => {
-  undoRedo.undo();
-});
-
-document.getElementById('redo')?.addEventListener('click', () => {
-  undoRedo.redo();
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.key === 'z') {
-    e.preventDefault();
-    undoRedo.undo();
-  }
-  if (e.ctrlKey && e.key === 'y') {
-    e.preventDefault();
-    undoRedo.redo();
-  }
+grid.on('edit:end', ({ cell, cancelled }) => {
+  console.log('Edit ended:', cell, cancelled);
 });
 ```
 
-<Callout type="info">
-Editing works seamlessly with sorting and filtering. Edits are applied to the underlying data, not the sorted/filtered view.
+## Undo And Redo
+
+The undo/redo plugin is installed by the core grid setup. The everyday `Grid` instance does not currently expose a first-class `grid.undoRedo` namespace, so application docs should prefer edit events and app-owned history for production workflows.
+
+Advanced integrations can reach plugin methods through `grid.getGridApi()`:
+
+```ts title="advanced-undo-redo.ts"
+const api = grid.getGridApi();
+const undo = api.getMethod('undoRedo', 'undo');
+const redo = api.getMethod('undoRedo', 'redo');
+
+undo?.();
+redo?.();
+```
+
+<Callout type="warning">
+`grid.getGridApi()` is a lower-level plugin integration surface. Wrap it in your own adapter before relying on it broadly in app code.
 </Callout>
 
-## Performance Considerations
+## Complete Example
 
-- Validation functions should be fast; use debouncing for async validation
-- UndoRedoManager keeps actions in memory; limit history size for large grids
-- Batch multiple edits when possible to reduce event overhead
+```ts title="complete-editable.ts"
+import { Grid, type ColumnDef } from '@zengrid/core';
+import '@zengrid/core/dist/styles.css';
+
+const rows = [
+  [1, 'Alice', 'alice@example.com', 30, 'admin', true],
+  [2, 'Bob', 'bob@example.com', 25, 'editor', true],
+  [3, 'Charlie', 'charlie@example.com', 35, 'viewer', false],
+];
+
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 60 },
+  { field: 'name', header: 'Name', width: 200, editable: true, editor: 'text' },
+  { field: 'email', header: 'Email', width: 260, editable: true, editor: 'text' },
+  { field: 'age', header: 'Age', width: 100, editable: true, editor: 'number' },
+  {
+    field: 'role',
+    header: 'Role',
+    width: 150,
+    editable: true,
+    editor: 'select',
+    editorOptions: {
+      options: [
+        { value: 'admin', label: 'Administrator' },
+        { value: 'editor', label: 'Editor' },
+        { value: 'viewer', label: 'Viewer' },
+      ],
+    },
+  },
+  { field: 'active', header: 'Active', width: 100, editable: true, editor: 'checkbox' },
+];
+
+const grid = new Grid(document.getElementById('grid')!, {
+  columns,
+  rowCount: rows.length,
+  colCount: columns.length,
+  rowHeight: 40,
+  colWidth: columns.map((column) => column.width ?? 140),
+  enableSelection: true,
+  enableKeyboardNavigation: true,
+});
+
+grid.setData(rows);
+grid.render();
+
+grid.on('edit:commit', ({ cell, newValue }) => {
+  rows[cell.row][cell.col] = newValue;
+});
+```
 
 ## Next Steps
 
-- Combine with [sorting](/docs/examples/sortable) and [filtering](/docs/examples/filterable)
+- Combine with [sorting](/docs/examples/sortable)
+- Combine with [filtering](/docs/examples/filterable)

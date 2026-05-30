@@ -20,6 +20,7 @@ export const sidebar: SidebarSection[] = [
       { title: 'Quick Start', slug: 'getting-started/quick-start' },
       { title: 'Your First Grid', slug: 'getting-started/your-first-grid' },
       { title: 'TypeScript Setup', slug: 'getting-started/typescript-setup' },
+      { title: 'Production Readiness', slug: 'getting-started/production-readiness' },
     ],
   },
   {

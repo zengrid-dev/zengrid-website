@@ -21,13 +21,20 @@ Create a container div and initialize the grid:
 ```ts title="app.ts"
 import { Grid } from '@zengrid/core';
 
-const grid = new Grid({
-  container: document.getElementById('grid')!,
-  data: (row, col) => `Cell ${row},${col}`,
+const container = document.getElementById('grid')!;
+
+const grid = new Grid(container, {
   rowCount: 100,
-  colCount: 5
+  colCount: 5,
+  rowHeight: 36,
+  colWidth: 140,
 });
 
+grid.setData(
+  Array.from({ length: 100 }, (_, row) =>
+    Array.from({ length: 5 }, (_, col) => `Cell ${row},${col}`)
+  )
+);
 grid.render();
 ```
 
@@ -54,12 +61,23 @@ const dataset = [
   { id: 2, name: 'Bob', email: 'bob@example.com', status: 'Inactive' }
 ];
 
-const grid = new Grid({
-  container: document.getElementById('grid')!,
+const rows = dataset.map((record) => [
+  record.id,
+  record.name,
+  record.email,
+  record.status,
+]);
+
+const grid = new Grid(document.getElementById('grid')!, {
   columns,
-  data: (row, col) => dataset[row][columns[col].field],
-  rowCount: dataset.length
+  rowCount: rows.length,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
 });
+
+grid.setData(rows);
+grid.render();
 ```
 
 ## Enable Sorting
@@ -67,17 +85,17 @@ const grid = new Grid({
 Add sorting to any column programmatically:
 
 ```ts title="sorting.ts"
-// Sort a column ascending
-grid.sort(1, 'asc');
+// Sort a column ascending.
+grid.sort.apply([{ column: 1, direction: 'asc' }]);
 
-// Sort a column descending
-grid.sort(1, 'desc');
+// Sort a column descending.
+grid.sort.apply([{ column: 1, direction: 'desc' }]);
 
-// Toggle sort direction
-grid.toggleSort(1);
+// Toggle sort direction.
+grid.sort.toggle(1);
 
-// Clear sorting
-grid.clearSort();
+// Clear sorting.
+grid.sort.clear();
 ```
 
 <Callout type="tip">
@@ -90,14 +108,14 @@ Add filtering to columns:
 
 ```ts title="filtering.ts"
 // Filter column by value
-grid.setFilter(1, 'contains', 'Alice');
+grid.filter.set(1, 'contains', 'Alice');
 
 // Filter with different operators
-grid.setFilter(2, 'startsWith', 'admin');
-grid.setFilter(0, 'equals', 123);
+grid.filter.set(2, 'startsWith', 'admin');
+grid.filter.set(0, 'equals', 123);
 
 // Clear filters
-grid.clearFilters();
+grid.filter.clear();
 ```
 
 ## Enable Selection
@@ -105,13 +123,14 @@ grid.clearFilters();
 Enable selection in grid options:
 
 ```ts title="selection.ts"
-const grid = new Grid({
-  container: document.getElementById('grid')!,
-  data: (row, col) => `Cell ${row},${col}`,
+const grid = new Grid(document.getElementById('grid')!, {
   rowCount: 100,
   colCount: 5,
+  rowHeight: 36,
+  colWidth: 140,
   enableSelection: true,
-  selectionType: 'range' // 'single', 'range', or 'multi'
+  enableMultiSelection: true,
+  selectionType: 'range' // 'cell', 'row', 'column', or 'range'
 });
 
 // Listen to selection changes
@@ -121,7 +140,7 @@ grid.on('selection:change', (payload) => {
 ```
 
 <Callout type="info">
-Selection types: `single` (one cell), `range` (rectangular regions), or `multi` (multiple ranges).
+Selection types are `cell`, `row`, `column`, and `range`. Use `enableMultiSelection` when users should be able to keep multiple ranges selected.
 </Callout>
 
 ## Full Working Example
@@ -144,15 +163,25 @@ const dataset = [
   { id: 3, name: 'Charlie', email: 'charlie@example.com', status: 'Active' }
 ];
 
-const grid = new Grid({
-  container: document.getElementById('grid')!,
+const rows = dataset.map((record) => [
+  record.id,
+  record.name,
+  record.email,
+  record.status,
+]);
+
+const grid = new Grid(document.getElementById('grid')!, {
   columns,
-  data: (row, col) => dataset[row][columns[col].field],
-  rowCount: dataset.length,
+  rowCount: rows.length,
+  colCount: columns.length,
+  rowHeight: 36,
+  colWidth: columns.map((column) => column.width ?? 140),
   enableSelection: true,
+  enableMultiSelection: true,
   selectionType: 'range'
 });
 
+grid.setData(rows);
 grid.render();
 
 // Handle events

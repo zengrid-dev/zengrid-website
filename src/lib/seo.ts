@@ -14,7 +14,7 @@ export const SITE = {
 
 export const DEFAULT_TITLE = 'ZenGrid | Performance-First TypeScript Data Grid for the Web';
 export const DEFAULT_DESCRIPTION =
-  'ZenGrid is a zero-dependency TypeScript data grid with virtual scrolling, sorting, filtering, editing, and plugin APIs for high-volume web apps.';
+  'ZenGrid is a TypeScript data grid with virtual scrolling, sorting, filtering, editing, and plugin APIs for high-volume web apps.';
 export const DEFAULT_KEYWORDS = [
   'TypeScript data grid',
   'JavaScript data grid',

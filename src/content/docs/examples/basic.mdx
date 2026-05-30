@@ -9,162 +9,80 @@ tags: [examples, basic, getting-started]
 import Callout from '../../../components/docs/Callout.astro';
 import BasicDemo from '../../../components/demos/BasicDemo.astro';
 
-This example shows how to create a minimal ZenGrid with static data and column definitions. This is the simplest way to get started with ZenGrid.
+This example creates a small grid from static row data and typed column definitions.
 
 <BasicDemo />
 
 ## Complete Example
 
 ```html title="index.html"
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Basic ZenGrid Example</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    #grid-container {
-      width: 100%;
-      height: 100vh;
-    }
-  </style>
-</head>
-<body>
-  <div id="grid-container"></div>
-  <script type="module" src="main.ts"></script>
-</body>
-</html>
+<div id="grid-container" style="width: 100%; height: 500px;"></div>
+<script type="module" src="/src/main.ts"></script>
 ```
 
-```typescript title="main.ts"
-import { createGrid } from '@zengrid/core';
-import type { Column, GridOptions } from '@zengrid/core';
+```ts title="main.ts"
+import { Grid, type ColumnDef } from '@zengrid/core';
+import '@zengrid/core/dist/styles.css';
 
-// Define column configuration
-const columns: Column[] = [
-  {
-    id: 'id',
-    header: 'ID',
-    width: 60,
-    frozen: true,
-  },
-  {
-    id: 'name',
-    header: 'Name',
-    width: 200,
-  },
-  {
-    id: 'email',
-    header: 'Email',
-    width: 250,
-  },
-  {
-    id: 'role',
-    header: 'Role',
-    width: 150,
-  },
-  {
-    id: 'status',
-    header: 'Status',
-    width: 120,
-  },
+const columns: ColumnDef[] = [
+  { field: 'id', header: 'ID', width: 60 },
+  { field: 'name', header: 'Name', width: 200 },
+  { field: 'email', header: 'Email', width: 260 },
+  { field: 'role', header: 'Role', width: 150 },
+  { field: 'status', header: 'Status', width: 120 },
 ];
 
-// Grid configuration
-const options: GridOptions = {
+const rows = Array.from({ length: 100 }, (_, row) => [
+  row + 1,
+  `User ${row + 1}`,
+  `user${row + 1}@example.com`,
+  ['Admin', 'Editor', 'Viewer'][row % 3],
+  ['Active', 'Inactive'][row % 2],
+]);
+
+const grid = new Grid(document.getElementById('grid-container')!, {
   columns,
-  rowCount: 100,
+  rowCount: rows.length,
+  colCount: columns.length,
   rowHeight: 40,
-  headerHeight: 44,
+  colWidth: columns.map((column) => column.width ?? 140),
+  enableSelection: true,
+});
 
-  // Data callback - called for each visible cell
-  data: (rowIndex: number, colId: string) => {
-    switch (colId) {
-      case 'id':
-        return rowIndex + 1;
-      case 'name':
-        return `User ${rowIndex + 1}`;
-      case 'email':
-        return `user${rowIndex + 1}@example.com`;
-      case 'role':
-        return ['Admin', 'Editor', 'Viewer'][rowIndex % 3];
-      case 'status':
-        return ['Active', 'Inactive'][rowIndex % 2];
-      default:
-        return '';
-    }
-  },
-};
-
-// Create grid instance
-const container = document.getElementById('grid-container');
-if (!container) {
-  throw new Error('Grid container not found');
-}
-
-const grid = createGrid(container, options);
-
-// Optional: Log grid instance for debugging
-console.log('Grid created:', grid);
+grid.setData(rows);
+grid.render();
 ```
 
 <Callout type="info">
-The `data` callback is called only for visible cells due to virtual scrolling. This ensures high performance even with millions of rows.
+Frontend data is passed through `grid.setData(rows)`, where `rows` is an `any[][]` matrix. `ColumnDef.field` identifies columns for headers, filtering, sorting state, and persistence.
 </Callout>
 
 ## Key Concepts
 
-### Column Definition
-
-Each column requires an `id` and `header`. The `width` property sets the initial column width in pixels.
-
-```typescript
-const column: Column = {
-  id: 'email',        // Unique identifier
-  header: 'Email',    // Display text
-  width: 250,         // Width in pixels
+```ts title="column.ts"
+const column: ColumnDef = {
+  field: 'email',
+  header: 'Email',
+  width: 260,
 };
 ```
 
-### Data Callback
-
-The `data` function is called for each visible cell. It receives the row index and column ID, and returns the cell value.
-
-```typescript
-data: (rowIndex: number, colId: string) => {
-  if (colId === 'name') {
-    return `User ${rowIndex + 1}`;
-  }
-  return '';
-}
+```ts title="rows.ts"
+const rows = [
+  [1, 'Ada Lovelace', 'ada@example.com'],
+  [2, 'Grace Hopper', 'grace@example.com'],
+];
 ```
 
-<Callout type="tip">
-Use the frozen property on columns to keep them visible during horizontal scrolling. This is useful for ID or name columns.
-</Callout>
-
-### Row Count
-
-The `rowCount` property tells ZenGrid how many rows exist. Only visible rows are rendered in the DOM.
-
-```typescript
-const options: GridOptions = {
-  rowCount: 100,  // Total number of rows
-  // ... other options
-};
+```ts title="lifecycle.ts"
+grid.setData(rows);
+grid.render();
+grid.destroy();
 ```
 
 ## Next Steps
 
-- Add [sorting](/docs/examples/sortable) to enable column sorting
-- Add [filtering](/docs/examples/filterable) to filter data
-- Enable [editing](/docs/examples/editable) for inline data editing
-- Scale to [millions of rows](/docs/examples/million-rows) with virtual scrolling
-
-<Callout type="tip">
-Check the browser console for any errors. ZenGrid provides detailed error messages to help with debugging.
-</Callout>
+- Add [sorting](/docs/examples/sortable)
+- Add [filtering](/docs/examples/filterable)
+- Enable [editing](/docs/examples/editable)
+- Scale with [backend loading and virtual scrolling](/docs/examples/million-rows)

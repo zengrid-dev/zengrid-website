@@ -14,7 +14,7 @@ const structuredData = createHomeStructuredData();
 
 <BaseLayout
   title="ZenGrid | Performance-First TypeScript Data Grid for the Web"
-  description="ZenGrid is a zero-dependency TypeScript data grid with virtual scrolling, filtering, sorting, editing, and plugin APIs for high-volume web apps."
+  description="ZenGrid is a TypeScript data grid with virtual scrolling, filtering, sorting, editing, and plugin APIs for high-volume web apps."
   pathname="/"
   keywords={[...DEFAULT_KEYWORDS, 'TypeScript grid library', 'data table virtualization', 'grid plugins']}
   structuredData={structuredData}
@@ -31,7 +31,7 @@ const structuredData = createHomeStructuredData();
       <div class="hero-layout">
         <div class="hero-content">
           <div class="badge">
-            <span class="badge-dot"></span> v1.0.1 is now available on npm
+            <span class="badge-dot"></span> Core 1.2.2 and Angular 1.2.3 are available on npm
           </div>
 
           <h1 class="hero-title">
@@ -39,8 +39,8 @@ const structuredData = createHomeStructuredData();
             <span class="gradient-text">Developers Love</span>
           </h1>
           <p class="hero-description">
-            Zero dependencies. 60FPS scrolling. 1M+ rows. <br />
-            The fastest data grid for your next enterprise app.
+            Virtual scrolling. TypeScript APIs. Production evaluation guidance. <br />
+            A focused data grid for high-volume web applications.
           </p>
           <div class="hero-cta">
             <a href="/docs" class="btn btn-primary">
@@ -100,17 +100,17 @@ const structuredData = createHomeStructuredData();
         <FeatureCard
           icon="plane"
           title="Blazing Fast"
-          description="Virtual DOM rendering ensures consistent 60FPS performance even with millions of records."
+          description="Viewport-based rendering keeps large datasets usable without mounting every row."
         />
         <FeatureCard
           icon="filter"
           title="Deep Customization"
-          description="Full control over every cell, header, and row with a powerful templating API."
+          description="Customize cells, headers, columns, editors, and themes through typed APIs."
         />
         <FeatureCard
           icon="chart"
-          title="Excel-Grade"
-          description="Native support for clipboard operations, range selection, and keyboard navigation."
+          title="Spreadsheet Basics"
+          description="Selection, clipboard events, keyboard navigation, and editing primitives are available through the core API."
         />
         <FeatureCard
           icon="filter"
@@ -124,8 +124,8 @@ const structuredData = createHomeStructuredData();
         />
         <FeatureCard
           icon="layers"
-          title="Tree Data"
-          description="Hierarchical data visualization with expand/collapse and lazy loading."
+          title="Backend Data"
+          description="Use backend loading hooks when rows should be requested on demand instead of held entirely in memory."
         />
       </div>
     </div>
@@ -136,9 +136,9 @@ const structuredData = createHomeStructuredData();
     <div class="container">
       <div class="cta-content">
         <h2>Ready to build faster?</h2>
-        <p class="cta-text">Join thousands of developers building better data tools.</p>
+        <p class="cta-text">Review the production-readiness checklist before adopting ZenGrid in critical workflows.</p>
         <div class="cta-actions">
-           <a href="/docs" class="btn btn-primary">Get Started Now</a>
+           <a href="/docs/getting-started/production-readiness" class="btn btn-primary">Review Readiness</a>
         </div>
         <p class="cta-footer">MIT Licensed • <a href="https://github.com/zengrid-dev/zengrid" target="_blank">View on GitHub</a></p>
       </div>
