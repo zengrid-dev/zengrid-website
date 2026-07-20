@@ -1,0 +1,87 @@
+/* Showcase shell — app layout, top bar, sidebar rail */
+
+.app {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  height: 100vh;
+  transition: grid-template-columns var(--dur) var(--ease);
+}
+.app[data-rail='collapsed'] { grid-template-columns: 0 1fr; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  background: color-mix(in srgb, var(--bg-2) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: var(--rail-w); }
+.brand-mark {
+  width: 26px; height: 26px; display: grid; place-items: center;
+}
+.brand-name { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+.brand-tag {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 600; letter-spacing: 0.18em;
+  color: var(--faint); padding: 2px 6px; border: 1px solid var(--border); border-radius: 5px;
+}
+.rail-toggle {
+  display: grid; place-items: center; width: 30px; height: 30px;
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  color: var(--muted); cursor: pointer; transition: all var(--dur) var(--ease);
+}
+.rail-toggle:hover { background: var(--surface-2); color: var(--ink); border-color: var(--border); }
+
+.crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.crumb b { color: var(--ink); font-weight: 600; }
+.crumb .sep { color: var(--faint); }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+
+.field {
+  font-family: var(--font-sans); font-size: 12px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+  padding: 6px 10px; cursor: pointer; transition: border-color var(--dur) var(--ease);
+}
+.field:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+.switch-track { width: 34px; height: 19px; border-radius: 999px; background: var(--border); position: relative; transition: background var(--dur) var(--ease); }
+.switch-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; transition: transform var(--dur) var(--ease); box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.switch[aria-checked='true'] .switch-track { background: linear-gradient(140deg, var(--accent), var(--accent-2)); }
+.switch[aria-checked='true'] .switch-track::after { transform: translateX(15px); }
+
+/* ---------- Sidebar rail ---------- */
+.rail {
+  grid-row: 2; overflow-y: auto; overflow-x: hidden;
+  background: var(--bg-2); border-right: 1px solid var(--border);
+  padding: 14px 12px 40px; transition: background var(--dur) var(--ease);
+}
+.app[data-rail='collapsed'] .rail { border-right-color: transparent; }
+.nav-cat { margin-bottom: 6px; }
+.nav-cat-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--faint);
+  padding: 12px 10px 6px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+}
+.nav-cat-label .chev { transition: transform var(--dur) var(--ease); }
+.nav-cat[data-open='false'] .chev { transform: rotate(-90deg); }
+.nav-cat[data-open='false'] .nav-list { display: none; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 7px 10px; border-radius: 9px; border: none; background: transparent;
+  font-family: var(--font-sans); font-size: 13px; color: var(--muted); text-align: left;
+  cursor: pointer; position: relative; transition: all var(--dur) var(--ease);
+}
+.nav-item:hover { background: var(--surface-2); color: var(--ink); transform: translateX(2px); }
+.nav-item[aria-current='page'] { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--ink); font-weight: 600; }
+.nav-item[aria-current='page']::before { content: ''; position: absolute; left: -12px; top: 6px; bottom: 6px; width: 3px; border-radius: 3px; background: linear-gradient(var(--accent), var(--accent-2)); }
+.nav-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

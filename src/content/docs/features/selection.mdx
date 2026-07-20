@@ -92,11 +92,24 @@ const selectRows = api.getMethod('selection', 'selectRows') as
 
 const clear = api.getMethod('selection', 'clear') as (() => void) | undefined;
 
+const toggleCell = api.getMethod('selection', 'toggleCell') as
+  | ((row: number, col: number) => void)
+  | undefined;
+
 selectCell?.(0, 0);
 selectRange?.(2, 0, 5, 2, true);
 selectRows?.(8, 10, true);
+toggleCell?.(3, 1);
 clear?.();
 ```
+
+## Interaction
+
+For `cell` selection:
+
+- Clicking a cell selects it; clicking the same cell again clears the selection.
+- With `enableMultiSelection: true`, Ctrl/Cmd+Click adds a cell to the selection — and
+  Ctrl/Cmd+Click on an already-selected cell removes just that cell (`toggleCell`).
 
 ## Production Notes
 

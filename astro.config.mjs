@@ -24,7 +24,23 @@ export default defineConfig({
     mdx(),
   ],
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [
+      tailwindcss(),
+      {
+        // Dev-only: astro dev (Vite) does not resolve the /demo/ directory URL
+        // to public/demo/index.html the way the static host does in production.
+        name: 'serve-demo-index',
+        apply: 'serve',
+        configureServer(server) {
+          server.middlewares.use((req, _res, next) => {
+            if (req.url === '/demo' || req.url === '/demo/') {
+              req.url = '/demo/index.html';
+            }
+            next();
+          });
+        },
+      },
+    ],
     ssr: {
       noExternal: ['@zengrid/core', '@zengrid/shared']
     },

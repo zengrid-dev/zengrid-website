@@ -29,6 +29,10 @@ Required core options:
 - `rowHeight: number | number[]`
 - `colWidth: number | number[]`
 
+Optional layout options:
+
+- `headerHeight: number` — height of the header row in pixels (defaults to `40`). Increase it for multi-line or custom header renderers that need more vertical space.
+
 ## Columns
 
 ```ts title="columns.ts"
@@ -158,6 +162,9 @@ const grid = new Grid(container, {
   columns,
   theme: 'dark',
   autoTheme: false,
+  // Drop the last column's own right-edge border so it doesn't double up
+  // against a bordered container into a thin "empty column" strip.
+  hideLastColumnBorder: true,
 });
 ```
 

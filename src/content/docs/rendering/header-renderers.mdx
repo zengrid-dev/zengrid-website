@@ -63,6 +63,34 @@ const columns: ColumnDef[] = [
 ];
 ```
 
+## Custom Header Renderers
+
+When the built-in header types are not enough, implement a `HeaderRenderer` and
+reference it by name from the column's header config. A renderer owns three
+methods — `render` (build the DOM once), `update` (react cheaply to state such as
+sort direction, hover, or width), and `destroy` (clean up).
+
+```ts title="custom-header.ts"
+class TwoLineHeaderRenderer implements HeaderRenderer {
+  render(el, params) { /* build title + caption from params.config */ }
+  update(el, params) { /* repaint from params.sortDirection */ }
+  destroy(el) { el.replaceChildren(); }
+}
+
+grid.registerHeaderRenderer('two-line', new TwoLineHeaderRenderer());
+// column: { sortable: true, header: { text: 'Salary', type: 'custom', renderer: 'two-line' } }
+```
+
+The grid handles the structural concerns for you:
+
+- **Sizing** — the header cell is sized to the column width before your renderer
+  runs, so a renderer that only builds content will not collapse.
+- **Sorting** — on a `sortable` column, header clicks toggle sort automatically.
+  If your renderer wires its own sort interaction, set
+  `handlesSortInteraction = true` to opt out of the default handler.
+- **Height** — set [`headerHeight`](/api/grid-options) to give multi-line headers
+  the vertical space they need (defaults to `40`).
+
 ## Header Events
 
 ```ts title="header-events.ts"
