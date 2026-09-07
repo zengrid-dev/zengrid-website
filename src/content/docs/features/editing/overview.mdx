@@ -1,0 +1,193 @@
+---
+title: Editing Overview
+description: Turn any column into an editable cell — provided editors, start/stop, commit and cancel, the grid.editing API, and edit events, all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Cell editing is built into `@zengrid/core` — there's no plugin to install. Mark a
+column `editable` and give it an `editor`, and users can change values in place:
+
+```ts
+const columns = [
+  { field: 'name',    header: 'Name',    editable: true, editor: 'text' },
+  { field: 'revenue', header: 'Revenue', editable: true, editor: 'number' },
+  { field: 'status',  header: 'Status',  editable: true, editor: 'select',
+    editorOptions: { options: ['Active', 'Trial', 'Churned'] } },
+];
+```
+
+`editable: true` makes the column writable; `editor` picks which editor opens.
+A column with `editable: false` (or no `editor`) is read-only.
+
+## Starting and stopping an edit
+
+An edit opens when the user **double-clicks** a cell, or selects it and presses
+**Enter**. While editing:
+
+| Key | Effect |
+|-----|--------|
+| **Enter** / **Tab** | Commit the value and close the editor. |
+| Click another cell | Commit (clicking away saves, like a spreadsheet). |
+| **Escape** | Cancel — discard the input and restore the original value. |
+
+## Provided editors
+
+Set `editor` to one of the built-in types; pass per-editor settings through
+`editorOptions`.
+
+| `editor` | Opens | `editorOptions` |
+|----------|-------|-----------------|
+| `'text'` | A single-line text box | `maxLength`, `placeholder`, … |
+| `'number'` | A numeric input | `min`, `max`, `step` |
+| `'select'` | A dropdown | `options: string[]` or `{ value, label }[]` |
+| `'date'` | A date picker | date format / range options |
+| `'checkbox'` | A boolean toggle | `label`, `allowIndeterminate` |
+
+Each provided editor has its own page under **Provided Cell Editors** with the
+full option list. You can also pass a custom `CellEditor` instance to `editor` —
+see [Edit Components](/features/editing/edit-components/).
+
+## Driving edits from code
+
+`grid.editing` is the programmatic handle — the same lifecycle the interactive
+handlers use, so you can wire editing to a button, shortcut, or workflow:
+
+| Method | Effect |
+|--------|--------|
+| `grid.editing.startEdit({ row, col })` | Open the editor on a cell (view coordinates). |
+| `grid.editing.commitEdit()` | Commit the open editor's value (as Enter would). |
+| `grid.editing.cancelEdit()` | Discard the edit (as Escape would). |
+| `grid.editing.isEditing()` | Whether an editor is currently open. |
+| `grid.editing.getActive()` | The cell being edited, or `null`. |
+
+Subscribe to the lifecycle with `grid.on(...)`:
+
+```ts
+grid.on('edit:start',  ({ cell, value }) => {});
+grid.on('edit:commit', ({ cell, oldValue, newValue }) => {});
+grid.on('edit:cancel', ({ cell, value }) => {});
+grid.on('edit:end',    ({ cell, value, cancelled }) => {});
+```
+
+When a commit fails an editor's validation, the grid's
+`editing.invalidEditMode` (`'block'` | `'revert'` | `'commit'`) decides what
+happens — covered in [Validation](/features/editing/validation/).
+
+## Try it live
+
+Each tab is a different editing setup. Double-click a cell (or use the buttons),
+edit the code, and watch the grid update.
+
+export const variants = [
+  {
+    id: 'enable',
+    label: 'Enable editing',
+    hint: 'Double-click Name, Role, Revenue or MRR — or select a cell and press Enter. Enter or click away saves; Escape cancels. Region has no editor, so it stays read-only.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// editable + editor turns a column into an editable cell. Region is
+// left read-only (no editable/editor).
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'editors',
+    label: 'Editor types',
+    hint: 'One editor per column: a text box for Name, a select dropdown for Role and Status, a number spinner (min 0, step 1000) for Revenue. Set editor + editorOptions.',
+    code: `// Pick a provided editor per column and configure it via editorOptions.
+const roles = ['Data Engineer', 'Product Lead', 'Analyst', 'Platform Eng',
+  'Staff SWE', 'Designer', 'Eng Manager', 'Researcher', 'SRE', 'Solutions Eng'];
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'select',
+      editorOptions: { options: roles } },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number',
+      editorOptions: { min: 0, step: 1000 }, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, editable: true, editor: 'select',
+      editorOptions: { options: ['Active', 'Trial', 'Churned'] }, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'api',
+    label: 'API & events',
+    hint: 'Drive editing from code with grid.editing.startEdit / commitEdit / cancelEdit, and watch grid.on(edit:start / commit / cancel) fire in the readout. Open Name, type, then commit; or run start + cancel to see the value kept.',
+    code: `// grid.editing is the programmatic handle; grid.on(...) reports the
+// lifecycle. The buttons below call these directly.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+
+// A small readout so you can watch the edit events fire.
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-api-readout');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-api-readout';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft);white-space:pre-wrap';
+  mount.parentElement.insertBefore(out, mount);
+}
+grid.say = (m) => { if (out) out.textContent = m; };
+grid.say('Ready — use the buttons to start, commit and cancel an edit.');
+
+grid.on('edit:start',  (e) => grid.say('edit:start — cell (' + e.cell.row + ',' + e.cell.col + ')'));
+grid.on('edit:commit', (e) => grid.say('edit:commit — (' + e.cell.row + ',' + e.cell.col + ')  ' + JSON.stringify(e.oldValue) + ' → ' + JSON.stringify(e.newValue)));
+grid.on('edit:cancel', (e) => grid.say('edit:cancel — (' + e.cell.row + ',' + e.cell.col + ')  kept ' + JSON.stringify(e.value)));
+`,
+    controls: [
+      { label: 'startEdit Name (row 0)', action: `grid.editing.startEdit({ row: 0, col: 0 })` },
+      { label: 'commitEdit()', action: `grid.editing.commitEdit()` },
+      { label: 'start + cancel (row 0)', action: `const before = grid.rows.getSourceValue(0, 0); grid.editing.startEdit({ row: 0, col: 0 }); grid.editing.cancelEdit(); grid.say('start + cancelEdit — value kept ' + JSON.stringify(grid.rows.getSourceValue(0, 0)) + ' (unchanged: ' + (before === grid.rows.getSourceValue(0, 0)) + ')')` },
+      { label: 'isEditing() / getActive()', action: `grid.say('isEditing() → ' + grid.editing.isEditing() + '   getActive() → ' + JSON.stringify(grid.editing.getActive()))` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Start / Stop Editing](/features/editing/start-stop/) — every way an edit
+  begins and ends.
+- [Provided Cell Editors](/features/editing/provided/text/) — the built-in
+  editors and their options.
+- [Validation](/features/editing/validation/) — reject or flag bad values.

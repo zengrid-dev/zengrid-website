@@ -1,579 +1,266 @@
-/* ============================================
-   Docs Layout — Three-Column Grid
-   ============================================ */
+/* Docs-only stylesheet: brings Tailwind utilities + the brand token vocabulary
+   onto Starlight pages (which don't load the marketing site's global.css), then
+   bridges that palette onto Starlight's own `--sl-*` design tokens. */
+@import "tailwindcss";
 
-.docs-layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 240px;
-  gap: 0;
-  max-width: 1440px;
-  margin: 0 auto;
-  min-height: calc(100vh - 65px);
+/* Map brand tokens to Tailwind utilities so the reused <Logo> / <Footer>
+   components render identically inside the docs. */
+@theme inline {
+  --font-display: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Instrument Sans Variable", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-coral: var(--coral);
+  --color-coral-sh: var(--coral-sh);
+  --color-teal: var(--teal);
 }
 
-/* ============================================
-   Sidebar
-   ============================================ */
+/* Brand palette + full Starlight token bridge. Duplicated (not imported) from
+   global.css on purpose so the marketing stylesheet stays untouched and the docs
+   remain self-contained.
 
-.docs-sidebar {
-  position: sticky;
-  top: 65px;
-  height: calc(100vh - 65px);
-  overflow-y: auto;
-  padding: 1.5rem 1rem 2rem 1.5rem;
-  border-right: 1px solid var(--border-subtle);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-highlight) transparent;
+   Starlight derives every surface — `--sl-color-bg`, `-bg-nav`, `-bg-sidebar`,
+   `-bg-inline-code`, the hairlines and `--sl-color-text` — from its gray ramp
+   plus `black`/`white`/`accent`. Remapping that ramp to the brand's warm
+   neutrals is what actually makes the docs chrome match the marketing site;
+   setting the accent alone (as before) left every background and border default.
+
+   Dark is the `:root` default to mirror Starlight; light lives under
+   `[data-theme='light']`. Starlight's inline script sets `data-theme` before
+   paint, and it toggles the same attribute the marketing site uses, so the
+   reused <Logo>/<Footer> track the same theme. */
+:root,
+:root[data-theme="dark"] {
+  /* Brand tokens (dark) — consumed by the reused <Logo>/<Footer>. */
+  --bg: #1a1714;
+  --surface: #232019;
+  --surface-2: #2a261e;
+  --border: #34302a;
+  --border-soft: #2f2b24;
+  --ink: #f6f1e7;
+  --muted: #b3a998;
+  --faint: #8c8272;
+  --coral: #f2764e;
+  --coral-sh: #a34d2f;
+  --teal: #57b6a6;
+
+  /* Starlight gray ramp → warm brand neutrals (dark). gray-6 lifts the
+     nav/sidebar off the page bg; gray-5 is the hairline + inline-code chip. */
+  --sl-color-white: #f6f1e7;
+  --sl-color-gray-1: #ece7dc;
+  --sl-color-gray-2: #cfc7b8;
+  --sl-color-gray-3: #b3a998;
+  --sl-color-gray-4: #8c8272;
+  --sl-color-gray-5: #34302a;
+  --sl-color-gray-6: #232019;
+  --sl-color-black: #1a1714;
+
+  --sl-color-accent-low: #3a1e14;
+  --sl-color-accent: #f2764e;
+  --sl-color-accent-high: #f9c3ae;
 }
 
-.docs-sidebar::-webkit-scrollbar {
-  width: 4px;
+:root[data-theme="light"] {
+  /* Brand tokens (light). */
+  --bg: #f8f5ef;
+  --surface: #ffffff;
+  --surface-2: #faf8f3;
+  --border: #e6e0d5;
+  --border-soft: #f0ece3;
+  --ink: #211d1a;
+  --muted: #6b6258;
+  --faint: #9a9184;
+  --coral: #f2764e;
+  --coral-sh: #d85a34;
+  --teal: #57b6a6;
+
+  /* Starlight gray ramp → warm brand neutrals (light). */
+  --sl-color-white: #211d1a;
+  --sl-color-gray-1: #2b2621;
+  --sl-color-gray-2: #322d27;
+  --sl-color-gray-3: #6b6258;
+  --sl-color-gray-4: #9a9184;
+  --sl-color-gray-5: #e6e0d5;
+  --sl-color-gray-6: #f0ece3;
+  --sl-color-black: #f8f5ef;
+
+  --sl-color-accent-low: #fce2d8;
+  --sl-color-accent: #d85a34;
+  --sl-color-accent-high: #6f2b16;
 }
 
-.docs-sidebar::-webkit-scrollbar-thumb {
-  background: var(--border-highlight);
-  border-radius: 4px;
+/* Fonts: body/UI = Instrument Sans, code = JetBrains Mono. Headings pick up the
+   marketing display face (Manrope) so titles read the same as the landing page. */
+:root {
+  --sl-font: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --sl-font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
-.sidebar-section {
-  margin-bottom: 1.25rem;
+/* ===========================================================================
+   Component polish — bring the marketing design system (design-ref/…/CLAUDE.md,
+   "ZenGrid Docs.dc.html") onto Starlight: Manrope display headings, chip-style
+   inline code, coral-accented sidebar, teal-bordered callouts, prev/next cards,
+   and pill controls. Colour comes from the token bridge above; this is shape,
+   type scale and spacing.
+   =========================================================================== */
+
+/* Display headings — Manrope 800, tight tracking, marketing type scale. */
+h1#_top,
+.sl-markdown-content h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
 }
+h1#_top { font-size: clamp(2.1rem, 1.6rem + 2vw, 2.6rem); }
 
-.sidebar-section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  padding: 0.375rem 0.75rem;
-  margin-bottom: 0.25rem;
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sidebar-section-title:hover {
-  color: var(--text-muted);
-}
-
-.sidebar-section-title .chevron {
-  transition: transform 0.2s ease;
-  width: 14px;
-  height: 14px;
-  opacity: 0.5;
-}
-
-.sidebar-section.collapsed .chevron {
-  transform: rotate(-90deg);
-}
-
-.sidebar-section.collapsed .sidebar-items {
-  display: none;
-}
-
-.sidebar-items {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar-link {
-  display: block;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  text-decoration: none;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  line-height: 1.5;
-}
-
-.sidebar-link:hover {
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.sidebar-link.active {
-  color: var(--zen-primary);
-  background: rgba(16, 185, 129, 0.08);
-  font-weight: 500;
-}
-
-/* ============================================
-   Content Area
-   ============================================ */
-
-.docs-content {
-  padding: 2rem 3rem 4rem;
-  min-width: 0;
-}
-
-/* ============================================
-   Table of Contents
-   ============================================ */
-
-.docs-toc {
-  position: sticky;
-  top: 65px;
-  height: calc(100vh - 65px);
-  overflow-y: auto;
-  padding: 1.5rem 1.5rem 2rem 1rem;
-  border-left: 1px solid var(--border-subtle);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-highlight) transparent;
-}
-
-.toc-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  margin-bottom: 0.75rem;
-}
-
-.toc-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.toc-link {
-  display: block;
-  padding: 0.25rem 0;
-  font-size: 0.8125rem;
-  color: var(--text-dim);
-  text-decoration: none;
-  border-left: 2px solid transparent;
-  padding-left: 0.75rem;
-  transition: all 0.15s ease;
-  line-height: 1.5;
-}
-
-.toc-link:hover {
-  color: var(--text-muted);
-}
-
-.toc-link.active {
-  color: var(--zen-primary);
-  border-left-color: var(--zen-primary);
-}
-
-.toc-link.depth-3 {
-  padding-left: 1.5rem;
-  font-size: 0.78125rem;
-}
-
-/* ============================================
-   Breadcrumbs
-   ============================================ */
-
-.breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  color: var(--text-dim);
-  margin-bottom: 1.5rem;
-}
-
-.breadcrumb-link {
-  color: var(--text-dim);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-
-.breadcrumb-link:hover {
-  color: var(--zen-primary);
-}
-
-.breadcrumb-separator {
-  opacity: 0.4;
-}
-
-.breadcrumb-current {
-  color: var(--text-muted);
-}
-
-/* ============================================
-   Prev/Next Navigation
-   ============================================ */
-
-.prev-next {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 4rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.prev-next-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.prev-next-card:hover {
-  border-color: var(--zen-primary);
-  background: rgba(16, 185, 129, 0.04);
-}
-
-.prev-next-card.next {
-  text-align: right;
-  grid-column: 2;
-}
-
-.prev-next-label {
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.prev-next-title {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--zen-primary);
-}
-
-/* ============================================
-   Callout / Admonition
-   ============================================ */
-
-.callout {
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin: 1.5rem 0;
-  border-left: 3px solid;
-  font-size: 0.9375rem;
-}
-
-.callout-title {
-  font-weight: 600;
-  font-size: 0.8125rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: 0.375rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.callout p {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
-.callout.info {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: #3b82f6;
-}
-.callout.info .callout-title { color: #60a5fa; }
-
-.callout.tip {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: #10b981;
-}
-.callout.tip .callout-title { color: #34d399; }
-
-.callout.warning {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: #f59e0b;
-}
-.callout.warning .callout-title { color: #fbbf24; }
-
-.callout.danger {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: #ef4444;
-}
-.callout.danger .callout-title { color: #f87171; }
-
-/* ============================================
-   Prose / Markdown Content
-   ============================================ */
-
-.prose {
-  color: var(--text-muted);
-  line-height: 1.75;
-  max-width: none;
-}
-
-.prose h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin: 0 0 0.5rem;
-  line-height: 1.2;
+.sl-markdown-content h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
   letter-spacing: -0.02em;
-}
-
-.prose h2 {
   font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 2.5rem 0 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-subtle);
-  line-height: 1.3;
+  margin-top: 2.75rem;
+}
+.sl-markdown-content h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  font-size: 1.2rem;
 }
 
-.prose h3 {
-  font-size: 1.25rem;
+/* Lead paragraph under the title reads as a subtitle. */
+h1#_top + p,
+.sl-markdown-content > p:first-of-type {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+/* Inline code → soft chip, not a heavy block. */
+.sl-markdown-content :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  font-weight: 500;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 5px;
+  padding: 0.12em 0.42em;
+  color: var(--ink);
+}
+
+/* Sidebar — coral left-edge + surface fill on the active page, like the ref. */
+.sidebar-content a {
+  border-left: 2px solid transparent;
+  border-radius: 7px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.sidebar-content a:hover {
+  background: var(--surface-2);
+}
+.sidebar-content a[aria-current="page"] {
+  background: var(--surface);
+  border-left-color: var(--coral);
+  color: var(--coral);
   font-weight: 600;
-  color: var(--text-main);
-  margin: 2rem 0 0.75rem;
+}
+/* Group labels → mono eyebrow. */
+.sidebar-content .group-label span,
+.sidebar-content summary .group-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* Callouts / asides → surface card with a 3px accent edge + mono title. */
+.sl-markdown-content .starlight-aside {
+  border: 1px solid var(--border);
+  border-inline-start-width: 3px;
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 1rem 1.15rem;
+}
+.sl-markdown-content .starlight-aside__title {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+.starlight-aside--tip { border-inline-start-color: var(--teal); }
+.starlight-aside--tip .starlight-aside__title { color: var(--teal); }
+.starlight-aside--note { border-inline-start-color: var(--coral); }
+.starlight-aside--note .starlight-aside__title { color: var(--coral-sh); }
+.starlight-aside--caution { border-inline-start-color: #c9962a; }
+.starlight-aside--caution .starlight-aside__title { color: #c9962a; }
+.starlight-aside--danger { border-inline-start-color: var(--coral-sh); }
+.starlight-aside--danger .starlight-aside__title { color: var(--coral-sh); }
+
+/* Prev/next pagination → rounded surface cards with a coral hover edge. */
+.pagination-links a {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.pagination-links a:hover {
+  border-color: var(--coral);
+  transform: translateY(-2px);
+}
+
+/* Search trigger → pill control matching the marketing nav. */
+site-search button {
+  border-radius: 999px;
+}
+
+/* Heading anchor link — nudge it off the heading text so it doesn't crowd the
+   last word on hover. */
+.sl-markdown-content .sl-anchor-link {
+  margin-inline-start: 0.4em;
+  padding-inline: 0.15em;
+}
+
+/* Code copy button — Expressive Code hides it (opacity:0) until hover; force it
+   always-visible so it's discoverable, per the design ref. The chip background and
+   border/outline are dropped so the resting icon doesn't read as highlighted.
+   !important is needed to beat EC's own equal-specificity opacity rule. */
+.expressive-code .frame .copy button {
+  opacity: 1 !important;
+  border: none;
+  outline: none;
+}
+
+/* ---- Feature metadata badges (rendered by FeatureMeta.astro) ---- */
+.zg-feature-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+/* ---- Cross-version "available in a newer version" search hint ---- */
+.zg-version-hint {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background-color: var(--sl-color-accent-low);
+  border: 1px solid var(--sl-color-accent);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
   line-height: 1.4;
 }
-
-.prose h4 {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 1.5rem 0 0.5rem;
-}
-
-.prose p {
-  margin: 0 0 1rem;
-}
-
-.prose a {
-  color: var(--zen-primary);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
-  transition: border-color 0.15s;
-}
-
-.prose a:hover {
-  border-bottom-color: var(--zen-primary);
-}
-
-.prose strong {
-  color: var(--text-main);
-  font-weight: 600;
-}
-
-.prose ul,
-.prose ol {
-  margin: 0 0 1rem;
-  padding-left: 1.5rem;
-}
-
-.prose li {
-  margin-bottom: 0.375rem;
-}
-
-.prose li::marker {
-  color: var(--text-dim);
-}
-
-.prose code:not(pre code) {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  padding: 0.125rem 0.375rem;
-  font-size: 0.875em;
-  color: var(--zen-primary-glow);
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-}
-
-.prose pre {
-  margin: 0 0 1.5rem;
-}
-
-.prose blockquote {
-  border-left: 3px solid var(--border-highlight);
-  padding-left: 1rem;
-  margin: 1.5rem 0;
-  color: var(--text-dim);
-  font-style: italic;
-}
-
-.prose table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.5rem 0;
-  font-size: 0.875rem;
-}
-
-.prose th {
-  text-align: left;
-  padding: 0.625rem 1rem;
-  border-bottom: 2px solid var(--border-highlight);
-  color: var(--text-main);
-  font-weight: 600;
-  font-size: 0.8125rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.prose td {
-  padding: 0.625rem 1rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.prose hr {
-  border: none;
-  border-top: 1px solid var(--border-subtle);
-  margin: 2rem 0;
-}
-
-.prose img {
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-}
-
-.prose .description {
-  font-size: 1.125rem;
-  color: var(--text-dim);
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-/* ============================================
-   Mobile Sidebar
-   ============================================ */
-
-.sidebar-toggle {
-  display: none;
-  position: fixed;
-  bottom: 1.5rem;
-  left: 1.5rem;
-  z-index: 100;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--zen-primary);
-  color: #020617;
-  border: none;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-}
-
-/* ============================================
-   Responsive
-   ============================================ */
-
-@media (max-width: 1100px) {
-  .docs-layout {
-    grid-template-columns: 280px minmax(0, 1fr);
-  }
-
-  .docs-toc {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .docs-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .docs-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 95;
-    width: 280px;
-    background: var(--bg-dark);
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    border-right: 1px solid var(--border-subtle);
-    padding-top: 1.5rem;
-  }
-
-  .docs-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .sidebar-toggle {
-    display: flex;
-  }
-
-  .sidebar-overlay.visible {
-    display: block;
-  }
-
-  .docs-content {
-    padding: 1.5rem;
-  }
-}
-
-/* ============================================
-   Docs Landing Page
-   ============================================ */
-
-.docs-landing {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 3rem 2rem;
-}
-
-.docs-landing-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 0.75rem;
-}
-
-.docs-landing-desc {
-  font-size: 1.125rem;
-  color: var(--text-dim);
-  margin-bottom: 3rem;
-  max-width: 640px;
-}
-
-.docs-category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-.docs-category-card {
-  padding: 1.25rem 1.5rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.4);
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.docs-category-card:hover {
-  border-color: var(--zen-primary);
-  background: rgba(16, 185, 129, 0.04);
-}
-
-.docs-category-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 0 0 0.375rem;
-}
-
-.docs-category-card p {
-  font-size: 0.8125rem;
-  color: var(--text-dim);
-  margin: 0;
-  line-height: 1.5;
-}
+.zg-version-hint strong { color: var(--sl-color-white); }
+.zg-version-hint a { font-weight: 600; }
+.zg-version-hint ul { margin: 0.35rem 0 0; padding-left: 1.1rem; }

@@ -1,0 +1,262 @@
+---
+title: Column State
+description: Capture the whole grid layout — column width, visibility, order, pin position, sort, and filter — as a serializable snapshot and restore it later, live in the page.
+tier: enterprise
+sidebar:
+  order: 8
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Column state is a serializable snapshot of the current layout — every column's
+**width, visibility, order, and pin position**, plus the active **sort** and
+**filter**. Capture it to persist a user's view (to `localStorage` or a backend)
+and apply it later to restore exactly what they had.
+
+It's an **enterprise** feature, driven by a `ColumnStateManager`. Build one from the
+grid; it reads and writes the grid's column model, sort, and filter for you:
+
+```ts
+import { ColumnStateManager } from '@zengrid/enterprise';
+
+const state = new ColumnStateManager(grid);
+
+const snapshot = state.getState();
+localStorage.setItem('grid-layout', JSON.stringify(snapshot));
+
+// …later
+state.applyState(JSON.parse(localStorage.getItem('grid-layout') ?? '{}'));
+```
+
+## What's captured
+
+`getState()` returns a single `ColumnLayoutState` object — the columns in visual
+(left-to-right) order, plus the sort and filter:
+
+```ts
+interface ColumnLayoutState {
+  columns: ColumnStateSnapshot[];  // one entry per column, in visual order
+  sort?: SortState[];              // present when the sort plugin is installed
+  filter?: FilterModel[];          // present when the filter plugin is installed
+}
+
+interface ColumnStateSnapshot {
+  id?: string;
+  field?: string;
+  width?: number;
+  visible?: boolean;
+  order?: number;
+  pinned?: 'left' | 'right' | null;
+}
+```
+
+On the way back in, `applyState(state, options)` matches each column by `id`
+(falling back to `field`) and restores it. Order is rebuilt as a clean
+permutation, so a **partial** snapshot (a few columns) is safe — the columns you
+name move; the rest keep their relative position. Restore only part of the layout
+with the flags — all default to `true`:
+
+```ts
+state.applyState(saved, {
+  applyWidth: true,
+  applyVisibility: true,
+  applyOrder: false,    // keep the current order
+  applyPinned: true,
+  applySort: true,
+  applyFilter: false,   // leave the current filter alone
+});
+```
+
+`applyState` also accepts a bare `ColumnStateSnapshot[]` array — handy for nudging
+a single column: `state.applyState([{ field: 'region', visible: false }])`.
+
+## Persisting pin position
+
+Pin position round-trips too, but the frozen-column rendering is driven by a
+[`ColumnPinManager`](/features/columns/column-pinning/) — so hand the same manager to
+the state manager and it captures/restores pins through it:
+
+```ts
+import { columnPinning, ColumnPinManager, ColumnStateManager } from '@zengrid/enterprise';
+
+const pins = new ColumnPinManager();
+const grid = new Zengrid(el, { colPinProvider: columnPinning(pins), columns });
+
+const state = new ColumnStateManager(grid, { pins });
+```
+
+## Auto-persist on every change
+
+Rather than wiring a **Save** button, hand `subscribe` a callback and it fires
+after every tracked change — width, visibility, order, pin, sort, or filter — so
+you can stream the layout straight to storage. It returns an unsubscribe:
+
+```ts
+const stop = state.subscribe(() => {
+  localStorage.setItem('grid-layout', JSON.stringify(state.getState()));
+});
+
+// later, when the grid is torn down
+stop();
+```
+
+## Try it live
+
+Change the layout with the buttons — widen a column, hide one, pin one, sort or
+filter — then **Save**, change it again, and **Restore** to snap it all back. The
+snapshot is a plain object you could just as easily send to a server.
+
+export const variants = [
+  {
+    id: 'save-restore',
+    label: 'Save & restore',
+    hint: 'Save the layout, then widen/hide/pin columns and hit Restore — width, visibility and pin all snap back to the saved snapshot.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips,
+// columnPinning, ColumnPinManager, ColumnStateManager
+const pins = new ColumnPinManager();
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+
+// The state manager reads/writes the layout; pass 'pins' so pin
+// position is captured and restored too.
+const state = new ColumnStateManager(grid, { pins });
+grid.state = state;   // expose to the buttons below
+grid.pins = pins;
+`,
+    controls: [
+      { label: '💾 Save layout', action: 'grid._saved = grid.state.getState()' },
+      { label: 'Widen Name', action: 'grid.columns.resize(0, 320)' },
+      { label: 'Hide Region', action: "grid.state.applyState([{ field: 'region', visible: false }], { applyWidth: false, applyOrder: false, applyPinned: false })" },
+      { label: 'Pin Status right', action: "grid.pins.pin('status', 'right')" },
+      { label: '↩ Restore saved', action: 'grid.state.applyState(grid._saved)' },
+    ],
+  },
+  {
+    id: 'sort-filter',
+    label: 'Sort & filter',
+    hint: 'Sort by Revenue and filter Status, then Save. Clear both and hit Restore — the snapshot carries the sort and filter, not just the columns.',
+    code: `// getState() also captures the active sort and filter.
+const pins = new ColumnPinManager();
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+grid.state = new ColumnStateManager(grid, { pins });
+`,
+    controls: [
+      { label: 'Sort Revenue ↓', action: "grid.sort.apply([{ column: 3, direction: 'desc' }])" },
+      { label: 'Filter Status = Churned', action: "grid.filter.set(5, 'equals', 'Churned')" },
+      { label: '💾 Save', action: 'grid._saved = grid.state.getState()' },
+      { label: 'Clear sort + filter', action: 'grid.sort.clear(); grid.filter.clear()' },
+      { label: '↩ Restore', action: 'grid.state.applyState(grid._saved)' },
+    ],
+  },
+  {
+    id: 'partial',
+    label: 'Partial restore',
+    hint: 'Save, then change width AND visibility. "Restore width only" brings widths back but leaves your hidden column hidden — the apply* flags choose what to restore.',
+    code: `// The apply* flags let a restore touch only some of the layout.
+const pins = new ColumnPinManager();
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+grid.state = new ColumnStateManager(grid, { pins });
+`,
+    controls: [
+      { label: '💾 Save', action: 'grid._saved = grid.state.getState()' },
+      { label: 'Widen Name + Hide MRR', action: "grid.columns.resize(0, 320); grid.state.applyState([{ field: 'mrr', visible: false }], { applyWidth: false, applyOrder: false, applyPinned: false })" },
+      { label: 'Restore width only', action: 'grid.state.applyState(grid._saved, { applyVisibility: false, applyOrder: false, applyPinned: false })' },
+      { label: 'Restore everything', action: 'grid.state.applyState(grid._saved)' },
+    ],
+  },
+  {
+    id: 'auto-persist',
+    label: 'Auto-persist',
+    hint: 'subscribe() auto-saves to localStorage on every change — no Save button. Open the console: each tweak logs "layout auto-saved". Load re-applies the stored layout.',
+    code: `// subscribe() fires after every tracked change — stream it to storage.
+const pins = new ColumnPinManager();
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+const state = new ColumnStateManager(grid, { pins });
+grid.state = state;
+
+// No Save button: persist the layout automatically on every change.
+state.subscribe(() => {
+  localStorage.setItem('zg-auto-layout', JSON.stringify(state.getState()));
+  console.log('layout auto-saved');
+});
+`,
+    controls: [
+      { label: 'Widen Role', action: 'grid.columns.resize(1, 300)' },
+      { label: 'Hide MRR', action: "grid.state.applyState([{ field: 'mrr', visible: false }], { applyOrder: false })" },
+      { label: 'Sort Revenue ↓', action: "grid.sort.apply([{ column: 3, direction: 'desc' }])" },
+      { label: '📂 Load auto-saved', action: "grid.state.applyState(JSON.parse(localStorage.getItem('zg-auto-layout') || '{}'))" },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} height={440} enterprise />
+
+## Next
+
+- [Column Pinning](/features/columns/column-pinning/) — the pin state captured here.
+- [Column Sizing & Resizing](/features/columns/column-sizing/) — the widths captured here.
+- [Column Moving](/features/columns/column-moving/) — the order captured here.

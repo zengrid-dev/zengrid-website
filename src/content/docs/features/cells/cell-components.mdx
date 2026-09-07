@@ -1,0 +1,36 @@
+---
+title: Cell Components
+description: Render custom content in a cell with renderers.
+---
+
+## Introduction
+
+A column's `renderer` decides how each cell is drawn. It's either the name of a
+built-in renderer (like `'text'` or `'checkbox'`) or a `CellRenderer` instance
+for full control.
+
+```ts
+import { NumberRenderer, ChipRenderer } from '@zengrid/core';
+
+const columns = [
+  { field: 'name', header: 'Name' },                 // default text
+  {
+    field: 'revenue', header: 'Revenue',
+    renderer: new NumberRenderer({ style: 'currency', currency: 'USD' }),
+  },
+  {
+    field: 'status', header: 'Status',
+    renderer: new ChipRenderer({ size: 'small' }),
+  },
+];
+```
+
+## Writing your own
+
+Implement the `CellRenderer` interface — you receive `params` (including the
+cell's `value`) and produce the cell's DOM.
+
+## Next
+
+- [Getting Values](/features/cells/getting-values/) — what `params.value` holds.
+- [Custom Cell Components](/features/columns/custom-components/) — the column-side guide.

@@ -1,0 +1,210 @@
+---
+title: Styling Rows
+description: Style whole rows with classes and inline styles — static for every row or a callback driven by the row's data. Zebra stripes, data-driven highlights, and class hooks, live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Row styling paints whole rows — a subtle zebra stripe, a red tint on the overdue
+row, a bold total line. You describe the styling declaratively with two options,
+each of which can be a **static value** applied to every row or a **callback**
+evaluated per row against that row's data:
+
+- **`rowClass`** — CSS class names added to the row. They hook into *your*
+  stylesheet, so the styling lives in CSS and composes with hover, selection and
+  your design tokens.
+- **`rowStyle`** — inline CSS applied directly to the row. Self-contained (no
+  stylesheet needed) and highest precedence, so it always wins.
+
+Because ZenGrid renders individual pooled cells rather than a `<tr>` per row (that
+is what keeps 100k rows smooth), there is no row element to style. The resolved
+classes and styles are instead stamped onto **every cell of the row** — the effect
+is identical, and it stays correct as rows recycle during scroll.
+
+## How it works
+
+Row styling ships in `@zengrid/enterprise`. Build a provider with `rowStyling()`
+and hand it to the grid through the `rowStyleProvider` option:
+
+```ts
+import { rowStyling } from '@zengrid/enterprise/grid';
+
+const grid = new Zengrid(el, {
+  rowCount,
+  rowStyleProvider: rowStyling({
+    // Static: applied to every row.
+    rowClass: 'zebra',
+    // Callback: evaluated per row. `data` is the row record; `row` is its index.
+    rowStyle: ({ row, data }) =>
+      data.status === 'overdue' ? { backgroundColor: '#3a1113' } : null,
+  }),
+  columns: [/* … */],
+});
+```
+
+Each callback receives `{ row, data }` — the row index and the row's record — and
+returns the class/style for that row, or `null`/`undefined` for no styling. Style
+keys may be camelCase (`backgroundColor`) or kebab-case (`background-color`);
+custom properties (`--accent`) pass through untouched.
+
+## Types
+
+```ts
+interface RowStyleParams {
+  /** Row index in display order. */
+  row: number;
+  /** The row's record. */
+  data: unknown;
+}
+
+type RowClassValue = string | string[] | null | undefined;
+type RowStyleValue = Record<string, string | number> | null | undefined;
+
+interface RowStylingOptions {
+  rowClass?: RowClassValue | ((params: RowStyleParams) => RowClassValue);
+  rowStyle?: RowStyleValue | ((params: RowStyleParams) => RowStyleValue);
+}
+```
+
+`rowClass` accepts a single class, an array, or a space-separated string — they're
+merged and de-duplicated. `rowStyle` values are stringified, so `opacity: 0.6` and
+`fontWeight: 600` both work.
+
+## Try it live
+
+Each tab styles rows a different way. Edit the callbacks — change the stripe
+colour, the threshold, or the class rules — and the grid re-renders.
+
+export const zebra = `// In scope: Zengrid, mount, rows, currency, chips, rowStyling
+// Zebra stripes: a rowStyle callback keyed off the row index. Inline styles need
+// no stylesheet and take precedence, so the stripe is always visible. (Swap the
+// callback for a static object — { backgroundColor: '...' } — to tint every row.)
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  rowStyleProvider: rowStyling({
+    rowStyle: ({ row }) => ({
+      backgroundColor: row % 2 === 0 ? 'transparent' : 'var(--surface-2)',
+    }),
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const byData = `// Data-driven highlight: the callback reads the row's data and returns several
+// style props at once. Rows are positional — [name, role, region, revenue, mrr,
+// status] — so we destructure to name the fields we care about.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  rowStyleProvider: rowStyling({
+    rowStyle: ({ data }) => {
+      const [, , , revenue, , status] = data;
+      if (status === 'Churned') {
+        // Tint + a coral rule down the left edge + dim the text.
+        return {
+          backgroundColor: 'rgba(242, 118, 78, 0.10)',
+          boxShadow: 'inset 3px 0 0 var(--coral)',
+          opacity: 0.72,
+        };
+      }
+      if (revenue > 200000) {
+        // Standout accounts get a teal wash and bolder text.
+        return { backgroundColor: 'rgba(45, 156, 143, 0.12)', fontWeight: 600 };
+      }
+      return null; // everything else: no styling
+    },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const classHooks = `// rowClass adds YOUR class names to a row — the styling lives in CSS, so it
+// composes with hover, selection and your design tokens. Define the classes once
+// in your stylesheet (injected here so the demo is self-contained):
+if (!document.getElementById('demo-row-css')) {
+  const style = document.createElement('style');
+  style.id = 'demo-row-css';
+  style.textContent = \`
+    .zg-cell.row-hot  { background: rgba(242, 118, 78, 0.12);
+                        box-shadow: inset 3px 0 0 var(--coral); }
+    .zg-cell.row-cool { color: var(--muted); font-style: italic; }
+  \`;
+  document.head.appendChild(style);
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  rowStyleProvider: rowStyling({
+    rowClass: ({ data }) => {
+      const revenue = data[3];               // [name, role, region, revenue, …]
+      if (revenue > 200000) return 'row-hot';
+      if (revenue < 60000) return 'row-cool';
+      return null;
+    },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const variants = [
+  { id: 'zebra', label: 'Zebra stripes', hint: 'rowStyle: ({ row }) => (…) keys off the row index. Change the stripe colour, or make the condition row % 3 to stripe every third row.', code: zebra },
+  { id: 'by-data', label: 'Highlight by data', hint: 'The callback reads the row record and returns several style props. Scroll to spot the Churned and 200k+ rows. Lower the 200000 threshold to light up more.', code: byData },
+  { id: 'class', label: 'Class hooks', hint: 'rowClass returns class names that hook into your stylesheet (injected at the top). Edit the .row-hot / .row-cool CSS, or the thresholds, and the grid re-renders.', code: classHooks },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **No `<tr>` — styling lands on cells.** The classes/styles are applied to every
+  cell of the row, so target `.zg-cell.your-class` in CSS. This is what lets row
+  styling stay correct while rows recycle during virtualized scroll.
+- **Precedence.** Inline `rowStyle` wins over everything, including the theme.
+  `rowClass` composes by CSS specificity, so `.zg-cell.your-class` beats the
+  base `.zg-cell` rules but still layers under selection/active states.
+- **Keep callbacks cheap and pure.** They run during rendering for each visible
+  row (memoized per render pass). Do the heavy work up front and read a flag off
+  the row's data here.
+- **Static or callback, per option.** `rowClass` and `rowStyle` are independent —
+  use a static string for one and a callback for the other, or mix freely.
+
+## Next
+
+- [Styling Cells](/features/cells/styling-cells/) — style individual cells and values.
+- [Row Height](/features/rows/row-height/) — size rows to match their emphasis.
+- [Row Data](/features/rows/row-data/) — supply the rows you're styling.

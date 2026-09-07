@@ -1,0 +1,241 @@
+---
+title: Group Rows
+description: The default full-width group-header layout — aggregate summaries, nested indent, and a fully custom header renderer.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+[Group Display Types](/features/row-grouping/group-display-types/) introduced the
+three ways to surface a group hierarchy. This page is a deep dive on the
+**default — `displayType: 'groupRows'`** — where each group becomes a
+**full-width header row** spanning every column, and the leaf rows render
+underneath as ordinary data rows. Unlike the column display types
+([Single Column](/features/row-grouping/single-column/) /
+[Multiple Columns](/features/row-grouping/multiple-columns/)), no leading group
+column is prepended — the hierarchy lives entirely in those banner rows.
+
+Because the header spans the whole width, it's the natural home for **aggregate
+summaries**: a group's totals sit right there in the banner instead of a separate
+column. Enable it with just `groupBy`:
+
+```ts
+const grouping = rowGrouping({
+  groupBy: [2],                     // Region — one full-width banner per region
+  aggregations: { 3: 'sum', 4: 'avg' },
+});
+
+new Zengrid(mount, {
+  columns: dataColumns,             // no group column to prepend
+  fullWidthProvider: grouping.provider,
+});
+
+grouping.attach(grid);
+grouping.setData(rows);
+```
+
+## Customising the header row
+
+Everything the banner shows is tunable on `rowGrouping()`:
+
+- **`aggregations`** — per-column reducers (`sum`, `avg`, `min`, `max`, `count`,
+  `first`, or your own `(values) => value`), keyed by source column index. Each
+  one is summarised in the header.
+- **`aggLabel(col, value, ctx)`** — format each aggregate. Return `''`/`undefined`
+  to hide that column's summary.
+- **`groupLabel(ctx)`** — the banner's title text (defaults to the group value).
+- **`indentPerLevel`** — pixels of indent added **per nesting level**, so nested
+  group banners step to the right. (Previously a single-column concern, this now
+  applies to full-width headers too.)
+- **`groupRowRenderer(params)`** — draw the **entire** header content yourself.
+  Return an HTML string or an `HTMLElement`; it replaces the default label + count
+  + summary, while the chevron, indent, and click-to-toggle stay wired.
+
+```ts
+rowGrouping({
+  groupBy: [2, 5],                  // Region, then Status — nested banners
+  aggregations: { 3: 'sum' },
+  indentPerLevel: 28,               // deeper banners step right
+  groupLabel: (ctx) => (ctx.level === 0 ? `🌍 ${ctx.key}` : `${ctx.key}`),
+  aggLabel: (_col, value) => `Total: ${money(value)}`,
+});
+```
+
+## Try it live
+
+export const summaries = `// In scope: Zengrid, mount, currency, rowGrouping
+// The default groupRows layout: one full-width banner per Region, with two
+// aggregates summarised in the header — total Revenue (sum) and average MRR.
+// aggLabel formats each one; the summary sits right-aligned in the banner.
+const data = rows.slice(0, 200);
+const money = (v) => '$' + Math.round(Number(v)).toLocaleString('en-US');
+
+const grouping = rowGrouping({
+  groupBy: [2],                     // Region
+  aggregations: { 3: 'sum', 4: 'avg' },
+  aggLabel: (col, value) =>
+    col === 3 ? 'Revenue ' + money(value) : 'Avg MRR ' + money(value),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const nested = `// Nested banners: Region -> Status. Each level gets its own full-width header,
+// and indentPerLevel steps the inner Status banners to the right so the nesting
+// reads at a glance. groupLabel gives the outer level a globe + name.
+const data = rows.slice(0, 200);
+const money = (v) => '$' + Math.round(Number(v)).toLocaleString('en-US');
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                  // Region, then Status
+  aggregations: { 3: 'sum' },
+  indentPerLevel: 28,               // deeper banners step right
+  groupLabel: (ctx) => (ctx.level === 0 ? '🌍 ' + ctx.key : String(ctx.key)),
+  aggLabel: (col, value) => 'Total ' + money(value),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const custom = `// Draw the whole banner yourself with groupRowRenderer. Here: a coloured Region
+// badge, a count pill, and a mini bar sized to the group's share of the biggest
+// group's revenue. It replaces the default label+count+summary; the chevron and
+// click-to-toggle stay wired around it.
+const data = rows.slice(0, 200);
+const money = (v) => '$' + Math.round(Number(v)).toLocaleString('en-US');
+
+// One pass to find the largest group revenue, to scale the bars.
+const totals = {};
+for (const r of data) totals[r[2]] = (totals[r[2]] || 0) + Number(r[3]);
+const maxTotal = Math.max(...Object.values(totals));
+
+const grouping = rowGrouping({
+  groupBy: [2],                     // Region
+  aggregations: { 3: 'sum' },
+  groupRowRenderer: ({ label, count, aggs }) => {
+    const total = Number(aggs[3]) || 0;
+    const pct = Math.round((total / maxTotal) * 100);
+    return (
+      '<span style="padding:2px 10px;border-radius:10px;font-size:12px;' +
+      'background:var(--zg-accent,#2563eb);color:#fff">' + label + '</span>' +
+      '<span style="color:var(--zg-text-secondary,#666)">' + count + ' people</span>' +
+      '<span style="margin-left:auto;display:flex;align-items:center;gap:8px">' +
+        '<span style="width:120px;height:8px;border-radius:4px;' +
+        'background:var(--zg-border,#e5e7eb);overflow:hidden">' +
+          '<span style="display:block;height:100%;width:' + pct + '%;' +
+          'background:var(--zg-accent,#2563eb)"></span>' +
+        '</span>' +
+        '<strong style="font-variant-numeric:tabular-nums">' + money(total) + '</strong>' +
+      '</span>'
+    );
+  },
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'summaries',
+    label: 'Aggregate summaries',
+    hint: 'The default full-width banner per Region carries a right-aligned summary. aggLabel formats the total Revenue (sum) and average MRR. Collapse a region to keep just its banner + totals.',
+    code: summaries,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'nested',
+    label: 'Nested + indent',
+    hint: 'Region -> Status nests two levels of banners. indentPerLevel (28px) steps the inner Status banners to the right; groupLabel adds a globe to the outer level. Collapse all to see only the top banners.',
+    code: nested,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'custom',
+    label: 'Custom renderer',
+    hint: 'groupRowRenderer draws the entire banner: a Region badge, a count, and a bar scaled to the biggest region. The chevron + click-to-toggle stay wired. Edit the markup and re-run.',
+    code: custom,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **No group column.** `groupRows` keeps the header as a full-width sentinel row,
+  so there's nothing to prepend from `getGroupColumns()` (it returns `[]` in this
+  mode) — pass your data columns straight through.
+- **Aggregates live in the banner.** With the whole width to work with, each
+  configured aggregate is summarised in the header via `aggLabel`. The column
+  display types instead render aggregates in their own data column.
+- **Indent shows nesting.** `indentPerLevel` steps deeper banners to the right so
+  a nested hierarchy reads without a per-level column. It's ignored by
+  `multipleColumns` (where the column itself expresses the level).
+- **`groupRowRenderer` replaces the content, not the row.** It swaps out the
+  label + count + summary; ZenGrid still owns the chevron, the indent, and the
+  click-to-toggle, so your markup can focus on presentation.
+- **Blanks group too.** A `null`/`undefined` group key renders as `(Blanks)`
+  unless you override the title with `groupLabel`.
+
+## Next
+
+- [Grouping Toolbar](/features/row-grouping/grouping-toolbar/) — drag columns to
+  group interactively.
+- [Single Column](/features/row-grouping/single-column/) /
+  [Multiple Columns](/features/row-grouping/multiple-columns/) — the column-based
+  layouts.

@@ -1,0 +1,215 @@
+---
+title: Validation
+description: Validate edits before they are stored — a declarative per-column validator that runs on any editor, a composable rule library (required, min/max, length, pattern, email, oneOf, custom), cross-field rules, and control over how a failing value is handled (block, revert, commit). Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Validation gates an edit **before it is written to the row**. When the user
+finishes an edit, the grid runs the column's validator against the value that
+would be stored; if it fails, the edit is rejected (or flagged) instead of
+silently corrupting your data.
+
+Two layers cooperate:
+
+- **Core (community):** a declarative [`ColumnDef.validator`](#) — an
+  editor-agnostic function that runs on **any** editor for the column, on the
+  final (parsed) value, with the whole row in scope. Return `true` to accept, or
+  a message `string` / `{ valid, message }` to reject.
+- **Enterprise:** [`cellValidation()`](#) — a one-call column helper that
+  composes a **rule library** (`required`, `min`, `max`, `minLength`,
+  `maxLength`, `pattern`, `email`, `oneOf`, `custom`) plus a cross-field
+  `validate`, on top of that core primitive.
+
+```ts
+import { cellValidation, validationRules as v } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  editing: { invalidEditMode: 'block' }, // how a failing value is handled
+  columns: [
+    cellValidation({
+      field: 'email', header: 'Email', editor: 'text',
+      rules: [v.required(), v.email()],
+    }),
+    cellValidation({
+      field: 'seats', header: 'Seats', editor: 'number',
+      rules: [v.required(), v.min(1), v.max(500)],
+    }),
+  ],
+});
+```
+
+### The rule library
+
+Every rule is a small function you compose in a list — the **first** that fails
+blocks the commit with its message. Each rule but `required` treats an empty
+value as valid, so pair `required()` with the others to make a field mandatory.
+
+| Rule | Rejects |
+|------|---------|
+| `required(msg?)` | `null`/`undefined`/blank string |
+| `minLength(n, msg?)` / `maxLength(n, msg?)` | strings shorter / longer than `n` |
+| `min(n, msg?)` / `max(n, msg?)` | numbers below / above `n` |
+| `pattern(re, msg?)` | values not matching the regex |
+| `email(msg?)` | malformed email addresses |
+| `oneOf(values, msg?)` | values outside the allowed set |
+| `custom(fn)` | whatever your `({ value, data }) => true \| string` returns |
+
+You can also write a validator by hand without the helper — anything
+`({ value }) => true | string` — and set it as `validator` on a plain column.
+
+### Cross-field rules
+
+Both the core `validator` and the helper's `validate` receive the whole row as
+`params.data`, so a rule can compare against sibling columns — e.g. a *min* that
+can't exceed a *max*, or a discount that's only allowed on certain plans.
+
+### How a failing value is handled — `invalidEditMode`
+
+The column decides *whether* a value is valid; the grid's
+`editing.invalidEditMode` decides *what happens* when it isn't:
+
+| Mode | Behavior |
+|------|----------|
+| `'block'` (default) | Keep the editor open, flag the input red, and show the message below it. Nothing is written; the user fixes it or presses Escape. |
+| `'revert'` | Discard the invalid input, restore the original value, and close the editor so focus can move on. |
+| `'commit'` | Write the value anyway but tag the cell `.zg-cell-invalid` (a red marker) so the error stays visible in the grid. |
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'rules',
+    label: 'Rule library',
+    hint: "Default 'block' mode. Double-click a cell and enter something invalid — Name under 2 chars, a malformed Email, Seats outside 1–500, or a Code that isn't 3 uppercase letters. The editor stays open with a red message until you fix it or press Escape.",
+    code: `// In scope (enterprise): cellValidation, validationRules
+const v = validationRules;
+
+// Row shape: [name, email, seats, code]
+const data = [
+  ['Aria Vaskov',  'aria@acme.io',    120, 'ACM'],
+  ['Kenji Okafor', 'kenji@globex.co',  48, 'GLX'],
+  ['Mira Solano',  'mira@initech.dev',  9, 'INI'],
+  ['Dev Ramires',  'dev@umbrella.org', 210, 'UMB'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 42,
+  // 'block' (the default): a bad value keeps the editor open with a message.
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    cellValidation({
+      field: 'name', header: 'Name', width: 180, editor: 'text',
+      rules: [v.required(), v.minLength(2, 'At least 2 characters')],
+    }),
+    cellValidation({
+      field: 'email', header: 'Email', width: 210, editor: 'text',
+      rules: [v.required(), v.email()],
+    }),
+    cellValidation({
+      field: 'seats', header: 'Seats', width: 110, editor: 'number',
+      rules: [v.required(), v.min(1), v.max(500)],
+    }),
+    cellValidation({
+      field: 'code', header: 'Code', width: 110, editor: 'text',
+      // A hand-written rule via pattern: exactly three uppercase letters.
+      rules: [v.pattern(/^[A-Z]{3}$/, 'Three uppercase letters')],
+    }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'cross-field',
+    label: 'Cross-field rules',
+    hint: "Rules that read sibling columns via params.data. Edit 'Min' above 'Max' (or 'Max' below 'Min') and the commit is blocked. 'Discount %' is only allowed on the Enterprise plan — try setting it on a Growth row.",
+    code: `// validate / rules receive the whole row as params.data.
+// Row shape: [plan, minSeats, maxSeats, discount]
+const data = [
+  ['Enterprise', 25, 500, 15],
+  ['Growth',     10, 100,  0],
+  ['Starter',     1,  25,  0],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 42,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'plan', header: 'Plan', width: 150, editable: true, editor: 'select',
+      editorOptions: { options: ['Starter', 'Growth', 'Enterprise'] } },
+    cellValidation({
+      field: 'minSeats', header: 'Min', width: 110, editor: 'number',
+      rules: [validationRules.required()],
+      // data = [plan, min, max, discount] — min can't exceed max.
+      validate: ({ value, data }) =>
+        Number(value) <= Number(data[2]) || 'Min cannot exceed Max',
+    }),
+    cellValidation({
+      field: 'maxSeats', header: 'Max', width: 110, editor: 'number',
+      validate: ({ value, data }) =>
+        Number(value) >= Number(data[1]) || 'Max cannot be below Min',
+    }),
+    cellValidation({
+      field: 'discount', header: 'Discount %', width: 130, editor: 'number',
+      rules: [validationRules.min(0), validationRules.max(50)],
+      // Only Enterprise plans may carry a discount.
+      validate: ({ value, data }) =>
+        Number(value) === 0 || data[0] === 'Enterprise' ||
+        'Discount only on Enterprise',
+    }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'commit-mode',
+    label: "invalidEditMode: 'commit'",
+    hint: "Here the grid is set to 'commit': a failing value is written anyway but the cell is flagged red (.zg-cell-invalid) so the error stays visible. Set Seats to 0 and Tab away — the 0 lands but the cell is marked. Switch this to 'revert' to make bad input snap back instead.",
+    code: `// invalidEditMode decides what happens to a rejected value.
+// 'commit' keeps it but flags the cell; 'revert' would discard it.
+const data = [
+  ['Acme Corp', 120],
+  ['Globex',     48],
+  ['Initech',     9],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 42,
+  editing: { invalidEditMode: 'commit' },
+  columns: [
+    { field: 'company', header: 'Company', width: 200, editable: true, editor: 'text' },
+    cellValidation({
+      field: 'seats', header: 'Seats', width: 130, editor: 'number',
+      rules: [validationRules.required(), validationRules.min(1), validationRules.max(500)],
+    }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Full Row](/features/editing/full-row/) — validate the whole record at once
+  with a row-level `validate` guard.
+- [Parsing Values](/features/editing/parsing-values/) — `valueParser` runs
+  *before* validation, so your validator sees the stored value, not the raw text.
+- [Undo / Redo Edits](/features/editing/undo-redo/) — every accepted edit is
+  undoable.

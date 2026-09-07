@@ -1,0 +1,223 @@
+---
+title: Group Display Types
+description: Choose how the group hierarchy is surfaced — full-width group rows, one group column, or a column per level.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The [Overview](/features/row-grouping/overview/) and
+[Grouping Data](/features/row-grouping/grouping-data/) pages decide **what** the
+grid groups by. This page is about **how** those groups are shown. The same
+buckets can be presented three ways, chosen with `displayType` on
+`rowGrouping()`:
+
+- **`groupRows`** (default) — each group is a **full-width header row** that
+  spans every column, with the label, count and an aggregate summary inline.
+- **`singleColumn`** — the whole hierarchy lives in **one leading group column**,
+  indented by depth. Your data columns stay put, so aggregates render **in their
+  own column**.
+- **`multipleColumns`** — each grouping level gets **its own leading column**.
+
+## `displayType: 'groupRows'`
+
+The original look. Group headers are full-width rows drawn by the manager's
+`provider`, so you only pass `fullWidthProvider: grouping.provider`. Aggregates
+are formatted by `aggLabel` and shown as a summary at the end of the header:
+
+```ts
+rowGrouping({
+  groupBy: [2, 5],
+  aggregations: { 3: 'sum' },
+  aggLabel: (col, v) => 'Revenue $' + Math.round(v).toLocaleString('en-US'),
+});
+```
+
+## `displayType: 'singleColumn'`
+
+Groups become **normal rows** with the hierarchy collapsed into one column. Ask
+the manager for that column with **`getGroupColumns()`** and spread it ahead of
+your data columns:
+
+```ts
+const grouping = rowGrouping({
+  groupBy: [2, 5],
+  displayType: 'singleColumn',
+  aggregations: { 3: 'sum' },       // shown in the Revenue column, not the header
+  groupColumnLabel: () => 'Region / Status',
+});
+
+new Zengrid(mount, {
+  columns: [...grouping.getGroupColumns(), ...dataColumns],
+  fullWidthProvider: grouping.provider,
+});
+```
+
+The manager reshapes the data to match the prepended column, so **keep your data
+columns contiguous from the first source index** — the group column occupies the
+leading slot. Aggregates land in their real column and are formatted by that
+column's own `renderer` (here, `currency`).
+
+## `displayType: 'multipleColumns'`
+
+One group column per level — the classic spreadsheet outline. `getGroupColumns()`
+returns one column per `groupBy` level; label them with `groupColumnLabel(index)`:
+
+```ts
+rowGrouping({
+  groupBy: [2, 5],
+  displayType: 'multipleColumns',
+  groupColumnLabel: (i) => (i === 0 ? 'Region' : 'Status'),
+});
+```
+
+## Try it live
+
+export const groupRows = `// In scope: Zengrid, mount, currency, rowGrouping
+// displayType: 'groupRows' (the default) — full-width header rows spanning every
+// column, with the aggregate as an inline summary.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status
+  aggregations: { 3: 'sum' },      // 3 = Revenue
+  aggLabel: (col, v) => 'Revenue $' + Math.round(v).toLocaleString('en-US'),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const singleColumn = `// displayType: 'singleColumn' — the whole Region -> Status hierarchy in ONE
+// group column, indented by depth. getGroupColumns() supplies it; the manager
+// reshapes the data to match, so the aggregate shows in the real Revenue column.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status
+  displayType: 'singleColumn',
+  aggregations: { 3: 'sum' },      // 3 = Revenue -> rendered in its own column
+  groupColumnLabel: () => 'Region / Status',
+  groupColumnWidth: 220,
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const multipleColumns = `// displayType: 'multipleColumns' — one group column per level. getGroupColumns()
+// returns two columns here (Region, then Status); label them by index.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status, each in its own column
+  displayType: 'multipleColumns',
+  aggregations: { 3: 'sum' },
+  groupColumnLabel: (i) => (i === 0 ? 'Region' : 'Status'),
+  groupColumnWidth: 140,
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'group-rows',
+    label: 'Group rows',
+    hint: 'The default. Full-width header rows; aggregate shown inline via aggLabel. Only fullWidthProvider is wired — no group columns.',
+    code: groupRows,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'single-column',
+    label: 'Single column',
+    hint: 'One group column holds the whole hierarchy, indented by depth. getGroupColumns() prepends it; the Revenue aggregate renders in the real Revenue column.',
+    code: singleColumn,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'multiple-columns',
+    label: 'Multiple columns',
+    hint: 'Each level gets its own leading column (Region, then Status). getGroupColumns() returns one per groupBy level.',
+    code: multipleColumns,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **`groupRows` needs no group columns.** It draws full-width headers through
+  `fullWidthProvider`; the column modes draw the hierarchy in real cells, so you
+  spread `getGroupColumns()` into `columns` and the manager reshapes the data to
+  fit.
+- **Keep data columns contiguous.** With positional array rows the group
+  column(s) take the leading slot(s); your data columns must follow in source
+  order so each cell lands under the right column.
+- **Aggregates render in their column** for `singleColumn`/`multipleColumns` —
+  formatted by that column's `renderer` — instead of the `aggLabel` summary used
+  by `groupRows`.
+- **`multipleColumns` fixes its column count** to the initial `groupBy` length.
+  Runtime re-grouping (see [Grouping Data](/features/row-grouping/grouping-data/))
+  works within that count; nesting deeper reuses the last group column.
+
+## Next
+
+- [Single Column](/features/row-grouping/single-column/) — a deep dive on the
+  one-column layout.
+- [Multiple Columns](/features/row-grouping/multiple-columns/) — a column per
+  level, with per-column control.

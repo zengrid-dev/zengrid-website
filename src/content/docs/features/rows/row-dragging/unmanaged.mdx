@@ -1,0 +1,205 @@
+---
+title: Unmanaged Row Dragging
+description: Run the drag gesture and drop indicator, but keep full control of the outcome — subscribe to the drag events and reorder (or veto, or route elsewhere) the data yourself.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+**Unmanaged** row dragging gives you the drag interaction without the automatic
+reorder. `RowDragManager` still owns the pointer gesture and paints the drop
+indicator, but on drop it leaves your data **untouched** — it just tells you what
+the user did and steps back. You decide what happens: apply the move, reject it,
+route the row somewhere else, or fold it into your own model.
+
+That's the distinction from [Managed Row Dragging](/features/rows/row-dragging/managed/),
+where the grid reorders its own data so the change sticks with no code from you.
+Managed is the fast path; unmanaged is the control path — reach for it when the
+reorder has rules, lives server-side, or has to land somewhere other than the
+grid's own array.
+
+Opt in with `{ managed: false }` and subscribe with `onDrag`:
+
+```ts
+import { RowDragManager } from '@zengrid/enterprise/grid';
+
+const drag = new RowDragManager({ managed: false });   // unmanaged
+const grid = new Zengrid(mount, { columns, /* … */ });
+grid.setData(rows);
+drag.attach(grid);
+
+drag.onDrag((event) => {
+  // Fires on every phase — nothing moves until you make it move.
+  if (event.phase === 'drop' && event.plan) {
+    applyMyReorder(event.plan.fromSource, event.plan.toSource);
+  }
+});
+```
+
+## The drag lifecycle
+
+`onDrag(fn)` fires on **every** phase of the gesture, so you can preview, log, or
+gate the move as it happens. It returns an unsubscribe function.
+
+| Phase | When | `plan` |
+|-------|------|--------|
+| `start` | The user picks a row up. | `null` |
+| `move` | The pointer crosses rows during the drag. | `null` |
+| `drop` | The row is released. | the concrete reorder, or `null` for a no-op |
+
+Every event carries the same shape:
+
+| Field | Meaning |
+|-------|---------|
+| `phase` | `'start'` · `'move'` · `'drop'`. |
+| `fromRow` | Display index the drag started on. |
+| `fromSource` | Source (dataset) index the drag started on. |
+| `overRow` | Display index under the pointer (`-1` on `start`). |
+| `insertBeforeRow` | Display index the row would land before (`-1` on `start`). |
+| `plan` | On `drop`, the source-index reorder `{ fromSource, toSource, toRow }`, or `null` when the drop is a no-op. `null` on `start`/`move`. |
+
+The `plan` on a `drop` is the *same* decision managed mode would apply — so the
+simplest unmanaged handler reproduces managed behaviour by feeding it to
+`moveRow` yourself. `moveRow` is exported for exactly that:
+
+```ts
+import { RowDragManager, moveRow } from '@zengrid/enterprise/grid';
+
+drag.onDrag((e) => {
+  if (e.phase !== 'drop' || !e.plan) return;
+  const data = readRowsFromGrid(grid);
+  grid.setData(moveRow(data, e.plan.fromSource, e.plan.toSource));
+  grid.refresh();
+});
+```
+
+## Managed vs. unmanaged
+
+| | Managed (`managed: true`, default) | Unmanaged (`managed: false`) |
+|--|--|--|
+| Drop reorders the grid's data | Yes, automatically | No — you do it |
+| Notifies via | `onChange` (after commit) | `onDrag` (every phase) |
+| Best for | plain reordering of the grid's own array | rules, vetoes, server-side order, external targets |
+
+Everything else is shared: `handle` still reserves dragging for a
+[`rowDragColumn()`](/features/rows/row-dragging/managed/) grip, the drop indicator
+still renders (import `@zengrid/enterprise/styles.css`), and `detach()` still tears
+it all down. Unmanaged dragging works against the natural (unsorted) row order, so
+use it on a grid without an active sort.
+
+## Try it live
+
+Drag a row in each tab. The first leaves the data alone (watch the console); the
+second hands the reorder to you; the third layers a rule on top — the top row is
+locked and nothing may drop above it.
+
+export const variants = [
+  {
+    id: 'events-only',
+    label: 'Events only (no reorder)',
+    hint: 'managed: false — the drop indicator tracks the pointer but the grid never reorders itself. Open the console to watch start/move/drop fire; the rows snap back because nothing is wired to move them.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg, RowDragManager
+// { managed: false } runs the gesture but leaves the data untouched.
+const drag = new RowDragManager({ managed: false });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+
+// Nothing moves — you just observe the gesture.
+drag.onDrag((e) => {
+  console.log(e.phase, 'from', e.fromRow, '→ before', e.insertBeforeRow, e.plan);
+});
+`,
+  },
+  {
+    id: 'you-commit',
+    label: 'You own the commit',
+    hint: 'On the drop event, read the current rows and apply e.plan yourself with zg.moveRow — same result as managed, but it is your code doing it. Drop a row; it now sticks.',
+    code: `// Unmanaged, but you apply the reorder on drop — full control, managed result.
+const drag = new RowDragManager({ managed: false });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+
+drag.onDrag((e) => {
+  if (e.phase !== 'drop' || !e.plan) return;
+  // Read the current source rows, then splice with the exported moveRow helper.
+  const count = grid.rows.getSourceRowCount();
+  const data = [];
+  for (let i = 0; i < count; i++) data.push(grid.rows.getSourceRow(i));
+  grid.setData(zg.moveRow(data, e.plan.fromSource, e.plan.toSource));
+  grid.refresh();
+});
+`,
+  },
+  {
+    id: 'custom-rule',
+    label: 'Custom drop rule',
+    hint: 'The real payoff: gate the move. Here the top row is locked — it cannot be dragged and nothing may drop into its slot. Try to move the top row, or drop another row above it: the rule wins.',
+    code: `// Layer a business rule on the drop — the top row stays pinned to the top.
+const drag = new RowDragManager({ managed: false });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+
+drag.onDrag((e) => {
+  if (e.phase !== 'drop' || !e.plan) return;
+  if (e.plan.fromSource === 0) return;            // the top row is locked — ignore
+  const toSource = Math.max(1, e.plan.toSource);  // never let anything take slot 0
+  const count = grid.rows.getSourceRowCount();
+  const data = [];
+  for (let i = 0; i < count; i++) data.push(grid.rows.getSourceRow(i));
+  grid.setData(zg.moveRow(data, e.plan.fromSource, toSource));
+  grid.refresh();
+});
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Managed Row Dragging](/features/rows/row-dragging/managed/) — let the grid
+  reorder its own data for you.
+- [Accessing Rows](/features/rows/accessing-rows/) — the `grid.rows` API the
+  handlers above read the order back from.
+- [Row Data](/features/rows/row-data/) — supply the rows you reorder.

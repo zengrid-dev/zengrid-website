@@ -1,0 +1,141 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Button from "../components/Button.astro";
+import Footer from "../components/Footer.astro";
+import { enterprise, type Accent } from "../config/site";
+
+const inkClass: Record<Accent, string> = {
+  coral: "text-ink-coral",
+  teal: "text-ink-teal",
+  violet: "text-ink-violet",
+  amber: "text-ink-amber",
+};
+---
+
+<Layout
+  title="Enterprise — ZenGrid"
+  description="ZenGrid Enterprise: SLA-backed support, a named engineering contact, custom licensing, and flexible deployment — for teams shipping data grids at scale."
+>
+  <header>
+    <Nav />
+  </header>
+
+  <main id="main">
+    <!-- hero -->
+    <section
+      class="pt-16 pb-[72px] max-w-[720px]"
+      aria-label="ZenGrid Enterprise"
+    >
+      <div
+        class="inline-flex items-center gap-2 bg-surface border border-border px-3.5 py-1.5 rounded-full font-mono text-xs font-medium text-muted mb-[30px]"
+      >
+        <span class="w-[7px] h-[7px] rounded-full bg-ink-violet"></span>
+        {enterprise.badge}
+      </div>
+
+      <h1
+        class="font-display text-[clamp(38px,6vw,58px)] leading-[1.07] font-extrabold tracking-[-0.035em] m-0 mb-6 text-balance"
+      >
+        <span class="block">{enterprise.title}</span>
+        <span class="block text-ink-violet">{enterprise.titleAccent}</span>
+      </h1>
+
+      <p class="text-[18px] leading-[1.6] max-w-[560px] m-0 mb-8 text-muted">
+        {enterprise.description}
+      </p>
+
+      <div class="flex gap-3 items-center flex-wrap">
+        <Button
+          href={enterprise.primaryCta.href}
+          variant="primary"
+          class="text-base px-[26px] py-[14px]"
+        >
+          {enterprise.primaryCta.label}
+        </Button>
+        <Button
+          href={enterprise.secondaryCta.href}
+          variant="secondary"
+          class="text-base px-6 py-[13px]"
+        >
+          {enterprise.secondaryCta.label}
+        </Button>
+      </div>
+    </section>
+
+    <!-- capabilities -->
+    <section class="pb-16" aria-label="What Enterprise includes">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {
+          enterprise.capabilities.map((c) => (
+            <div class="rounded-[20px] bg-surface border border-border px-6 py-[26px] flex flex-col">
+              <div
+                class:list={[
+                  "font-mono text-xs font-bold uppercase tracking-[0.08em] mb-3",
+                  inkClass[c.accent],
+                ]}
+              >
+                {c.title}
+              </div>
+              <p class="text-sm leading-[1.6] text-muted m-0">{c.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- included features band -->
+    <section
+      class="bg-surface-2 border border-border rounded-[22px] px-10 py-9 mb-16"
+      aria-label="Included features"
+    >
+      <h2
+        class="font-display text-[26px] font-semibold tracking-[-0.02em] m-0 mb-2.5"
+      >
+        {enterprise.included.title}
+      </h2>
+      <p class="text-[15px] leading-[1.6] text-muted m-0 mb-4 max-w-[640px]">
+        {enterprise.included.body}
+      </p>
+      <a
+        href={enterprise.included.linkHref}
+        class="font-mono text-sm font-semibold text-ink-violet hover:text-coral-sh transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
+      >
+        {enterprise.included.linkLabel}
+      </a>
+    </section>
+
+    <!-- contact CTA -->
+    <section
+      class="bg-ink text-bg rounded-[22px] px-12 py-11 flex items-center justify-between gap-6 flex-wrap mb-20"
+      aria-label="Contact sales"
+    >
+      <div class="max-w-[520px]">
+        <div
+          class="font-display text-[30px] font-semibold tracking-[-0.02em] mb-1.5"
+        >
+          {enterprise.contact.title}
+        </div>
+        <div class="text-[15px] opacity-70">{enterprise.contact.body}</div>
+      </div>
+      <div class="flex gap-3 flex-wrap">
+        <Button
+          href={enterprise.contact.primary.href}
+          variant="primary"
+          class="text-[15px] px-[22px] py-[13px]"
+        >
+          {enterprise.contact.primary.label}
+        </Button>
+        <Button
+          href={enterprise.contact.secondary.href}
+          variant="ghost"
+          class="text-[15px] px-[22px] py-3"
+        >
+          {enterprise.contact.secondary.label}
+        </Button>
+      </div>
+    </section>
+  </main>
+
+  <Footer slot="footer" />
+</Layout>

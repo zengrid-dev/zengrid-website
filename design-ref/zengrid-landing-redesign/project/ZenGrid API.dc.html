@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  a { color: var(--coral); text-decoration: none; }
+  a:hover { color: var(--coral-sh); }
+  input { font-family: inherit; }
+  ::selection { background: var(--coral); color: #fff; }
+  @keyframes zg-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
+</style>
+</helmet>
+
+<div style="{{ themeStyle }} background:var(--bg); color:var(--ink); font-family:'Instrument Sans',sans-serif; min-height:100vh; transition:background-color .3s ease, color .3s ease;">
+  <div style="max-width:1200px; margin:0 auto; padding:0 40px;">
+
+    <!-- nav -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 0;">
+      <a href="ZenGrid Home v4.dc.html" style="display:flex; align-items:center; gap:11px; color:var(--ink);">
+        <div style="width:28px; height:28px; border-radius:9px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2.5px; padding:4px;">
+          <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+        </div>
+        <span style="font-family:'Manrope',sans-serif; font-weight:800; font-size:20px; letter-spacing:-0.02em;">ZenGrid</span>
+      </a>
+      <div style="display:flex; gap:24px; align-items:center; font-size:15px; font-weight:500;">
+        <a href="ZenGrid Features.dc.html" style="color:var(--muted);">Features</a><a href="ZenGrid Examples.dc.html" style="color:var(--muted);">Examples</a><a href="ZenGrid Pricing.dc.html" style="color:var(--muted);">Pricing</a><a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a><a href="ZenGrid API.dc.html" style="color:var(--ink); font-weight:600;">API</a>
+        <button onClick="{{ toggleTheme }}" style="display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); color:var(--ink); padding:8px 14px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ themeIcon }}</button>
+        <span style="background:var(--ink); color:var(--bg); padding:9px 18px; border-radius:999px; font-weight:600; cursor:pointer;">Get started</span>
+      </div>
+    </div>
+
+    <!-- hero + search -->
+    <div style="padding:56px 0 36px; max-width:760px;">
+      <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--coral); margin-bottom:16px;">
+        <span style="width:7px; height:7px; background:var(--coral); border-radius:50%; animation:zg-pulse 1.6s ease-in-out infinite;"></span>API reference
+      </div>
+      <h1 style="font-family:'Manrope',sans-serif; font-size:56px; line-height:1.06; font-weight:800; letter-spacing:-0.035em; margin:0 0 16px;">
+        Every option, <span style="color:var(--coral);">typed.</span>
+      </h1>
+      <p style="font-size:17px; line-height:1.6; color:var(--muted); margin:0 0 26px;">
+        The full surface of <code style="font-family:'JetBrains Mono',monospace; font-size:14px; background:var(--surface-2); border:1px solid var(--border-soft); border-radius:6px; padding:2px 7px;">@zengrid/core</code>. Start typing to filter.
+      </p>
+      <div style="display:flex; align-items:center; gap:10px; background:var(--surface); border:1.5px solid var(--border); border-radius:13px; padding:13px 18px; box-shadow:0 3px 0 var(--border);">
+        <span style="color:var(--faint); font-size:16px;">⌕</span>
+        <input value="{{ q }}" onInput="{{ setQ }}" placeholder="filter the API… try 'sort' or 'plugin'" style="flex:1; border:none; outline:none; background:transparent; color:var(--ink); font-size:15px; font-weight:500;" />
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint);">{{ count }} entries</span>
+      </div>
+    </div>
+
+    <!-- API groups -->
+    <div style="display:flex; flex-direction:column; gap:36px; padding-bottom:72px;">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+        <div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:{{ g.accent }}; text-transform:uppercase; letter-spacing:0.08em;">{{ g.title }}</span>
+            <span style="flex:1; height:1px; background:var(--border-soft);"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="6">
+              <div style="background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:15px 18px; transition:border-color .15s ease;" style-hover="border-color:{{ g.accent }};">
+                <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:5px; flex-wrap:wrap;">
+                  <code style="font-family:'JetBrains Mono',monospace; font-size:13.5px; font-weight:700; color:var(--ink);">{{ it.sig }}</code>
+                  <code style="font-family:'JetBrains Mono',monospace; font-size:11px; color:{{ g.accent }};">{{ it.type }}</code>
+                </div>
+                <div style="font-size:13.5px; color:var(--muted); line-height:1.55;">{{ it.desc }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--faint); text-align:center; padding:24px;">no API entries match "{{ q }}"</div>
+      </sc-if>
+    </div>
+
+    <!-- footer -->
+    <div style="border-top:1px solid var(--border-soft); padding:28px 0 36px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:22px; height:22px; border-radius:7px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:3px;">
+          <div style="background:#f2764e; border-radius:1.5px;"></div><div style="background:#e9b949; border-radius:1.5px;"></div><div style="background:#57b6a6; border-radius:1.5px;"></div><div style="background:#9b7ed6; border-radius:1.5px;"></div>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint);">© 2026 ZenGrid · MIT</span>
+      </div>
+      <div style="display:flex; gap:20px; font-size:14px; font-weight:500;">
+        <a href="ZenGrid Home v4.dc.html" style="color:var(--muted);">Home</a>
+        <a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a>
+        <a href="ZenGrid Examples.dc.html" style="color:var(--muted);">Examples</a>
+        <span style="color:var(--muted); cursor:pointer;">GitHub</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: 'light', q: '' };
+
+  themes = {
+    light: "--bg:#f8f5ef;--surface:#ffffff;--surface-2:#faf8f3;--border:#e6e0d5;--border-soft:#f0ece3;--row-line:#f5f1e9;--ink:#211d1a;--muted:#6b6258;--faint:#9a9184;--coral:#f2764e;--coral-sh:#d85a34;--teal:#57b6a6;--teal-ink:#3f9284;--logo-ink:#211d1a;",
+    dark: "--bg:#1a1714;--surface:#232019;--surface-2:#2a261e;--border:#34302a;--border-soft:#2f2b24;--row-line:#2a261f;--ink:#f6f1e7;--muted:#b3a998;--faint:#8c8272;--coral:#f2764e;--coral-sh:#a34d2f;--teal:#57b6a6;--teal-ink:#6fd0bf;--logo-ink:#f6f1e7;",
+  };
+  accentHex = {
+    light: { coral: '#e0603a', teal: '#3f9284', amber: '#c9962a', violet: '#7b5fc4' },
+    dark:  { coral: '#f7906b', teal: '#6fd0bf', amber: '#e3b354', violet: '#ad93e0' },
+  };
+
+  api = [
+    { title: 'Constructor options', accent: 'coral', items: [
+      { sig: 'data', type: 'T[]', desc: 'The row array. Any shape — columns pick fields off it.' },
+      { sig: 'columns', type: 'ColumnDef<T>[]', desc: 'Column definitions: field, header, type, width, editor, comparator.' },
+      { sig: 'virtual', type: 'boolean', desc: 'Enable viewport-based rendering. On by default above 200 rows.' },
+      { sig: 'sortable', type: 'boolean | SortOptions', desc: 'Enable column sorting; pass options for multi-sort behavior.' },
+      { sig: 'editable', type: 'boolean | EditOptions', desc: 'Enable inline cell editing with built-in or custom editors.' },
+      { sig: 'pagination', type: 'PaginationOptions', desc: 'Page size, controls, and programmatic paging.' },
+    ]},
+    { title: 'Methods', accent: 'teal', items: [
+      { sig: 'grid.sort(field, dir?)', type: '=> void', desc: 'Sort by a field. Stable across equal values; stacks in multi-sort.' },
+      { sig: 'grid.filter(predicate)', type: '=> void', desc: 'Filter rows with a predicate or a column filter model.' },
+      { sig: 'grid.setQuickFilter(text)', type: '=> void', desc: 'Fuzzy quick filter across all visible columns.' },
+      { sig: 'grid.selection.get()', type: '=> Range[]', desc: 'Current cell/row/column/range selection snapshots.' },
+      { sig: 'grid.exportCsv(options?)', type: '=> string', desc: 'Export visible or full data as CSV/TSV.' },
+      { sig: 'grid.scrollToRow(index)', type: '=> void', desc: 'Jump the viewport to any row — instant, even at row 999,999.' },
+    ]},
+    { title: 'Events', accent: 'amber', items: [
+      { sig: "on('sortChange')", type: 'SortState', desc: 'Fires when sort keys or directions change.' },
+      { sig: "on('cellEdit')", type: 'EditEvent<T>', desc: 'Fires on commit with old value, new value, and row.' },
+      { sig: "on('selectionChange')", type: 'Range[]', desc: 'Fires as selection is created, extended, or cleared.' },
+      { sig: "on('rowsRequested')", type: 'RowRange', desc: 'Backend hook: fires when the viewport needs unloaded rows.' },
+    ]},
+    { title: 'Plugin API', accent: 'violet', items: [
+      { sig: 'definePlugin(setup)', type: 'ZenPlugin', desc: 'Create a typed plugin with lifecycle hooks into render and state.' },
+      { sig: 'grid.use(plugin)', type: '=> void', desc: 'Attach a plugin instance. Plugins compose; order matters.' },
+      { sig: 'ctx.decorateCell(fn)', type: 'hook', desc: 'Plugin hook: wrap or replace cell rendering.' },
+      { sig: 'ctx.registerEditor(name, ed)', type: 'hook', desc: 'Plugin hook: add a named editor usable from column defs.' },
+    ]},
+  ];
+
+  toggleTheme() { this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' })); }
+  setQ(e) { const v = e.target.value; this.setState({ q: v }); }
+
+  renderVals() {
+    const { theme, q } = this.state;
+    const hex = this.accentHex[theme];
+    const ql = q.trim().toLowerCase();
+    const groups = this.api
+      .map(g => ({
+        title: g.title,
+        accent: hex[g.accent],
+        items: g.items.filter(it => !ql || (it.sig + ' ' + it.desc + ' ' + g.title).toLowerCase().includes(ql)),
+      }))
+      .filter(g => g.items.length > 0);
+    const count = groups.reduce((n, g) => n + g.items.length, 0);
+    return {
+      groups, q, count, empty: count === 0,
+      setQ: (e) => this.setQ(e),
+      themeStyle: this.themes[theme],
+      themeIcon: theme === 'light' ? '☾ Dark' : '☀ Light',
+      toggleTheme: () => this.toggleTheme(),
+    };
+  }
+}
+</script>
+</body>
+</html>

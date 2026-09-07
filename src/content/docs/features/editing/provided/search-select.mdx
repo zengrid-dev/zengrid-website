@@ -1,0 +1,186 @@
+---
+title: Search Select Editor
+description: Edit a cell from a searchable, richly-rendered dropdown — color swatches or glyphs, descriptions, keyboard navigation, and a matching cell display (label or colored badge) — with the premium richSelectEditor(). Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The built-in [select editor](/features/editing/provided/select/) is a native
+`<select>` — great for a short list of plain values. When a column's choices
+deserve more — a color per option, an icon, a one-line description, or so many
+values that you need to **search** — reach for `richSelectEditor()`.
+
+`richSelectEditor()` returns a ready-made `ColumnDef` that opens a floating,
+**searchable** dropdown of richly-rendered rows (color swatch or glyph + label +
+description), navigable with the keyboard, and renders the committed value back
+into the cell to *match* the choice — its **label** (`display: 'text'`) or a
+**colored badge** (`display: 'badge'`). One call, no hand-wired editor or
+renderer.
+
+```ts
+import { richSelectEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    richSelectEditor({ field: 'status', header: 'Status', display: 'badge',
+      options: [
+        { value: 'active',  label: 'Active',  color: '#22c55e', icon: '🟢', description: 'Paying customer' },
+        { value: 'churned', label: 'Churned', color: '#ef4444', icon: '🔴', description: 'Cancelled' },
+      ] }),
+  ],
+});
+```
+
+Double-click a cell (or press `Enter`) to open the dropdown. Type to filter,
+`↑`/`↓` to move the highlight, `Enter` or a click to pick, `Escape` to cancel.
+The column **keeps its stored value** (the raw code); only the display changes.
+
+### Options
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `options` | `(string \| number \| { value, label?, color?, icon?, description? })[]` | The choices. An object may carry a swatch/badge `color`, a leading `icon` glyph, and a `description` line. |
+| `display` | `'text' \| 'badge'` | Render the committed value as its glyph + **label** (default) or a **colored badge**. |
+| `searchable` | `boolean` | Show the mini search box (default `true`). Set `false` for a plain pick list. |
+| `searchPlaceholder` | `string` | Placeholder for the search box (default `'Search…'`). |
+| `filter` | `(option, query) => boolean` | Custom search matcher (default: case-insensitive over label + description). |
+| `allowEmpty` | `boolean` | Add a leading row that clears the cell to `null`. |
+| `emptyLabel` | `string` | Text for the clear row / an unmatched value (default `'—'`). |
+| `width` | `number` | Popup width in px (defaults to the cell width, min 220). |
+| `maxListHeight` | `number` | Max height of the scrolling list in px (default `240`). |
+| `validator` | `(value) => boolean \| string` | Custom check on commit; return a string to supply the error message. |
+| `formatDisplay` | `boolean` | Render the matching display (default `true`; `false` keeps your own `renderer`). |
+
+A failing `validator` commit is governed by the grid-level
+[`editing.invalidEditMode`](/features/editing/validation/): `'block'` (default)
+keeps the editor open and flags the cell.
+
+export const variants = [
+  {
+    id: 'search',
+    label: 'Searchable + descriptions',
+    hint: "richSelectEditor() opens a searchable dropdown with a color swatch and a description per option. Double-click a Country cell, type to filter (try 'ja'), use ↑/↓ then Enter to pick. The cell shows the label; the stored value stays the code.",
+    code: `// In scope (enterprise): richSelectEditor
+const data = [
+  ['Aria Vaskov', 'jp'],
+  ['Kenji Tanaka', 'us'],
+  ['Lucia Moreno', 'es'],
+  ['Otto Bergman', 'de'],
+  ['Priya Nair', 'in'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    richSelectEditor({ field: 'country', header: 'Country', width: 240,
+      searchPlaceholder: 'Search countries…',
+      options: [
+        { value: 'us', label: 'United States', description: 'North America' },
+        { value: 'de', label: 'Germany',       description: 'Europe' },
+        { value: 'es', label: 'Spain',         description: 'Europe' },
+        { value: 'jp', label: 'Japan',         description: 'Asia Pacific' },
+        { value: 'in', label: 'India',         description: 'Asia Pacific' },
+        { value: 'br', label: 'Brazil',        description: 'South America' },
+      ] }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'badge',
+    label: 'Glyphs + colored badges',
+    hint: "display:'badge' renders the committed value as a colored pill (with the option's icon). The dropdown rows show the same glyph + a description. Double-click a Status cell and pick a new value — the badge recolors to match. Change a color or icon and re-run.",
+    code: `// display: 'badge' draws a colored pill; each option carries an icon + color.
+const data = [
+  ['Northwind', 'active'],
+  ['Acme Co', 'trial'],
+  ['Globex', 'churned'],
+  ['Initech', 'active'],
+  ['Umbrella', 'paused'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'account', header: 'Account', width: 200 },
+    richSelectEditor({ field: 'status', header: 'Status', width: 220,
+      display: 'badge',
+      options: [
+        { value: 'active',  label: 'Active',  color: '#22c55e', icon: '🟢', description: 'Paying customer' },
+        { value: 'trial',   label: 'Trial',   color: '#f59e0b', icon: '🟡', description: 'In evaluation' },
+        { value: 'paused',  label: 'Paused',  color: '#6366f1', icon: '🔵', description: 'Temporarily on hold' },
+        { value: 'churned', label: 'Churned', color: '#ef4444', icon: '🔴', description: 'Cancelled' },
+      ] }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'plain',
+    label: 'Plain list + required',
+    hint: "searchable:false makes a compact pick list (no search box). allowEmpty adds a clear row; the validator makes a pick required — under invalidEditMode:'block' choosing '(unassigned)' keeps the editor open. Double-click an Owner cell, pick '(unassigned)' → blocked; pick a name → it commits.",
+    code: `// searchable:false + allowEmpty + a required validator.
+const data = [
+  ['Migrate billing', 'aria'],
+  ['Ship v2 API', 'kenji'],
+  ['Security audit', ''],
+  ['Q3 planning', 'lucia'],
+  ['Data backfill', ''],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'task', header: 'Task', width: 220 },
+    richSelectEditor({ field: 'owner', header: 'Owner', width: 220,
+      searchable: false,
+      allowEmpty: true,
+      emptyLabel: '(unassigned)',
+      options: [
+        { value: 'aria',  label: 'Aria Vaskov',  icon: '👩‍💻' },
+        { value: 'kenji', label: 'Kenji Tanaka', icon: '👨‍💻' },
+        { value: 'lucia', label: 'Lucia Moreno', icon: '👩‍🎨' },
+        { value: 'otto',  label: 'Otto Bergman', icon: '🧑‍🔧' },
+      ],
+      validator: (v) => (v ? true : 'Assign an owner before saving') }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## When to reach for it
+
+- **Built-in `select`** — a short list of plain values, no license. The cell
+  shows the raw stored value.
+- **Enterprise `selectEditor()`** — a native `<select>` plus a matching
+  label/badge display in one call.
+- **Enterprise `richSelectEditor()`** — a **searchable**, richly-rendered popup
+  (swatches, glyphs, descriptions, keyboard nav) for longer or visually-rich
+  option lists, plus the matching display.
+
+## Next
+
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.
+- [Saving values](/features/editing/saving-values/) — parse and persist what an
+  editor commits.

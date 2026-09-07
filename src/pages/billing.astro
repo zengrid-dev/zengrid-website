@@ -1,0 +1,43 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import { checkout, licenseDelivery } from "../config/checkout";
+import { links } from "../config/links";
+---
+
+<Layout title="Billing and order help — ZenGrid" description="Manage ZenGrid invoices, subscriptions, and payment methods in Polar. Get help with license delivery and payments.">
+  <header><Nav /></header>
+  <main id="main" class="max-w-[840px] pt-16 pb-20">
+    <h1 class="font-display text-[clamp(34px,5.5vw,52px)] leading-tight font-extrabold tracking-tight m-0 mb-6">Billing and order help</h1>
+    <p class="text-lg text-muted leading-relaxed max-w-[600px] mb-8">Your ZenGrid purchases are managed through Polar. Sign in with the email address you used at checkout; Polar will email you a one-time code.</p>
+
+    <section class="rounded-[22px] bg-surface border border-border p-6 sm:p-8 mb-8" aria-labelledby="manage-billing">
+      <h2 id="manage-billing" class="font-display text-2xl font-bold mt-0 mb-4">Manage your purchases</h2>
+      <ul class="text-muted leading-loose pl-5 mb-6">
+        <li>View orders and download invoices and receipts.</li>
+        <li>Update payment details for future charges.</li>
+        <li>Review your renewal date or cancel a subscription.</li>
+      </ul>
+      <a href={checkout.portalUrl} rel="noreferrer" referrerpolicy="no-referrer" class="inline-flex justify-center rounded-[14px] bg-coral text-white font-semibold px-6 py-[14px] shadow-[0_5px_0_var(--coral-sh)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral">Open Polar billing portal →</a>
+      <p class="text-sm text-muted mt-5 mb-0">You can also open the portal from your Polar confirmation email. No ZenGrid account is needed.</p>
+    </section>
+
+    <section class="mb-8" aria-labelledby="license-delivery">
+      <h2 id="license-delivery" class="font-display text-2xl font-bold mb-3">License delivery</h2>
+      <p class="text-muted leading-relaxed">{licenseDelivery}</p>
+      <p class="text-muted leading-relaxed">Include your order number when contacting us. Never send card details or your license key.</p>
+    </section>
+    <section class="mb-8" aria-labelledby="payment-status">
+      <h2 id="payment-status" class="font-display text-2xl font-bold mb-3">Unsure whether your payment went through?</h2>
+      <p class="text-muted leading-relaxed">Check the order in your Polar portal and look for a confirmation email. If a charge is pending, or you see a charge without an order, contact us before paying again.</p>
+      <p class="text-muted leading-relaxed">For refunds, email us from the address on your order. Our <a href={links.refund} class="underline">refund policy</a> explains the available options.</p>
+    </section>
+    <div class="flex flex-wrap gap-6 text-sm font-semibold">
+      <a href={links.contact} class="underline">Contact support</a>
+      <a href={links.buy} class="underline">View plans</a>
+      <a href={links.docs} class="underline">Read the setup guide</a>
+    </div>
+  </main>
+  <Footer slot="footer" />
+</Layout>

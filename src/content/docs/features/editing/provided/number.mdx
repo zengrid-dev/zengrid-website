@@ -1,0 +1,273 @@
+---
+title: Number Editor
+description: Edit numeric cells with the built-in number editor (min/max/step/precision/validation) or the premium numberEditor() — live thousands grouping, a currency prefix, unit suffixes and stepper buttons. Live, editable examples in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+ZenGrid edits numbers in two layers:
+
+- **Built-in number editor (Community).** Set `editor: 'number'` on an editable
+  column for a native `<input type="number">` with spinner arrows. Configure it
+  declaratively through `editorOptions` — `min`, `max`, `step`, `precision`,
+  `allowNegative`, `placeholder`, and a custom `validator`. No license needed.
+- **Formatted number editor (Enterprise).** `numberEditor()` returns a ready-made
+  column backed by a premium editor that **live-formats as you type** — thousands
+  grouping, a currency prefix (`$1,234`), a unit suffix (`12.5%`), fixed decimals,
+  and optional `−`/`+` stepper buttons. It formats the cell's display with the
+  same options, so a currency column reads and edits identically.
+
+## Built-in number editor (Community)
+
+Select it on any editable column:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'mrr', header: 'MRR', editable: true, editor: 'number',
+      editorOptions: { min: 0, max: 50000, step: 100 } },
+  ],
+});
+```
+
+### `editorOptions`
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `min` | `number` | Reject values below this on commit. |
+| `max` | `number` | Reject values above this on commit. |
+| `step` | `number` | Spinner arrow / Arrow-key increment (default `1`). |
+| `precision` | `number` | Round the committed value to this many decimals. |
+| `allowNegative` | `boolean` | Reject negatives when `false` (default `true`). |
+| `placeholder` | `string` | Placeholder shown when empty. |
+| `validator` | `(value: number) => boolean \| string` | Custom check run after min/max; return a string to supply the error message. |
+
+A failing `min` / `max` / `validator` commit is governed by the grid-level
+[`editing.invalidEditMode`](/features/editing/validation/): `'block'` (default)
+keeps the editor open and flags the cell.
+
+export const communityVariants = [
+  {
+    id: 'basics',
+    label: 'Enable & configure',
+    hint: "MRR uses editor:'number' with min:0, max:50000 and step:250. Double-click a MRR cell — use the spinner arrows or type a value, then Enter to commit. Change step to 1000 or set placeholder and re-run.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+const data = [
+  ['Aria Vaskov', 'Data Engineer', 8200],
+  ['Kenji Tanaka', 'Product Lead', 15400],
+  ['Lucia Moreno', 'Analyst', 4300],
+  ['Otto Bergman', 'Platform Eng', 22750],
+  ['Priya Nair', 'Staff SWE', 31900],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 180 },
+    { field: 'role', header: 'Role', width: 160 },
+    { field: 'mrr', header: 'MRR ($)', width: 160, editable: true, editor: 'number',
+      editorOptions: { min: 0, max: 50000, step: 250, placeholder: 'MRR…' } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'precision',
+    label: 'Precision & step',
+    hint: "The Rate column stores decimals: precision:2 rounds the commit to 2 places and step:0.25 sets the arrow increment. Double-click Rate, nudge with the arrows or type 3.146 — it commits as 3.15.",
+    code: `// precision rounds the committed value; step sizes the spinner arrows.
+const data = [
+  ['Aria Vaskov', 3.14159],
+  ['Kenji Tanaka', 2.5],
+  ['Lucia Moreno', 4.0],
+  ['Otto Bergman', 1.75],
+  ['Priya Nair', 5.2],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'rate', header: 'Rate', width: 160, editable: true, editor: 'number',
+      editorOptions: { step: 0.25, precision: 2, min: 0 } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'validation',
+    label: 'Validation',
+    hint: "Under invalidEditMode:'block', Score must be 0–100 (min/max) AND a multiple of 5 (custom validator supplies the message). Double-click Score, type 33 or 120 → the commit is blocked and the editor stays open; type 35 → it commits.",
+    code: `// min/max + a custom validator; invalidEditMode:'block' keeps the editor
+// open on a failing commit.
+const data = [
+  ['Aria Vaskov', 85],
+  ['Kenji Tanaka', 60],
+  ['Lucia Moreno', 95],
+  ['Otto Bergman', 40],
+  ['Priya Nair', 75],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'score', header: 'Score (0–100, ×5)', width: 200, editable: true, editor: 'number',
+      editorOptions: {
+        min: 0,
+        max: 100,
+        step: 5,
+        validator: (v) => v % 5 === 0 || 'Must be a multiple of 5',
+      } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={communityVariants} />
+
+## Formatted number editor (Enterprise)
+
+<FeatureMeta tier="enterprise" />
+
+`numberEditor()` returns a `ColumnDef` — drop it straight into `columns`. It wires
+the premium `NumberFormatEditor` and, by default, formats the cell display with the
+same options so reading and editing match:
+
+```ts
+import { numberEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    numberEditor({ field: 'revenue', header: 'Revenue',
+      prefix: '$', thousandSeparator: true, precision: 0, min: 0 }),
+  ],
+});
+```
+
+### Options
+
+Everything from the built-in editor (`min`/`max`/`step`/`precision`/
+`allowNegative`/`placeholder`/`validator`) **plus** formatting:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `prefix` | `string` | Text before the number, e.g. `'$'`. |
+| `suffix` | `string` | Text after the number, e.g. `'%'` or `' kg'`. |
+| `thousandSeparator` | `boolean \| string` | Group the integer part (`true` = `','`, or a custom char). |
+| `decimalSeparator` | `string` | Decimal point character (default `'.'`). |
+| `stepper` | `boolean` | Render `−`/`+` buttons beside the input (Arrow keys work too). |
+| `selectAllOnFocus` | `boolean` | Select the value when the editor opens (default `true`). |
+| `formatDisplay` | `boolean` | Also format the cell display (default `true`; `false` keeps your own `renderer`). |
+
+export const enterpriseVariants = [
+  {
+    id: 'currency',
+    label: 'Currency',
+    hint: "Revenue is a numberEditor with prefix:'$', thousandSeparator:true, precision:0. Cells read '$1,234,000'; double-click one and type digits — the grouping and $ appear live as you type. It stores the raw number.",
+    code: `// numberEditor() — a formatted editor + matching display, in one call.
+const data = [
+  ['Aria Vaskov', 1234000],
+  ['Kenji Tanaka', 845500],
+  ['Lucia Moreno', 2610000],
+  ['Otto Bergman', 96000],
+  ['Priya Nair', 4180000],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Account', width: 200 },
+    numberEditor({ field: 'revenue', header: 'Revenue', width: 200,
+      prefix: '$', thousandSeparator: true, precision: 0, min: 0 }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'stepper',
+    label: 'Percent + stepper',
+    hint: "Uptime uses suffix:'%', precision:1, min:0, max:100 and stepper:true — double-click a cell and use the −/+ buttons (or Arrow keys) to step by 0.5. The display shows '99.9%'. Try typing 250 → blocked by max.",
+    code: `// A unit suffix + stepper buttons. stepper:true adds −/+ (Arrow keys too).
+const data = [
+  ['api.zengrid.io', 99.9],
+  ['cdn.zengrid.io', 99.5],
+  ['db.zengrid.io', 98.2],
+  ['edge.zengrid.io', 99.99],
+  ['queue.zengrid.io', 97.4],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'service', header: 'Service', width: 220 },
+    numberEditor({ field: 'uptime', header: 'Uptime', width: 200,
+      suffix: '%', precision: 1, step: 0.5, min: 0, max: 100, stepper: true }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'locale',
+    label: 'Custom format & validation',
+    hint: "European format: thousandSeparator:'.', decimalSeparator:',', precision:2, suffix:' €' → '1.234.567,00 €'. It also validates min:0 under invalidEditMode:'block'. Double-click Budget, type a negative → blocked.",
+    code: `// Custom grouping/decimal separators + a validator, still one call.
+const data = [
+  ['Marketing', 1234567],
+  ['Engineering', 4820000],
+  ['Sales', 962500],
+  ['Support', 318400],
+  ['Research', 2075000],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'team', header: 'Team', width: 200 },
+    numberEditor({ field: 'budget', header: 'Budget (EU)', width: 220,
+      suffix: ' €',
+      thousandSeparator: '.', decimalSeparator: ',', precision: 2,
+      min: 0, validator: (v) => v <= 1e8 || 'Over the cap' }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={enterpriseVariants} enterprise />
+
+## Next
+
+- [Text Editor](/features/editing/provided/text/) — the single-line default.
+- [Large Text Editor](/features/editing/provided/large-text/) — multi-line popup.
+- [Select Editor](/features/editing/provided/select/) — pick from a fixed list.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

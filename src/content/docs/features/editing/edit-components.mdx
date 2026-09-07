@@ -1,0 +1,223 @@
+---
+title: Edit Components
+description: Build your own cell editor by implementing the CellEditor interface — a segmented picker, a stepper, a validated input — and pass it as a class or an instance.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+The [built-in editors](/features/editing/provided/text/) cover text, numbers,
+dates, checkboxes and selects. When you need something they don't — a segmented
+picker, a stepper, an autocomplete, a colour swatch — you supply your **own edit
+component** by implementing the `CellEditor` interface and handing it to a
+column's `editor`:
+
+```ts
+class MyEditor {
+  init(container, value, params) { /* build your UI into `container` */ }
+  getValue() { /* return the value to commit */ }
+  focus() { /* focus your input */ }
+  destroy() { /* clean up */ }
+  isValid() { /* optional: return true | { valid, message } */ }
+}
+
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'status', editable: true, editor: MyEditor },
+  ],
+});
+```
+
+### The `CellEditor` interface
+
+| Member | Required | Purpose |
+|--------|----------|---------|
+| `init(container, value, params)` | ✔ | Render your editor into `container`. `value` is the cell's current value. |
+| `getValue()` | ✔ | Return the value to commit — read on Enter, Tab, or click-away. |
+| `focus()` | ✔ | Move focus into your input when the editor opens. |
+| `destroy()` | ✔ | Tear down listeners/DOM when the edit ends. |
+| `isValid()` | – | Return `true` or `{ valid, message }`; a failing value is blocked per `editing.invalidEditMode`. |
+
+**`params`** carries `cell`, `column`, `rowData`, `options` (your column's
+`editorOptions`), `onComplete(value, cancelled)` (call it to commit/cancel
+yourself — a click-to-pick editor uses this), and `registerPopup(el)` for any
+floating UI you append to `document.body` so a click on it isn't treated as
+click-away.
+
+### Class or instance
+
+- **Class** — `editor: MyEditor`. The grid constructs a **fresh** editor for
+  every edit. This is the recommended form.
+- **Instance** — `editor: new MyEditor({ … })`. A single configured editor is
+  reused across cells — handy for a stateless editor you want to pre-configure.
+
+The grid drives the lifecycle for you: **Enter**/**Tab** or a click outside
+commits (reading `getValue()`), **Escape** cancels, and scrolling the cell away
+closes the editor. You only build the UI.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'segment',
+    label: 'Segmented picker',
+    hint: "A custom editor with no text input at all: Status opens a row of buttons and clicking one commits via params.onComplete. Double-click a Status cell, then click Active / Trial / Churned. The option list comes from editorOptions.values.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// A click-to-pick editor. It renders buttons and commits itself with
+// params.onComplete(value, false) — no Enter needed.
+class SegmentEditor {
+  init(container, value, params) {
+    this.value = value;
+    const opts = (params.options && params.options.values) || [];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;gap:4px;height:100%;align-items:center;padding:0 6px;background:var(--zg-bg-editing,#fff)';
+    opts.forEach((opt) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = opt;
+      b.style.cssText = 'font:600 11px/1 inherit;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border-soft,#d0d7de);background:' + (opt === value ? '#6366f1' : 'transparent') + ';color:' + (opt === value ? '#fff' : 'inherit');
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      b.addEventListener('click', () => { this.value = opt; params.onComplete(opt, false); });
+      wrap.appendChild(b);
+    });
+    container.appendChild(wrap);
+  }
+  getValue() { return this.value; }
+  focus() {}
+  destroy() {}
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 150 },
+    { field: 'role',    header: 'Role',    width: 120 },
+    { field: 'region',  header: 'Region',  width: 110 },
+    { field: 'revenue', header: 'Revenue', width: 110, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 100, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 230, editable: true,
+      editor: SegmentEditor,
+      editorOptions: { values: ['Active', 'Trial', 'Churned'] },
+      renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'stepper',
+    label: 'Stepper (editorOptions)',
+    hint: "MRR opens a −/+ stepper reading step, min and max from editorOptions. Double-click an MRR cell, click + / − to adjust, then Enter to commit (the grid reads getValue()). Change the step to 250 or the max to 60000 and re-run.",
+    code: `// A stepper input configured through editorOptions. The grid commits on
+// Enter / click-away by calling getValue() — the editor just builds the UI.
+class StepperEditor {
+  init(container, value, params) {
+    const o = params.options || {};
+    this.step = o.step || 500;
+    this.min = o.min != null ? o.min : 0;
+    this.max = o.max != null ? o.max : Infinity;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;height:100%;align-items:center;gap:5px;padding:0 6px;background:var(--zg-bg-editing,#fff)';
+    const mk = (t) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = t;
+      b.style.cssText = 'width:26px;height:26px;border-radius:6px;border:1px solid var(--border-soft,#d0d7de);cursor:pointer;font-weight:700;background:var(--surface-2,#f6f8fa);color:inherit';
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      return b;
+    };
+    const clamp = (n) => Math.max(this.min, Math.min(this.max, n));
+    this.input = document.createElement('input');
+    this.input.type = 'number';
+    this.input.value = String(value);
+    this.input.style.cssText = 'width:96px;height:26px;text-align:center;border:1px solid var(--border-soft,#d0d7de);border-radius:6px;background:transparent;color:inherit;font:600 13px/1 inherit';
+    const dec = mk('−'), inc = mk('+');
+    dec.addEventListener('click', () => { this.input.value = String(clamp(Number(this.input.value) - this.step)); this.input.focus(); });
+    inc.addEventListener('click', () => { this.input.value = String(clamp(Number(this.input.value) + this.step)); this.input.focus(); });
+    wrap.append(dec, this.input, inc);
+    container.appendChild(wrap);
+  }
+  getValue() { return Number(this.input.value); }
+  focus() { this.input && this.input.focus(); }
+  destroy() {}
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 200, editable: true,
+      editor: StepperEditor,
+      editorOptions: { step: 500, min: 0, max: 50000 },
+      renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'validated',
+    label: 'Validation (isValid)',
+    hint: "Name uses a custom editor that implements isValid(). With editing.invalidEditMode:'block', a name under 3 characters is refused — the editor stays open and flags the cell. Double-click Name, clear it to 'ab', press Enter (blocked); type a real name and Enter commits.",
+    code: `// A validated editor. isValid() returns { valid, message }; the grid's
+// invalidEditMode decides what a failing commit does ('block' keeps it open).
+class ValidatedNameEditor {
+  init(container, value, params) {
+    this.input = document.createElement('input');
+    this.input.type = 'text';
+    this.input.value = value == null ? '' : String(value);
+    this.input.style.cssText = 'width:100%;height:100%;box-sizing:border-box;padding:4px 8px;border:2px solid var(--zg-border-editing,#6366f1);border-radius:4px;background:var(--zg-bg-editing,#fff);color:var(--zg-text-primary,#1e293b);font:13px inherit;outline:none';
+    container.appendChild(this.input);
+    requestAnimationFrame(() => { this.input.focus(); this.input.select(); });
+  }
+  getValue() { return this.input.value.trim(); }
+  isValid() {
+    const v = this.getValue();
+    return v.length >= 3 ? true : { valid: false, message: 'Name must be at least 3 characters' };
+  }
+  focus() { this.input && this.input.focus(); }
+  destroy() {}
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 240, editable: true, editor: ValidatedNameEditor },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Provided Cell Editors](/features/editing/provided/text/) — the built-in
+  editors you can use without writing a component.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing `isValid()` is handled.
+- [Parsing Values](/features/editing/parsing-values/) &
+  [Saving Values](/features/editing/saving-values/) — shape and store what your
+  editor returns.

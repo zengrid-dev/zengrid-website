@@ -1,0 +1,158 @@
+---
+title: Row Sorting
+description: Sort rows by one or more columns — click-to-sort, preset orders, multi-column layering, and custom icons, all live in the page.
+---
+
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+## Introduction
+
+Mark a column `sortable` and users can click its header to sort by that column.
+Clicking cycles the direction: **ascending → descending → unsorted**. Sorting is
+built in — `@zengrid/core` installs the sort plugin automatically, with
+multi-column layering enabled — so there's nothing to wire up beyond the flag.
+
+```ts
+const columns = [
+  { field: 'name',   header: 'Name',   sortable: true },
+  { field: 'region', header: 'Region', sortable: true },
+  { field: 'revenue', header: 'Revenue', sortable: true },
+];
+```
+
+You can also drive sorting from code through `grid.sort`:
+
+| Method | Effect |
+|--------|--------|
+| `grid.sort.toggle(col)` | Cycle a column asc → desc → off (as a header click does). |
+| `grid.sort.apply(state)` | Set an explicit sort state (single or multi-column). |
+| `grid.sort.clear()` | Remove all sorting. |
+| `grid.sort.getState()` | Read the current `SortState[]`. |
+
+A `SortState` is `{ column, direction: 'asc' | 'desc', sortIndex? }`, where
+`sortIndex` orders the keys in a multi-column sort.
+
+## Try it live
+
+Each tab is a different sorting setup. Click headers to sort, edit the code, or
+use the buttons to apply preset orders — the grid re-sorts instantly.
+
+export const variants = [
+  {
+    id: 'click',
+    label: 'Click to sort',
+    hint: 'Click any sortable header to cycle asc → desc → unsorted. Non-sortable columns (Role) stay put.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// Mark columns sortable — headers become clickable. Role is left
+// unsortable on purpose.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, sortable: true },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150, sortable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, sortable: true, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, sortable: true, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'preset',
+    label: 'Default sort',
+    hint: 'Open on a preset order via grid.sort.apply() after setData. Try the buttons to change it.',
+    code: `// Apply an initial sort so the grid opens ordered — here, highest
+// revenue first. Same shape you'd persist and restore.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, sortable: true },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150, sortable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, sortable: true, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, sortable: true, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+grid.sort.apply([{ column: 3, direction: 'desc' }]);
+`,
+    controls: [
+      { label: 'Revenue ▼', action: "grid.sort.apply([{ column: 3, direction: 'desc' }])" },
+      { label: 'Name ▲', action: "grid.sort.apply([{ column: 0, direction: 'asc' }])" },
+      { label: 'Clear', action: 'grid.sort.clear()' },
+    ],
+  },
+  {
+    id: 'multi',
+    label: 'Multi-column',
+    hint: 'Layer sorts with sortIndex: Region ascending, then Revenue descending within each region. Shift-click headers to layer by hand.',
+    code: `// Multi-column sort is on by default. Pass several SortState entries
+// with sortIndex to set the priority order.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, sortable: true },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150, sortable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, sortable: true, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, sortable: true, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+grid.sort.apply([
+  { column: 2, direction: 'asc',  sortIndex: 0 }, // Region first
+  { column: 3, direction: 'desc', sortIndex: 1 }, // then Revenue
+]);
+`,
+    controls: [
+      { label: 'Region ▲ then Revenue ▼', action: "grid.sort.apply([{ column: 2, direction: 'asc', sortIndex: 0 }, { column: 3, direction: 'desc', sortIndex: 1 }])" },
+      { label: 'Clear', action: 'grid.sort.clear()' },
+    ],
+  },
+  {
+    id: 'icons',
+    label: 'Custom icons',
+    hint: 'Swap the ▲/▼ indicators with the sortIcons option, then click a header to see them.',
+    code: `// Replace the default ▲ / ▼ indicators grid-wide with sortIcons.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  sortIcons: { asc: '↑', desc: '↓' },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, sortable: true },
+    { field: 'role',    header: 'Role',    width: 190, sortable: true },
+    { field: 'region',  header: 'Region',  width: 150, sortable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, sortable: true, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, sortable: true, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Single vs. multi-column
+
+A header click sorts by one column. To sort by several at once — **Region**, then
+**Revenue** within each region — layer the keys with `sortIndex`, either by
+Shift-clicking headers or by passing the full state to `grid.sort.apply()`. The
+**Multi-column** tab above shows both.
+
+## Next
+
+- [Row Data](/features/rows/row-data/) — supply the rows to sort.
+- [Row Pagination](/features/rows/row-pagination/) — sort then page.

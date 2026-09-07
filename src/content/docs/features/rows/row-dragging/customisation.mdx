@@ -1,0 +1,206 @@
+---
+title: Row Dragging Customisation
+description: Shape the drag experience — a custom grip handle, a floating drag ghost that follows the pointer, a restyled drop-indicator line, and a faded origin row — all from RowDragManager options.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+[Managed](/features/rows/row-dragging/managed/) and
+[unmanaged](/features/rows/row-dragging/unmanaged/) dragging decide *what happens*
+on drop. This page is about *how the drag looks and feels* — the four visual
+affordances `RowDragManager` (and its `rowDragColumn()` helper) let you shape:
+
+- the **drag handle** — the grip the user grabs;
+- the **drag ghost** — a floating label that follows the pointer;
+- the **drop indicator** — the line marking where the row will land;
+- the **origin row** — the row you picked up, while it's in flight.
+
+Every option below layers on top of the built-in look, so you restyle only what
+you want and keep the rest.
+
+## The drag handle
+
+In `{ handle: true }` mode the drag starts from a `rowDragColumn()` cell. That
+helper is fully presentational — swap the grip glyph, widen the column, label the
+header, or hang your own class on each handle cell:
+
+```ts
+import { RowDragManager, rowDragColumn } from '@zengrid/enterprise/grid';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    rowDragColumn({ glyph: '↕', width: 56, header: 'Move', className: 'my-grip' }),
+    // …
+  ],
+});
+new RowDragManager({ handle: true }).attach(grid);
+```
+
+| `rowDragColumn()` option | Default | Effect |
+|--------|---------|--------|
+| `glyph` | `'⠿'` | The grip character painted into each handle cell. |
+| `width` | `44` | Column width in pixels. |
+| `header` | `''` | Header label for the grip column. |
+| `className` | — | Extra CSS class on each handle cell — style the grip yourself. |
+| `field` | `'__rowdrag__'` | Column id (carries no data). |
+
+## The drag ghost
+
+Set `ghost` to show a floating preview that tracks the pointer through the drag.
+`ghost: true` labels it with the dragged row's first cell; a config object
+customises the text, adds a class, and offsets it from the cursor:
+
+```ts
+const drag = new RowDragManager({
+  ghost: {
+    label: ({ fromRow, fromSource }) => `Moving row ${fromSource + 1}`,
+    className: 'my-ghost',
+    offset: { x: 16, y: 8 },
+  },
+});
+```
+
+| `ghost` option | Default | Effect |
+|--------|---------|--------|
+| `label(ctx)` | first cell text | Builds the ghost's text; `ctx` has `fromRow`/`fromSource`. |
+| `className` | — | Extra class on the ghost, on top of `zg-row-drag-ghost`. |
+| `offset` | `{ x: 12, y: 12 }` | Pixel gap between the pointer and the ghost. |
+
+The ghost carries the base class `zg-row-drag-ghost` (a coral pill) — restyle it
+globally through that class, or per-manager through `className`.
+
+## The drop indicator and the origin row
+
+`dropIndicatorClass` adds a class to the drop line, and `draggingRowClass` stamps
+a class onto the row you picked up for as long as it's in flight — dim it, tint
+it, whatever your CSS says. Both are additive: the built-in `zg-row-drop-indicator`
+line still renders, and the origin class is cleaned up automatically on drop.
+
+```ts
+const drag = new RowDragManager({
+  dropIndicatorClass: 'my-drop-line',   // restyle the landing line
+  draggingRowClass: 'is-dragging',      // fade/tint the source row
+});
+```
+
+## Try it live
+
+Grab a row and drag it — then switch tabs to see each affordance customised on
+its own.
+
+export const variants = [
+  {
+    id: 'handle',
+    label: 'Custom grip handle',
+    hint: 'rowDragColumn() takes glyph/width/header/className. Grab the ↕ grip to drag; the custom class tints it.',
+    code: `// Style the grip cell with a class, then dress it via rowDragColumn().
+if (!document.getElementById('zg-grip-css')) {
+  const s = document.createElement('style');
+  s.id = 'zg-grip-css';
+  s.textContent = '.zg-cell.my-grip { color: #7c3aed; font-size: 18px; }';
+  document.head.appendChild(s);
+}
+
+const drag = new RowDragManager({ handle: true });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    rowDragColumn({ glyph: '↕', width: 56, header: 'Move', className: 'my-grip' }),
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+`,
+  },
+  {
+    id: 'ghost',
+    label: 'Drag ghost',
+    hint: 'ghost: { label, className, offset } floats a preview under the pointer. Drag a row and watch the purple pill follow.',
+    code: `// A floating ghost that tracks the pointer, with a custom label + class.
+if (!document.getElementById('zg-ghost-css')) {
+  const s = document.createElement('style');
+  s.id = 'zg-ghost-css';
+  s.textContent = '.zg-row-drag-ghost.my-ghost { background: #7c3aed; }';
+  document.head.appendChild(s);
+}
+
+const drag = new RowDragManager({
+  ghost: {
+    label: ({ fromSource }) => 'Moving row ' + (fromSource + 1),
+    className: 'my-ghost',
+    offset: { x: 16, y: 8 },
+  },
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+`,
+  },
+  {
+    id: 'indicator',
+    label: 'Drop line + origin row',
+    hint: 'dropIndicatorClass thickens/tints the landing line; draggingRowClass fades the row you picked up. Drag to see both.',
+    code: `// Restyle the drop line and fade the source row while it's in flight.
+if (!document.getElementById('zg-drop-css')) {
+  const s = document.createElement('style');
+  s.id = 'zg-drop-css';
+  s.textContent =
+    '.zg-row-drop-indicator.my-drop-line { height: 4px; background: #7c3aed; border-radius: 2px; }' +
+    '.zg-cell.is-dragging { opacity: 0.4; }';
+  document.head.appendChild(s);
+}
+
+const drag = new RowDragManager({
+  dropIndicatorClass: 'my-drop-line',
+  draggingRowClass: 'is-dragging',
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Managed Row Dragging](/features/rows/row-dragging/managed/) — the grid commits
+  the reorder for you.
+- [Unmanaged Row Dragging](/features/rows/row-dragging/unmanaged/) — own the drop
+  outcome yourself.

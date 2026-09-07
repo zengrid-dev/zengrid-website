@@ -1,0 +1,79 @@
+---
+title: Column Moving
+description: Let users reorder columns by dragging their headers.
+tier: enterprise
+sidebar:
+  order: 6
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import GridDemo from '../../../../components/docs/GridDemo.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Column moving lets users drag a header to a new position. It's enabled by
+default; a ghost of the dragged header follows the cursor, a drop indicator shows
+where the column will land, and touch and keyboard reordering are supported.
+
+## Enabling and configuring
+
+Drag-to-reorder is on by default. Configure it with `columnDrag`, or disable it
+with `enableColumnDrag: false`. Opt individual columns out with `reorderable: false`.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount,
+  colCount,
+  rowHeight: 36,
+  colWidth: 160,
+  enableColumnDrag: true,
+  columnDrag: {
+    dragThreshold: 5,          // px before a drag starts
+    showGhost: true,           // floating header preview
+    showDropIndicator: true,   // insertion marker
+    showAdjacentHighlights: true,
+    enableTouch: true,
+    touchLongPressDuration: 500,
+    enableKeyboard: true,
+  },
+  columns: [
+    { field: 'name', header: 'Name', width: 240 },
+    { field: 'status', header: 'Status', width: 140, reorderable: false },
+  ],
+});
+```
+
+## Programmatic control — `grid.columns`
+
+```ts
+interface ColumnApi {
+  attachDrag(headerElement: HTMLElement): void;
+  detachDrag(): void;
+  isDragging(): boolean;
+}
+```
+
+```ts
+if (!grid.columns.isDragging()) {
+  grid.columns.detachDrag(); // temporarily disable reordering
+}
+```
+
+To reorder without the drag UI — for example, applying a saved layout — use the
+`ColumnReorderPlugin` on a `ColumnModel`:
+
+```ts
+import { ColumnModel, ColumnReorderPlugin } from '@zengrid/core';
+
+const model = new ColumnModel(columns);
+const reorder = new ColumnReorderPlugin(model);
+reorder.move('col-0', 2); // move the first column to index 2
+```
+
+## Live demo
+
+Drag a header left or right to reorder its column.
+
+<GridDemo label="Column moving · Enterprise" />

@@ -1,0 +1,36 @@
+---
+interface Props {
+  href: string;
+  variant?: "primary" | "secondary" | "ghost";
+  class?: string;
+  "aria-label"?: string;
+}
+
+const {
+  href,
+  variant = "primary",
+  class: cls = "",
+  "aria-label": ariaLabel,
+} = Astro.props;
+
+const external = /^https?:\/\//.test(href);
+
+const base =
+  "inline-flex items-center justify-center font-semibold cursor-pointer rounded-[14px] whitespace-nowrap transition-transform active:translate-y-[1px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral";
+
+const variants: Record<NonNullable<Props["variant"]>, string> = {
+  primary: "bg-coral text-white shadow-[0_5px_0_var(--coral-sh)]",
+  secondary: "bg-surface border border-border text-ink shadow-[0_5px_0_var(--border)]",
+  ghost: "bg-transparent border border-white/20 text-bg",
+};
+---
+
+<a
+  href={href}
+  aria-label={ariaLabel}
+  target={external ? "_blank" : undefined}
+  rel={external ? "noopener noreferrer" : undefined}
+  class:list={[base, variants[variant], cls]}
+>
+  <slot />
+</a>

@@ -1,0 +1,170 @@
+---
+title: Filtering Overview
+description: How filtering works in ZenGrid — per-column filter popups with type-aware operators, the active-filter chip bar, a grid-wide quick filter, and the imperative filter API, all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Filtering narrows the rows the grid shows without touching your source data.
+ZenGrid ships filtering in **core** — mark a column `filterable` and it grows a
+funnel button in its header that opens a filter popup; the grid slots an
+active-filter chip bar above the rows and re-filters as you go. A grid-wide
+**quick filter** searches every column at once, and an imperative **filter API**
+lets you set, read, and clear filters from code.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    filterable: true },                        // text popup
+    { field: 'revenue', header: 'Revenue', filterable: true, filterType: 'number' },  // number popup
+  ],
+});
+
+grid.setData(rows);
+```
+
+Turn a column into a filter with `filterable: true`. Add `filterType` to pick the
+popup's operator set and input:
+
+- **`'text'`** (default) — Contains, Equals, Starts with, Ends with, Not
+  contains, Is blank, …
+- **`'number'`** — Equals, Greater than, Less than, **Between**, … with a numeric
+  input.
+- **`'date'`** — Equals, After, Before, Between with a date picker.
+
+The popup lets a reader stack conditions on one column with **AND / OR** logic.
+`filterType` only shapes the built-in UI — the underlying filter engine evaluates
+any operator against any value.
+
+## The filter API
+
+Every column filter has an imperative twin on `grid.filter.*` (with shorthands on
+the grid itself), so you can drive filtering from your own controls.
+
+| Method | Shorthand | Effect |
+|--------|-----------|--------|
+| `grid.filter.set(col, op, value)` | `grid.setFilter(col, op, value)` | Set a single condition on a column (0-based index). |
+| `grid.filter.setColumn(col, conditions, logic)` | `grid.setColumnFilter(...)` | Set multiple conditions with `'AND'` / `'OR'`. |
+| `grid.filter.clearColumn(col)` | `grid.clearColumnFilter(col)` | Clear one column's filter. |
+| `grid.filter.clear()` | `grid.clearFilters()` | Clear every column filter. |
+| `grid.filter.getState()` | `grid.getFilterState()` | Read the active `FilterModel[]`. |
+| `grid.filter.setState(models)` | `grid.setFilterState(models)` | Restore a saved set of filters. |
+| `grid.filter.setQuick(query, cols?)` | `grid.setQuickFilter(...)` | Search across all (or the given) columns. |
+| `grid.filter.clearQuick()` | `grid.clearQuickFilter()` | Clear the quick filter. |
+
+Column filters and the quick filter **compose**: rows must pass both.
+
+## Try it live
+
+Each tab is a different way to filter the same grid. Click a header's funnel,
+edit the code, or drive it with the buttons.
+
+export const variants = [
+  {
+    id: 'column',
+    label: 'Column filters',
+    hint: 'Click the funnel in a header. Name/Role/Region are text filters; Revenue/MRR are number filters — note the Greater than / Between operators. Stack conditions with AND/OR.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips
+// filterable: true grows a funnel button in the header.
+// filterType picks the popup's operators + input.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true },
+    { field: 'region',  header: 'Region',  width: 150, filterable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips,    filterable: true },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'quick',
+    label: 'Quick filter',
+    hint: 'The quick filter searches every column at once. Tap the buttons above the grid — matches across name, role, region, and status. Clear it to see all rows.',
+    code: `// A grid-wide search that composes with column filters.
+// The buttons call grid.setQuickFilter(...) on the live grid.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true },
+    { field: 'region',  header: 'Region',  width: 150, filterable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips,    filterable: true },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: "Search 'Engineer'", action: "grid.setQuickFilter('Engineer')" },
+      { label: "Search 'APAC'", action: "grid.setQuickFilter('APAC')" },
+      { label: "Search 'Trial'", action: "grid.setQuickFilter('Trial')" },
+      { label: 'Clear quick filter', action: 'grid.clearQuickFilter()' },
+    ],
+  },
+  {
+    id: 'api',
+    label: 'Filter API',
+    hint: 'The buttons drive grid.filter.* directly — a single condition, two OR conditions on one column, then clear. Columns are 0-based: revenue is index 3.',
+    code: `// Same grid — the buttons set filters from code via the API,
+// no popup needed. Column indexes are 0-based, left to right.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true },
+    { field: 'region',  header: 'Region',  width: 150, filterable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips,    filterable: true },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Region = APAC', action: "grid.filter.set(2, 'equals', 'APAC')" },
+      { label: 'Revenue > 150k', action: "grid.filter.set(3, 'greaterThan', 150000)" },
+      { label: 'Role: Analyst OR SRE', action: "grid.filter.setColumn(1, [{ operator: 'equals', value: 'Analyst' }, { operator: 'equals', value: 'SRE' }], 'OR')" },
+      { label: 'Clear all', action: 'grid.filter.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where filtering lives
+
+The building blocks above — `filterable` columns, type-aware popups, the quick
+filter, and the filter API — are all **core**, free in every grid. On top of them
+ZenGrid layers richer, Enterprise filter types, each with its own page:
+
+- [Text Filter](/features/filters/text-filter/), [Number Filter](/features/filters/number-filter/),
+  [Date Filter](/features/filters/date-filter/) — the built-in column filters in depth.
+- [List Filter](/features/filters/list-filter/) — Excel-style checklists of distinct values.
+- [Multi Filter](/features/filters/multi-filter/) — combine two filter types on one column.
+- [Quick Filter](/features/filters/quick-filter/) and
+  [External Filter](/features/filters/external-filter/) — grid-wide and app-driven filtering.
+
+## Next
+
+- [Column Filters](/features/filters/column-filters/) — configure and customize the per-column popup.
+- [Applying Filters](/features/filters/applying-filters/) — control when filters run.

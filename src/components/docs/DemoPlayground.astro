@@ -1,0 +1,232 @@
+---
+// A variant-aware, editable ZenGrid playground for feature docs. Extends the
+// Getting Started Playground with two extra dimensions the docs conventions
+// call for: variant tabs (each a distinct example with its own snippet + hint)
+// and live control buttons that drive the grid API without editing the code.
+// The runtime lives in ./playground/engine.ts and is shared across every doc —
+// this file is just the shell (tabs, editor, grid, control bar, hint).
+import type { DemoVariant } from './playground/engine';
+
+interface Props {
+  /** Switchable examples. The first is shown on load. */
+  variants: DemoVariant[];
+  /** Height of the editor/grid body in px. */
+  height?: number;
+  /** Initial view: 'demo' | 'code' | 'split'. */
+  view?: 'demo' | 'code' | 'split';
+  /**
+   * Load `@zengrid/enterprise` and put `rowNumberColumn` in the snippet scope,
+   * unlocked by an ephemeral in-browser evaluation license. Set on Enterprise
+   * feature pages only, so non-Enterprise demos stay lean.
+   */
+  enterprise?: boolean;
+}
+
+const { variants, height = 420, view = 'split', enterprise = false } = Astro.props;
+const first = variants[0];
+---
+
+<div class="zg-play not-content" data-zg-play-v data-view={view} data-variants={JSON.stringify(variants)} data-enterprise={enterprise ? '1' : undefined}>
+  {variants.length > 1 && (
+    <div class="zg-play__tabs" role="group" aria-label="Example variant">
+      {variants.map((v, i) => (
+        <button type="button" data-variant-btn={v.id} aria-pressed={i === 0}>{v.label}</button>
+      ))}
+    </div>
+  )}
+
+  <div class="zg-play__bar">
+    <div class="zg-seg" role="group" aria-label="Playground view">
+      <button type="button" data-view-btn="code">Code</button>
+      <button type="button" data-view-btn="demo">Demo</button>
+      <button type="button" data-view-btn="split">Split</button>
+    </div>
+    <div class="zg-play__right">
+      <span class="zg-play__status" data-zg-status hidden></span>
+      <button type="button" class="zg-play__btn" data-zg-reset>Reset</button>
+      <button type="button" class="zg-play__btn zg-play__btn--run" data-zg-run>Run <kbd>⌘⏎</kbd></button>
+    </div>
+  </div>
+
+  <p class="zg-play__hint" data-zg-hint hidden={!first?.hint}>{first?.hint}</p>
+
+  <div class="zg-play__body" style={`height:${height}px;`}>
+    <div class="zg-play__editor" data-zg-editor aria-label="Editable ZenGrid config"></div>
+    <div class="zg-play__preview">
+      <div class="zg-play__controls" data-zg-controls hidden></div>
+      <div data-zg-grid class="zg-play__grid" aria-label="Live ZenGrid demo"></div>
+    </div>
+  </div>
+
+  <noscript>
+    <pre class="zg-play__noscript"><code>{first?.code}</code></pre>
+    <p style="padding:0 1rem 1rem;margin:0;color:var(--faint)">
+      Enable JavaScript to edit this snippet and run the live grid.
+    </p>
+  </noscript>
+</div>
+
+<style>
+  .zg-play {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    margin: 1.5rem 0;
+  }
+  .zg-play__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface-2);
+  }
+  .zg-play__tabs button {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .zg-play__tabs button:hover { color: var(--ink); border-color: var(--border); }
+  .zg-play__tabs button[aria-pressed="true"] {
+    color: var(--coral);
+    background: var(--surface);
+    border-color: var(--coral);
+  }
+
+  .zg-play__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface-2);
+  }
+  .zg-seg {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+  }
+  .zg-seg button {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--faint);
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .zg-seg button:hover { color: var(--ink); }
+  .zg-seg button[aria-pressed="true"] { color: #fff; background: var(--coral); }
+
+  .zg-play__right { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+  .zg-play__status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .zg-play__status[data-state="ok"] { color: var(--teal); }
+  .zg-play__status[data-state="err"] { color: var(--coral); }
+  .zg-play__btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.28rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .zg-play__btn:hover { border-color: var(--coral); color: var(--ink); }
+  .zg-play__btn--run { color: #fff; background: var(--coral); border-color: var(--coral); display: inline-flex; align-items: center; gap: 0.4rem; }
+  .zg-play__btn--run:hover { color: #fff; background: var(--coral-sh); border-color: var(--coral-sh); }
+  .zg-play__btn kbd { font-family: var(--font-mono); font-size: 10px; background: #ffffff2e; border-radius: 4px; padding: 0.05em 0.3em; }
+
+  .zg-play__hint {
+    margin: 0;
+    padding: 0.5rem 0.9rem;
+    font-size: 12.5px;
+    color: var(--muted);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .zg-play__hint[hidden] { display: none; }
+
+  .zg-play__body { display: grid; grid-template-columns: 1fr; }
+  .zg-play__editor { overflow: hidden; border-right: 1px solid var(--border-soft); }
+  .zg-play__editor :global(.cm-editor) { height: 100%; }
+  .zg-play__preview { overflow: hidden; background: var(--surface); display: flex; flex-direction: column; min-width: 0; }
+
+  .zg-play__controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface-2);
+  }
+  .zg-play__controls[hidden] { display: none; }
+  .zg-play :global(.zg-play__ctrl) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.28rem 0.6rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .zg-play :global(.zg-play__ctrl):hover { border-color: var(--coral); color: var(--ink); }
+  .zg-play__grid { flex: 1; min-height: 0; }
+
+  /* View modes. Stack editor + preview in one cell for demo/code and hide the
+     inactive layer with visibility (never display:none) so the grid's
+     ResizeObserver never sees a 0×0 box. */
+  .zg-play[data-view="demo"] .zg-play__editor,
+  .zg-play[data-view="demo"] .zg-play__preview,
+  .zg-play[data-view="code"] .zg-play__editor,
+  .zg-play[data-view="code"] .zg-play__preview { grid-area: 1 / 1; }
+  .zg-play[data-view="demo"] .zg-play__editor { visibility: hidden; }
+  .zg-play[data-view="code"] .zg-play__preview { visibility: hidden; }
+  .zg-play[data-view="code"] .zg-play__editor { border-right: none; }
+  .zg-play[data-view="split"] .zg-play__body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+  .zg-play__noscript { margin: 0; padding: 1rem; overflow: auto; font-family: var(--font-mono); font-size: 12px; }
+
+  @media (max-width: 860px) {
+    .zg-play[data-view="split"] .zg-play__body { grid-template-columns: 1fr; height: auto !important; }
+    .zg-play[data-view="split"] .zg-play__editor { border-right: none; border-bottom: 1px solid var(--border-soft); height: 320px; }
+    .zg-play[data-view="split"] .zg-play__preview { height: 360px; }
+  }
+</style>
+
+<style is:global>
+  [data-zg-play-v] .zg-viewport { scrollbar-width: thin; }
+  [data-zg-play-v] .zg-viewport::-webkit-scrollbar { width: 8px; height: 8px; }
+</style>
+
+<script>
+  import { observePlaygrounds } from './playground/engine';
+  observePlaygrounds('[data-zg-play-v]');
+</script>

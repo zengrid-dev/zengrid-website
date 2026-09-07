@@ -1,0 +1,28 @@
+---
+import { stats, type Accent } from "../config/site";
+
+const inkClass: Record<Accent, string> = {
+  coral: "text-ink-coral",
+  teal: "text-ink-teal",
+  violet: "text-ink-violet",
+  amber: "text-ink-amber",
+};
+---
+
+<section class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-20" aria-label="Performance at a glance">
+  {
+    stats.map((s) => (
+      <div class="bg-surface border border-border rounded-[18px] px-[26px] py-6 flex items-baseline gap-3">
+        <span
+          class:list={[
+            "font-display text-[38px] font-semibold tracking-[-0.02em]",
+            inkClass[s.accent],
+          ]}
+        >
+          {s.value}
+        </span>
+        <span class="font-mono text-xs text-muted leading-[1.5]">{s.label}</span>
+      </div>
+    ))
+  }
+</section>

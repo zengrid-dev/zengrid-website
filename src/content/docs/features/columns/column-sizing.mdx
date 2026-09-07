@@ -1,0 +1,165 @@
+---
+title: Sizing & Resizing
+description: Control column widths, min/max constraints, resizing, and auto-fit.
+tier: community
+sidebar:
+  order: 4
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Every column has a width and optional min/max constraints. Users can drag the
+edge of a header to resize (on by default), and you can resize, auto-fit, or
+constrain columns programmatically through `grid.columns`.
+
+## Widths and constraints
+
+Set widths per column in the definition. Constraints clamp both user drags and
+programmatic resizes.
+
+```ts
+columns: [
+  { field: 'name', header: 'Name', width: 240, minWidth: 120, maxWidth: 400 },
+  { field: 'status', header: 'Status', width: 140, resizable: false },
+]
+```
+
+A grid-level `colWidth` provides the fallback width for columns without an
+explicit `width`.
+
+## Resize behavior
+
+Resizing is enabled by default. Tune it with `columnResize`, or turn it off with
+`enableColumnResize: false`.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount,
+  colCount,
+  rowHeight: 36,
+  colWidth: 160,
+  enableColumnResize: true,
+  columnResize: {
+    resizeZoneWidth: 6,     // px hit-zone on the column edge
+    defaultMinWidth: 30,
+    defaultMaxWidth: Infinity,
+    showHandles: true,      // visible resize handles
+    showPreview: true,      // preview line while dragging
+    autoFitOnLoad: false,   // auto-fit all columns on first render
+    autoFitSampleSize: 100, // rows sampled when auto-fitting
+    autoFitPadding: 16,
+    skipHeaderOnAutoSize: false,
+  },
+  columns,
+});
+```
+
+## Programmatic sizing — `grid.columns`
+
+```ts
+interface ColumnApi {
+  resize(col: number, width: number): void;
+  autoFit(col: number): void;
+  autoFitAll(): void;
+  setConstraints(col: number, constraints: { minWidth: number; maxWidth: number }): void;
+  updateResizeHandles(): void;
+}
+```
+
+```ts
+grid.columns.resize(0, 300);                       // set column 0 to 300px
+grid.columns.autoFit(1);                            // fit column 1 to its content
+grid.columns.autoFitAll();                          // fit every column
+grid.columns.setConstraints(2, { minWidth: 80, maxWidth: 320 });
+```
+
+## Try it live
+
+Each tab isolates one dimension of sizing. Edit the snippet — change a width, a
+constraint, or the `columnResize` block and the grid re-renders. The
+**Programmatic** tab adds buttons that drive `grid.columns` without touching the
+code.
+
+export const widths = `// In scope: Zengrid, mount, rows, currency, chips, zg
+// width sets each column's starting size. minWidth/maxWidth clamp every drag
+// AND every programmatic resize; resizable:false locks a column outright.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 36,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 240, minWidth: 140, maxWidth: 420 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips, resizable: false },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const options = `// In scope: Zengrid, mount, rows, currency, chips, zg
+// Tune resizing globally with columnResize. resizeZoneWidth is the px hit-zone
+// on each column's right edge; showPreview draws a guide line while dragging
+// (set it false to resize the column live); defaultMin/MaxWidth clamp any
+// column that declares no explicit constraint of its own.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 36,
+  columnResize: {
+    resizeZoneWidth: 8,
+    showPreview: true,
+    defaultMinWidth: 80,
+    defaultMaxWidth: 480,
+  },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 240 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const programmatic = `// In scope: Zengrid, mount, rows, currency, chips, zg
+// grid.columns is the programmatic sizing API. The buttons above call it live:
+// resize(col, width) sets an exact width, autoFit(col) / autoFitAll() size to
+// content, and setConstraints(col, {minWidth, maxWidth}) clamps future resizes.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 36,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 240 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const variants = [
+  { id: 'widths', label: 'Widths & constraints', hint: 'Drag the right edge of a header to resize. Name clamps between 140–420px; Status sets resizable:false so it stays put. Change a width or a min/max and the grid re-renders.', code: widths },
+  { id: 'options', label: 'Resize options', hint: 'columnResize tunes resizing for every column. Widen resizeZoneWidth to grab the edge more easily, or set showPreview:false to resize live instead of on release.', code: options },
+  { id: 'programmatic', label: 'Programmatic', hint: 'The buttons call grid.columns directly — no snippet edit needed. resize sets an exact width, autoFit sizes to content, setConstraints clamps later drags.', code: programmatic, controls: [
+    { label: 'Widen Name → 320', action: 'grid.columns.resize(0, 320)' },
+    { label: 'Auto-fit Revenue', action: 'grid.columns.autoFit(3)' },
+    { label: 'Auto-fit all', action: 'grid.columns.autoFitAll()' },
+    { label: 'Clamp Role 100–200', action: 'grid.columns.setConstraints(1, { minWidth: 100, maxWidth: 200 })' },
+  ] },
+];
+
+<DemoPlayground variants={variants} />

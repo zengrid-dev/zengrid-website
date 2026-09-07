@@ -1,0 +1,167 @@
+---
+// A compact, self-contained live ZenGrid instance for embedding in feature
+// docs. Reuses the marketing demo's data + theme config so it looks and behaves
+// like the grid on the homepage. Mounts lazily when scrolled near.
+import { demoRowCountLabel } from '../../config/demo-grid';
+
+interface Props {
+  /** Caption shown in the demo's title bar. */
+  label?: string;
+  /** Viewport height in px. */
+  height?: number;
+}
+
+const { label = `${demoRowCountLabel} rows · virtualized`, height = 360 } = Astro.props;
+---
+
+<div class="zg-demo not-content" data-zg-demo>
+  <div class="zg-demo__bar">
+    <span class="zg-demo__dot" style="background:#ff5f56"></span>
+    <span class="zg-demo__dot" style="background:#ffbd2e"></span>
+    <span class="zg-demo__dot" style="background:#27c93f"></span>
+    <span class="zg-demo__file">{label}</span>
+  </div>
+  <div data-zg-grid style={`height:${height}px;`} aria-label="Live ZenGrid demo"></div>
+  <noscript>
+    <p style="padding:1rem;margin:0;color:var(--faint)">Enable JavaScript to view the live grid demo.</p>
+  </noscript>
+</div>
+
+<style>
+  .zg-demo {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    margin: 1.25rem 0;
+  }
+  .zg-demo__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface-2);
+  }
+  .zg-demo__dot { width: 11px; height: 11px; border-radius: 999px; }
+  .zg-demo__file {
+    margin-left: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--faint);
+  }
+</style>
+
+<script>
+  import {
+    generateRows,
+    demoColumns,
+    demoColWidths,
+    demoRowHeight,
+    demoHeaderHeight,
+    DEMO_ROW_COUNT,
+    zenGridTheme
+  } from '../../config/demo-grid';
+  // Core + enterprise grid CSS as one statically-emitted asset (see the file
+  // header for why the separate dynamic imports get dropped in the build).
+  import '../../styles/zengrid.css';
+
+  const currentTheme = () =>
+    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+
+  async function mount(host: HTMLElement): Promise<boolean> {
+    const gridEl = host.querySelector<HTMLElement>('[data-zg-grid]');
+    // `mounting` guards against a concurrent re-entry while the dynamic imports
+    // are in flight; `mounted` is only stamped once the grid is actually up, so
+    // a transient import failure leaves the demo eligible for a retry instead of
+    // stranding it as a permanently blank box.
+    if (!gridEl || gridEl.dataset.mounted || gridEl.dataset.mounting) return false;
+    gridEl.dataset.mounting = '1';
+
+    try {
+    const [{ Zengrid, NumberRenderer, ChipRenderer }] = await Promise.all([
+      import('@zengrid/enterprise'),
+    ]);
+
+    const chipRenderer = new ChipRenderer({
+      size: 'small',
+      chips: (params: { value: unknown }) => {
+        const key = String(params.value).toLowerCase();
+        const cs = getComputedStyle(document.documentElement);
+        return [
+          {
+            label: String(params.value),
+            color: cs.getPropertyValue(`--pill-${key}-bg`).trim() || '#eee',
+            textColor: cs.getPropertyValue(`--pill-${key}-ink`).trim() || '#333'
+          }
+        ];
+      }
+    });
+
+    const revenueRenderer = new NumberRenderer({
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+    const renderers: Record<string, unknown> = {
+      revenue: revenueRenderer,
+      mrr: revenueRenderer,
+      status: chipRenderer
+    };
+
+    const columns = demoColumns.map((c, i) => ({
+      field: c.field,
+      header: c.header,
+      width: demoColWidths[i],
+      sortable: true,
+      ...(renderers[c.field] ? { renderer: renderers[c.field] } : {})
+    }));
+
+    const grid = new Zengrid(gridEl, {
+      rowCount: DEMO_ROW_COUNT,
+      colCount: demoColumns.length,
+      rowHeight: demoRowHeight,
+      headerHeight: demoHeaderHeight,
+      colWidth: demoColWidths,
+      columns: columns as any,
+      enableA11y: true,
+      enableColumnDrag: false,
+      theme: zenGridTheme(currentTheme())
+    });
+    grid.setData(generateRows(DEMO_ROW_COUNT));
+    grid.render();
+
+    new MutationObserver(() => {
+      grid.setTheme(zenGridTheme(currentTheme()));
+      grid.refresh();
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    gridEl.dataset.mounted = '1';
+    delete gridEl.dataset.mounting;
+    return true;
+    } catch (err) {
+      delete gridEl.dataset.mounting;
+      console.error('ZenGrid demo failed to mount', err);
+      return false;
+    }
+  }
+
+  for (const host of document.querySelectorAll<HTMLElement>('[data-zg-demo]')) {
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(async (entries, obs) => {
+        for (const e of entries) {
+          // Keep observing until a mount actually succeeds so a transient
+          // failure gets another chance when the demo scrolls back into view.
+          if (e.isIntersecting && (await mount(host))) obs.disconnect();
+        }
+      }, { rootMargin: '200px' });
+      io.observe(host);
+    } else {
+      mount(host);
+    }
+  }
+</script>

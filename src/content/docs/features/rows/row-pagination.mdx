@@ -1,0 +1,191 @@
+---
+title: Row Pagination
+description: Page through rows instead of scrolling — the built-in page bar, five templates, layout options, and imperative page controls, all live in the page.
+---
+
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+## Introduction
+
+Turn on paging with the `pagination` option and the grid shows one page of rows
+at a time with a page bar it renders for you — no separate widget to wire up.
+Set `enabled` and you're done; everything else has a sensible default.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns,
+  pagination: {
+    enabled: true,
+    pageSize: 25,               // default 100
+    pageSizeOptions: [25, 50, 100, 200, 500],
+    template: 'material',       // 'simple' | 'material' | 'bootstrap' | 'compact' | 'full'
+    position: 'bottom',         // 'top' | 'bottom' | 'both'
+  },
+  onPageChange: (page, pageSize) => {
+    console.log('page', page, 'of size', pageSize); // page is 0-based
+  },
+});
+
+grid.setData(rows);
+```
+
+Pages are **0-based**: the first page is `0`. The bar renders at `position`
+(bottom by default) and re-styles with the grid theme.
+
+## Controlling pages in code
+
+Every button on the bar has an imperative twin, on both `grid.pagination.*` and
+as a shorthand on the grid itself.
+
+| Method | Shorthand | Effect |
+|--------|-----------|--------|
+| `grid.pagination.goTo(page)` | `grid.goToPage(page)` | Jump to a page (0-based). |
+| `grid.pagination.next()` | `grid.nextPage()` | Advance one page. |
+| `grid.pagination.previous()` | `grid.previousPage()` | Back one page. |
+| `grid.pagination.first()` | `grid.firstPage()` | Jump to the first page. |
+| `grid.pagination.last()` | `grid.lastPage()` | Jump to the last page. |
+| `grid.pagination.setPageSize(n)` | `grid.setPageSize(n)` | Change rows per page. |
+| `grid.pagination.getCurrentPage()` | `grid.getCurrentPage()` | Read the current page. |
+| `grid.pagination.getPageSize()` | `grid.getPageSize()` | Read the page size. |
+| `grid.pagination.getTotalPages()` | `grid.getTotalPages()` | Read the page count. |
+
+## Try it live
+
+Each tab is a different pagination setup. Use the built-in page bar, edit the
+code, or drive it with the buttons — the grid re-pages instantly.
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'Basic',
+    hint: 'Set enabled and a pageSize — the grid renders the page bar. Change pageSize or pageSizeOptions and re-run.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// Enable paging — the grid draws its own page bar at the bottom.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+  pagination: {
+    enabled: true,
+    pageSize: 25,
+    pageSizeOptions: [25, 50, 100, 200],
+  },
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'templates',
+    label: 'Templates',
+    hint: "Five built-in bar styles. Swap template between 'simple', 'material', 'bootstrap', 'compact', and 'full'.",
+    code: `// The page bar ships in five styles. Change 'template' below to
+// restyle it: 'simple' | 'material' | 'bootstrap' | 'compact' | 'full'.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+  pagination: {
+    enabled: true,
+    pageSize: 25,
+    template: 'full',
+  },
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'api',
+    label: 'Control in code',
+    hint: 'The buttons drive the grid API — nextPage(), goToPage(), setPageSize() — the same actions the bar performs. Pages are 0-based.',
+    code: `// Same setup — the buttons above the grid call the pagination API
+// directly, no bar interaction needed.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+  pagination: { enabled: true, pageSize: 25 },
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: '⏮ First', action: 'grid.firstPage()' },
+      { label: '◀ Prev', action: 'grid.previousPage()' },
+      { label: 'Next ▶', action: 'grid.nextPage()' },
+      { label: '⏭ Last', action: 'grid.lastPage()' },
+      { label: 'Go to page 5', action: 'grid.goToPage(4)' },
+      { label: 'Page size 50', action: 'grid.setPageSize(50)' },
+    ],
+  },
+  {
+    id: 'options',
+    label: 'Layout & options',
+    hint: "Flip position to 'top' | 'bottom' | 'both', tune maxPageButtons, and toggle the showPageInfo / showTotalCount / showPageSizeSelector flags.",
+    code: `// Every part of the bar is a flag. Move it, cap the page buttons,
+// and turn the info sections on or off.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+  pagination: {
+    enabled: true,
+    pageSize: 25,
+    position: 'both',
+    maxPageButtons: 5,
+    showPageInfo: true,
+    showTotalCount: true,
+    showPageSizeSelector: true,
+  },
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Templates and layout
+
+The bar ships in five styles — `simple`, `material` (default), `bootstrap`,
+`compact`, and `full` — set through `template`. Independently, `position` places
+it at the `top`, `bottom`, or `both`, and the `showPageInfo`, `showTotalCount`,
+and `showPageSizeSelector` flags plus `maxPageButtons` trim what it renders. The
+**Templates** and **Layout & options** tabs above walk through both.
+
+## Next
+
+- [Row Sorting](/features/rows/row-sorting/) — order rows before paging.
+- [Row Data](/features/rows/row-data/) — the source rows.

@@ -1,0 +1,161 @@
+---
+title: Fill Handle
+description: Drag the fill handle at the corner of a selection to copy its values across the cells you sweep — Excel-style autofill over ZenGrid ranges. Enterprise, live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The fill handle is the spreadsheet gesture everyone knows: select a cell or range,
+grab the little square at its corner, drag across neighbouring cells, and the
+selection's values **copy into** them. `fillHandle()` brings it to ZenGrid — attach
+it to a `selectionType: 'range'` grid and dragging the corner handle fills the
+swept cells from the source range.
+
+```ts
+import { fillHandle } from '@zengrid/enterprise/grid';
+
+const handle = fillHandle({ onFill: (range) => console.log('filled', range) });
+const grid = new Zengrid(mount, { selectionType: 'range', columns });
+grid.setData(rows);
+handle.attach(grid);
+```
+
+Like a spreadsheet, the fill is **constrained to one axis** — whichever direction
+you drag further — so you fill straight down a column or across a row without
+smearing diagonally. The source pattern **tiles**: drag a two-row block down and it
+repeats every two rows.
+
+:::note[Enterprise]
+`fillHandle()` is license-gated (`fill-handle`) and lives in
+`@zengrid/enterprise/grid`; the handle CSS ships in
+`@zengrid/enterprise/styles.css`. It writes back through the grid's data, so the
+filled values persist and re-render immediately.
+:::
+
+## How the fill is computed
+
+The source range's values repeat across the target, wrapping in both directions:
+
+- Drag **one cell** down five rows → that value is copied into all five.
+- Drag a **`Trial / Active`** two-cell block down → the target alternates
+  `Trial, Active, Trial, Active, …`.
+- Drag **left or up** past the source → the pattern tiles backwards too.
+
+## Customizing
+
+| Option | Effect |
+|--------|--------|
+| `onFill(range)` | Called after a fill commits, with the filled rectangle (source coordinates). |
+| `handleClass` | Extra CSS class on the handle element, to restyle the grip. |
+
+## Try it live
+
+Each demo seeds a source selection, then attaches the fill handle. Grab the corner
+square and drag down (or across) — the swept cells take the source values.
+
+export const cols = `  columns: [
+    { field: 'name',    header: 'Name',    width: 160 },
+    { field: 'role',    header: 'Role',    width: 140 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'fill-down',
+    label: 'Fill down a value',
+    hint: 'The Role cell of row 0 is seeded. Drag the corner square straight down — the role copies into every swept cell.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, currency, chips, fillHandle
+// A smaller dataset keeps the fill's data write snappy.
+const grid = new Zengrid(mount, {
+  rowCount: 300,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(rows.slice(0, 300));
+
+const handle = fillHandle();
+handle.attach(grid);
+grid.selection.selectCell(0, 1);   // seed the Role cell of row 0
+`,
+    controls: [
+      { label: 'Filled range', action: "alert(JSON.stringify(grid.selection.getRanges()[0] ?? 'none'))" },
+      { label: 'Role of row 5', action: "alert('row 5 role: ' + grid.rows.getSourceValue(5, 1))" },
+      { label: 'Reset data', action: 'grid.setData(rows.slice(0, 300)); grid.selection.selectCell(0, 1)' },
+    ],
+  },
+  {
+    id: 'tiled',
+    label: 'Tiled pattern',
+    hint: 'The source is a two-row Role block (Analyst then Designer). Drag the corner down and the pattern repeats — Analyst, Designer, Analyst, Designer…',
+    code: `// A two-row source tiles as it fills. Seed rows 0–1 of Role with two
+// distinct values, then drag the handle down.
+const data = rows.slice(0, 300).map(r => r.slice());
+data[0][1] = 'Analyst';
+data[1][1] = 'Designer';
+
+const grid = new Zengrid(mount, {
+  rowCount: 300,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(data);
+
+const handle = fillHandle();
+handle.attach(grid);
+grid.selection.selectRange(0, 1, 1, 1);   // the two Role cells
+`,
+    controls: [
+      { label: 'Role of rows 0–5', action: "alert([0,1,2,3,4,5].map(r => r + ': ' + grid.rows.getSourceValue(r, 1)).join('\\n'))" },
+      { label: 'Reset', action: "const d = rows.slice(0,300).map(r=>r.slice()); d[0][1]='Analyst'; d[1][1]='Designer'; grid.setData(d); grid.selection.selectRange(0,1,1,1)" },
+    ],
+  },
+  {
+    id: 'on-fill',
+    label: 'onFill callback',
+    hint: 'onFill fires after each fill with the filled rectangle. Open the console, drag the handle, and watch it log the range.',
+    code: `// onFill reports each committed fill — wire it to a toast, an audit log, or a
+// server sync. Here it logs to the console.
+const grid = new Zengrid(mount, {
+  rowCount: 300,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(rows.slice(0, 300));
+
+const handle = fillHandle({
+  onFill: (range) => console.log('filled range:', range),
+});
+handle.attach(grid);
+grid.selection.selectRange(0, 0, 0, 1);   // Name + Role of row 0
+`,
+    controls: [
+      { label: 'Filled range', action: "alert(JSON.stringify(grid.selection.getRanges()[0] ?? 'none'))" },
+      { label: 'Reset', action: 'grid.setData(rows.slice(0, 300)); grid.selection.selectRange(0, 0, 0, 1)' },
+    ],
+  },
+];
+
+<DemoPlayground enterprise view="demo" variants={variants} />
+
+## Where to go next
+
+- [Range Selection](/features/selection/range-handle/) — the same corner handle,
+  but it resizes the range instead of filling it.
+- [Cell Selection](/features/selection/cell-selection/) — the community cell ranges
+  underneath.
+- [Selection API](/features/selection/row-api/) — read and drive selection from
+  code.

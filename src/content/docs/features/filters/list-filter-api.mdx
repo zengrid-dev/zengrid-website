@@ -1,0 +1,206 @@
+---
+title: List Filter API
+description: Drive a List Filter from code with setFilterApi() — read the value list, get and set the selection as { values }, toggle individual values, and select/deselect all, all without opening the popup. Demonstrated live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+A [List Filter](/features/filters/list-filter/) is applied by the reader ticking
+boxes in the popup — but your app often needs to drive it **from code**: seed a
+default selection, sync it to a toolbar, read what's currently selected, or clear
+it on a button. `setFilterApi()` is that programmatic handle.
+
+Under the hood a List Filter is just an `in` condition, so you *can* reach for the
+raw [`grid.filter` API](/features/filters/api/). What `setFilterApi()` adds is a
+**set-filter-shaped** surface that speaks in **values**, not conditions: it knows
+the column's distinct value list (honouring the column's `values` / `comparator` /
+`valueFormatter`, so it matches the popup exactly), and it lets you toggle values
+individually without hand-rolling the membership maths.
+
+```ts
+import { setFilter, setFilterApi } from '@zengrid/enterprise';
+
+const columns = [
+  { field: 'name', header: 'Name' },
+  setFilter({ field: 'region', header: 'Region' }),
+];
+const grid = new Zengrid(el, { columns });
+
+const region = setFilterApi(grid, columns, 1); // 1 = Region's column index
+
+region.getValues();                       // every distinct region, in popup order
+region.setModel({ values: ['APAC'] });    // apply — keep only APAC
+region.getModel();                        // → { values: ['APAC'] }
+region.selectAll();                       // clear the filter (all rows)
+```
+
+`setFilterApi(grid, columns, column)` is a licensed enterprise call. `column` is
+the **data-column index** — the column's position in the `columns` array — and the
+value-list options are read from that `setFilter()` column, so `getValues()`
+returns exactly what the popup shows.
+
+## The model
+
+The List Filter's state is expressed as a plain **model** — the list of checked
+values, or `null` for "no filter":
+
+```ts
+type SetFilterApiModel = { values: unknown[] } | null;
+```
+
+`getModel()` / `setModel()` read and write it. The mapping mirrors the popup:
+
+- **`null`** → no filter; every value passes. `setModel(null)` clears the column.
+- **`{ values: [...] }`** → an `in` condition of exactly those values. Passing
+  *every* value is the same as no filter, so `setModel()` clears it — just like
+  ticking every box.
+- **`{ values: [] }`** → matches no rows.
+
+Because reads go through the grid's **live** state, the API and popup stay in
+lock-step: set the model here and the next popup open shows it; tick a box in the
+popup and `getModel()` sees it.
+
+## Methods
+
+| Method | What it does |
+|--------|--------------|
+| `getValues()` | The distinct values the filter offers, in display order (after the column's `values` / `comparator`). Re-derived from the current data, so it follows `setData`. |
+| `getModel()` | The current selection as `{ values }`, or `null` when no filter is active. |
+| `setModel(model)` | Apply a selection (`{ values }`) or clear it (`null`). Selecting every value clears the filter. |
+| `selectAll()` | Check every value — clears the column filter. |
+| `deselectAll()` | Uncheck every value — no rows pass until something is selected. |
+| `selectValue(v)` | Add one value to the selection. |
+| `deselectValue(v)` | Remove one value from the selection. |
+| `isValueSelected(v)` | Whether `v` currently passes (true when no filter is active). |
+
+## Try it live
+
+The **Region** column has a List Filter, and the buttons below drive it purely
+through `setFilterApi()` — no popup. The readout under the buttons shows what each
+**read** method returns; the grid updates as each **write** method fires. (Open
+the funnel afterwards to confirm the popup reflects the same selection.)
+
+export const cols = (region) => `const columns = [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    ${region},
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, renderer: chips },
+  ];`;
+
+export const readout = `  // A small readout so you can see what the read methods return.
+  const play = mount.closest('.zg-play');
+  let out = play && play.querySelector('.zg-api-readout');
+  if (play && !out) {
+    out = document.createElement('pre');
+    out.className = 'zg-api-readout';
+    out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft);white-space:pre-wrap';
+    mount.parentElement.insertBefore(out, mount);
+  }
+  grid.say = (m) => { if (out) out.textContent = m; };
+  grid.say('Ready — click a control to drive the List Filter from code.');`;
+
+export const variants = [
+  {
+    id: 'model',
+    label: 'Read & set the model',
+    hint: 'getValues() lists every region; setModel({ values }) applies a selection; getModel() reads it back ({ values } or null); selectAll() clears the filter. Watch the readout and the grid.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, setFilter, setFilterApi, currency, chips
+${cols(`setFilter({ field: 'region', header: 'Region', width: 160 })`)}
+
+const grid = new Zengrid(mount, { columns, rowCount: rows.length, rowHeight: 40 });
+grid.setData(rows);
+
+// setFilterApi(grid, columns, 2) — 2 is Region's column index. The handle reads
+// and drives the same 'in' filter the popup applies, in terms of values.
+grid.regionApi = setFilterApi(grid, columns, 2);
+${readout}
+`,
+    controls: [
+      { label: 'getValues()', action: `grid.say('getValues() → ' + grid.regionApi.getValues().join(', '))` },
+      { label: "setModel({ values: ['APAC','EU-West'] })", action: `grid.regionApi.setModel({ values: ['APAC', 'EU-West'] }); grid.say("setModel({ values: ['APAC','EU-West'] }) applied")` },
+      { label: 'getModel()', action: `const m = grid.regionApi.getModel(); grid.say('getModel() → ' + (m ? JSON.stringify(m.values) : 'null  (no filter)'))` },
+      { label: 'selectAll()', action: `grid.regionApi.selectAll(); grid.say('selectAll() → filter cleared, all rows show')` },
+    ],
+  },
+  {
+    id: 'toggle',
+    label: 'Toggle individual values',
+    hint: 'selectValue / deselectValue flip one value at a time; isValueSelected(v) reports whether it currently passes; deselectAll() empties the selection (no rows). No need to rebuild the whole in list yourself.',
+    code: `// selectValue/deselectValue add or remove a single value; isValueSelected(v)
+// tests it. Starting from no filter, everything is selected.
+${cols(`setFilter({ field: 'region', header: 'Region', width: 160, showCount: true })`)}
+
+const grid = new Zengrid(mount, { columns, rowCount: rows.length, rowHeight: 40 });
+grid.setData(rows);
+
+grid.regionApi = setFilterApi(grid, columns, 2);
+${readout}
+`,
+    controls: [
+      { label: "deselectValue('APAC')", action: `grid.regionApi.deselectValue('APAC'); grid.say("deselectValue('APAC') → APAC rows hidden")` },
+      { label: "selectValue('APAC')", action: `grid.regionApi.selectValue('APAC'); grid.say("selectValue('APAC') → APAC rows back")` },
+      { label: "isValueSelected('APAC')", action: `grid.say("isValueSelected('APAC') → " + grid.regionApi.isValueSelected('APAC'))` },
+      { label: 'deselectAll()', action: `grid.regionApi.deselectAll(); grid.say('deselectAll() → nothing selected, no rows')` },
+      { label: 'selectAll()', action: `grid.regionApi.selectAll(); grid.say('selectAll() → all rows')` },
+    ],
+  },
+  {
+    id: 'derived',
+    label: 'Mirrors the column’s list',
+    hint: 'Region supplies a curated, custom-ordered, uppercased value list. getValues() returns exactly that list (same values, same order) — the API mirrors the popup — and setModel drives it. Try getValues() then Isolate first two.',
+    code: `// The API's value list honours the column's values()/comparator/valueFormatter,
+// so getValues() matches the popup. Here Region is curated to EU + APAC, ordered,
+// and uppercased in the popup — getValues() returns the same underlying values.
+const ORDER = ['APAC', 'EU-West', 'EU-North', 'EU-South'];
+${cols(`setFilter({
+      field: 'region', header: 'Region', width: 160,
+      values: (derived) => derived.filter((r) => ORDER.includes(r)),
+      comparator: (a, b) => ORDER.indexOf(a) - ORDER.indexOf(b),
+      valueFormatter: (v) => v.toUpperCase(),
+    })`)}
+
+const grid = new Zengrid(mount, { columns, rowCount: rows.length, rowHeight: 40 });
+grid.setData(rows);
+
+grid.regionApi = setFilterApi(grid, columns, 2);
+${readout}
+`,
+    controls: [
+      { label: 'getValues()', action: `grid.say('getValues() → ' + grid.regionApi.getValues().join(', '))` },
+      { label: 'Isolate first two', action: `const first = grid.regionApi.getValues().slice(0, 2); grid.regionApi.setModel({ values: first }); grid.say('setModel({ values: ' + JSON.stringify(first) + ' })')` },
+      { label: 'getModel()', action: `const m = grid.regionApi.getModel(); grid.say('getModel() → ' + (m ? JSON.stringify(m.values) : 'null  (no filter)'))` },
+      { label: 'selectAll()', action: `grid.regionApi.selectAll(); grid.say('selectAll() → filter cleared')` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## When to use which API
+
+- Reach for **`setFilterApi()`** when you think in terms of *values* — reading the
+  offered list, toggling a value, or syncing the selection to your own UI. It keeps
+  you aligned with the column's `values` / `comparator` / `valueFormatter`.
+- Reach for the raw **[`grid.filter` API](/features/filters/api/)** when you
+  already have the exact `in` array and just want to apply it, or when you're
+  driving several different filter types uniformly.
+
+Both write the same `in` condition, so they interoperate freely — set with one,
+read with the other.
+
+## Next
+
+- [List Filter](/features/filters/list-filter/) — the checkbox filter this API drives,
+  and how a selection maps to an `in` condition.
+- [Data Updates](/features/filters/data-updates/) — keep the selection in step as
+  the grid's data changes (`newRowsAction`).
+- [Filter API](/features/filters/api/) — the general `grid.filter` surface for
+  every filter type.

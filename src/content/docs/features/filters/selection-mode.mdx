@@ -1,0 +1,199 @@
+---
+title: Selection Mode
+description: Make the List Filter behave like Excel's AutoFilter — you can't apply an empty filter (deselect-all shows every row), and while searching an "Add current selection to filter" checkbox unions the matches into the selection. Configured on the enterprise setFilter() excelMode option, demonstrated live.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+**Selection Mode** makes a [List Filter](/features/filters/list-filter/) behave like
+Excel's AutoFilter. Readers who live in spreadsheets expect two things the
+default set filter doesn't do, and turning on `excelMode` supplies both:
+
+- **You can't apply an empty filter.** In a plain set filter, unticking every
+  value and applying matches *nothing* (`in []`) and the grid goes blank. Excel
+  never lets you do that — deselecting everything and applying simply **clears**
+  the column filter, showing every row, and reopening the popup shows all values
+  ticked again.
+- **"Add current selection to filter".** While the search box has text, an extra
+  checkbox appears. It controls whether pressing **Enter** (or ticking *"Select
+  all search results"*) **adds** the matches to the current selection instead of
+  replacing it — so you can build a selection up across several searches, exactly
+  like Excel.
+
+It's the `excelMode` option on the enterprise `setFilter()` helper — set it to
+`'windows'` or `'mac'`:
+
+```ts
+import { setFilter } from '@zengrid/enterprise';
+
+setFilter({
+  field: 'region', header: 'Region',
+  excelMode: 'windows', // or 'mac'
+});
+```
+
+## Windows vs. Mac
+
+Both modes share the two behaviours above; they differ only in the **default**
+state of the "Add current selection to filter" checkbox, matching each
+platform's Excel:
+
+- **`'windows'`** — the checkbox starts **off**, so a fresh search **replaces**
+  the selection. Search, Enter, and only those matches are selected.
+- **`'mac'`** — the checkbox starts **on**, so searches **combine**: search
+  `EU`, Enter, clear, search `US`, Enter, and both the EU-\* and US-\* regions end
+  up selected. Untick the checkbox any time to switch back to replace.
+
+## Can't apply an empty filter
+
+This is the headline difference. With `excelMode` set, the value list's *empty*
+state is treated as "no filter" rather than "match nothing":
+
+| Action in the popup | Default set filter | Selection Mode |
+|---------------------|--------------------|------------|
+| Untick every value, Apply | Grid shows **no rows** (`in []`) | Filter **cleared**, every row shown |
+| Reopen after that | Everything unticked | Everything **ticked** again |
+
+Because Excel always starts fully selected, `defaultToNothingSelected` is
+**ignored** when `excelMode` is set — the value list opens with everything
+checked regardless.
+
+## Add current selection to filter
+
+Type in the search box and the **Add current selection to filter** row appears
+above the list, and the **(Select all)** row relabels to **(Select all search
+results)** so it's clear it only spans the matches. With the checkbox ticked,
+`Enter` / "Select all search results" *unions* the visible matches into whatever
+was already selected; unticked, it *replaces* the selection with just the
+matches. Mac mode ticks it by default, Windows leaves it clear.
+
+## Try it live
+
+Open a column's funnel and interact with its value list. Deselect everything and
+Apply to see the "no empty filter" behaviour; type in the search box and press
+Enter to see replace vs. union. Each variant configures Selection Mode differently.
+
+export const variants = [
+  {
+    id: 'windows',
+    label: 'Windows mode',
+    hint: 'Open the Region funnel: untick (Select all) then Apply — the grid keeps ALL rows (an empty filter is treated as no filter), and reopening shows everything ticked again. Search "EU" and press Enter — because Windows replaces, only the EU-* regions stay selected.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, setFilter, currency, chips
+// Windows Selection Mode: empty selection = no filter, and Enter REPLACES the
+// selection with the current search matches (checkbox starts unticked).
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'role', header: 'Role', width: 180 },
+    setFilter({
+      field: 'region', header: 'Region', width: 200, showCount: true,
+      excelMode: 'windows',
+    }),
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'EU regions', action: `grid.filter.set(2, 'in', ['EU-West', 'EU-North', 'EU-South'])` },
+      { label: 'Empty (in [])', action: `grid.filter.set(2, 'in', [])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'mac',
+    label: 'Mac mode',
+    hint: 'Open the Region funnel: the "Add current selection to filter" checkbox is ticked by default. Search "EU", press Enter (adds the EU-* regions), clear the box, search "US", press Enter — both EU-* and US-* end up selected, combined across the two searches.',
+    code: `// Mac Selection Mode: Enter UNIONS the matches into the selection (checkbox
+// starts ticked), so searches combine — build a selection across several.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'role', header: 'Role', width: 180 },
+    setFilter({
+      field: 'region', header: 'Region', width: 200, showCount: true,
+      excelMode: 'mac',
+    }),
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'EU + US', action: `grid.filter.set(2, 'in', ['EU-West', 'EU-North', 'EU-South', 'US-East', 'US-West'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'compare',
+    label: 'Excel vs. default',
+    hint: 'Two List Filters, both with defaultToNothingSelected: true. Role is a plain List Filter — it honours the flag (opens empty) and unticking all + Apply shows no rows. Region is Selection Mode — the flag is ignored (opens all ticked) and an empty selection shows every row.',
+    code: `// Side by side: Role is a default List Filter, Region is Selection Mode.
+// Both pass defaultToNothingSelected: true — only the default column obeys it;
+// Selection Mode ignores it and can never apply an empty filter.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    setFilter({
+      field: 'role', header: 'Role', width: 190, showCount: true,
+      defaultToNothingSelected: true, // honoured → opens empty
+    }),
+    setFilter({
+      field: 'region', header: 'Region', width: 200, showCount: true,
+      excelMode: 'windows',
+      defaultToNothingSelected: true, // ignored → opens fully selected
+    }),
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Analysts only', action: `grid.filter.set(1, 'in', ['Analyst'])` },
+      { label: 'APAC only', action: `grid.filter.set(2, 'in', ['APAC'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Options reference
+
+| Option | What it does |
+|--------|--------------|
+| `excelMode` | `'windows'` or `'mac'` — turn on Excel-style behaviour. Omit for the default set filter. |
+| — empty selection | Treated as **no filter** (all rows) instead of `in []`. |
+| — `'windows'` | "Add current selection to filter" starts **off** → Enter *replaces* the selection. |
+| — `'mac'` | "Add current selection to filter" starts **on** → Enter *unions* into the selection. |
+| — `defaultToNothingSelected` | **Ignored** while `excelMode` is set (Excel always opens fully selected). |
+
+Every other [List Filter](/features/filters/list-filter/) option (`values`,
+`valueFormatter`, `comparator`, `miniFilter`, `showCount`, `treeList`) applies
+alongside Selection Mode.
+
+## Next
+
+- [List Filter](/features/filters/list-filter/) — the checkbox filter Selection Mode
+  tunes, and how a selection maps to an `in` condition.
+- [Filter Search](/features/filters/filter-search/) — the search box the "Add
+  current selection to filter" behaviour builds on.
+- [Value List](/features/filters/value-list/) — supplying, sorting and
+  formatting the values the list shows.

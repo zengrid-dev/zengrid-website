@@ -1,0 +1,178 @@
+---
+title: Text Filter
+description: The built-in text filter — its eight operators, case-insensitive matching (with an exact-case opt-in), and how to restrict, reorder, and pre-select operators per column — all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+The **text filter** is the popup a string column opens when you click its header
+funnel. It's the default: any `filterable` column is a text filter unless you set
+`filterType` to `'number'` or `'date'`. A reader picks an operator, types a value,
+and ZenGrid narrows the grid to the matching rows — your source data is untouched.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  columns: [
+    { field: 'name', header: 'Name', filterable: true }, // text filter (default)
+  ],
+});
+```
+
+Text filtering is **core** — no license, no plugin. Everything below configures
+the same built-in popup.
+
+## The operators
+
+A text filter offers eight operators. The four substring operators are the
+workhorses; `blank` / `notBlank` take no value and find (or exclude) empty cells.
+
+| Operator | Value | Matches when the cell… |
+|----------|-------|------------------------|
+| `contains` (default) | text | contains the term anywhere |
+| `notContains` | text | does **not** contain the term |
+| `equals` | text | equals the term |
+| `notEquals` | text | does **not** equal the term |
+| `startsWith` | text | starts with the term |
+| `endsWith` | text | ends with the term |
+| `blank` | — | is empty / null / whitespace |
+| `notBlank` | — | has any non-whitespace text |
+
+## Matching is case-insensitive by default
+
+All text operators fold case — `contains "acme"` matches `ACME Corp`, and
+`equals "active"` matches `Active`. Set `filterParams.caseSensitive: true` on a
+column to require an exact-case match instead:
+
+```ts
+{
+  field: 'region', header: 'Region', filterable: true,
+  filterParams: { caseSensitive: true }, // "apac" no longer matches "APAC"
+}
+```
+
+Case sensitivity is a **column** setting: it applies to every operator on that
+column, whether the reader drives it from the popup or you call `grid.filter.*`
+from code.
+
+## Restrict, reorder, and pre-select the operators
+
+`filterParams` tailors the popup per column without leaving core:
+
+- **`filterOptions`** restricts and **reorders** which operators the dropdown
+  shows. Unknown entries are dropped; an empty result falls back to the full set,
+  so a typo can never produce an operator-less popup.
+- **`defaultOption`** is the operator a fresh condition opens on. It must be one
+  of the offered operators.
+
+```ts
+{
+  field: 'name', header: 'Name', filterable: true,
+  filterParams: {
+    filterOptions: ['startsWith', 'contains'], // only these two, in this order
+    defaultOption: 'startsWith',               // popup opens on "Starts with"
+  },
+}
+```
+
+## Try it live
+
+Each tab configures the same grid a different way. Click a header's funnel to open
+its text popup, or edit the code and re-run.
+
+export const cols = (extras = {}) => `  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true${extras.name ?? ''} },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true${extras.role ?? ''} },
+    { field: 'region',  header: 'Region',  width: 150, filterable: true${extras.region ?? ''} },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips, filterable: true },
+  ],`;
+
+export const variants = [
+  {
+    id: 'operators',
+    label: 'The operators',
+    hint: 'Open the Name funnel and walk the dropdown: Contains "an", Starts with "A", Ends with "a", then Equals a full name. Try "Is not blank" — it needs no value and keeps every named row.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips
+// A filterable string column is a text filter by default — no
+// filterType needed. Its popup offers the eight text operators.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'case',
+    label: 'Case sensitivity',
+    hint: 'Region sets caseSensitive: true; Name keeps the default. Use the buttons: "Name ~ aria" matches (folds case); "Region ~ apac" matches nothing, but "Region ~ APAC" does. In the popups the same rule applies.',
+    code: `// Text matching folds case by default. filterParams.caseSensitive
+// makes a column exact-case for every operator. Here Region is
+// case-sensitive; Name is not.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${cols({
+  region: `,
+      filterParams: { caseSensitive: true }`,
+})}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Name ~ "aria"', action: `grid.filter.set(0, 'contains', 'aria')` },
+      { label: 'Region ~ "apac"', action: `grid.filter.set(2, 'contains', 'apac')` },
+      { label: 'Region ~ "APAC"', action: `grid.filter.set(2, 'contains', 'APAC')` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'tailor',
+    label: 'Tailor operators',
+    hint: 'Open Name: its dropdown is trimmed to Starts with / Contains and opens on Starts with. Open Role: only Equals / Not equals. filterParams.filterOptions restricts + reorders; defaultOption pre-selects.',
+    code: `// filterParams tailors each popup: filterOptions restricts and
+// reorders the operators; defaultOption picks the preselected one.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${cols({
+  name: `,
+      filterParams: { filterOptions: ['startsWith', 'contains'], defaultOption: 'startsWith' }`,
+  role: `,
+      filterParams: { filterOptions: ['equals', 'notEquals'], defaultOption: 'equals' }`,
+})}
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Driving the text filter from code
+
+Everything the popup does has an imperative twin on `grid.filter.*` (with grid
+shorthands) — `grid.filter.set(col, op, value)` for a single condition,
+`grid.filter.setColumn(col, conditions, logic)` to stack several. The buttons in
+the case-sensitivity tab above call `grid.filter.set` directly. See the
+[Filtering Overview](/features/filters/overview/#the-filter-api) for the full API.
+
+## Next
+
+- [Number Filter](/features/filters/number-filter/) and
+  [Date Filter](/features/filters/date-filter/) — the other built-in types.
+- [Column Filters](/features/filters/column-filters/) — enabling filters and
+  stacking AND / OR conditions.
+- [List Filter](/features/filters/list-filter/) — an Excel-style checklist of
+  distinct values.

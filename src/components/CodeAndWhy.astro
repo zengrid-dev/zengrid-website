@@ -1,0 +1,81 @@
+---
+import { codePanel, features, type Accent } from "../config/site";
+
+const hoverBorder: Record<Accent, string> = {
+  coral: "hover:border-coral",
+  teal: "hover:border-teal",
+  violet: "hover:border-violet",
+  amber: "hover:border-coral",
+};
+---
+
+<section
+  class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20 items-stretch"
+  id="features"
+  aria-label="Why ZenGrid"
+>
+  <!-- code block -->
+  <div data-code-panel class="bg-ink text-bg rounded-[18px] overflow-hidden">
+    <div class="flex items-center gap-2 px-[18px] py-[13px] border-b border-white/10">
+      <span class="w-3 h-3 rounded-full bg-[#ff5f56]" aria-hidden="true"></span>
+      <span class="w-3 h-3 rounded-full bg-[#ffbd2e]" aria-hidden="true"></span>
+      <span class="w-3 h-3 rounded-full bg-[#27c93f]" aria-hidden="true"></span>
+      <span class="ml-2.5 font-mono text-xs opacity-60">{codePanel.filename}</span>
+      <button
+        type="button"
+        data-copy
+        data-code={codePanel.code}
+        aria-label="Copy code to clipboard"
+        class="ml-auto bg-white/[0.08] border border-white/[0.16] text-inherit font-mono text-[11px] font-bold px-3 py-[5px] rounded-lg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+      >
+        <span data-copy-label>copy</span>
+      </button>
+    </div>
+    <pre class="m-0 p-[22px] font-mono text-[13.5px] leading-[1.75] overflow-auto"><span class="opacity-45">// a million rows, one call</span>
+<span class="text-[#c9a0e8]">import</span> {"{ ZenGrid }"} <span class="text-[#c9a0e8]">from</span> <span class="text-[#8fd6c8]">'@zengrid/core'</span>
+
+<span class="text-[#c9a0e8]">const</span> grid = <span class="text-[#c9a0e8]">new</span> <span class="text-[#f2a583]">ZenGrid</span>(el, {"{"}
+  data: rows,
+  columns,
+  virtual: <span class="text-[#8fd6c8]">true</span>,
+  sortable: <span class="text-[#8fd6c8]">true</span>,
+  editable: <span class="text-[#8fd6c8]">true</span>,
+{"}"})</pre>
+  </div>
+
+  <!-- why cards -->
+  <div class="flex flex-col gap-3.5">
+    {
+      features.map((f) => (
+        <div
+          class:list={[
+            "flex-1 bg-surface border border-border rounded-[18px] px-6 py-[22px] transition-colors",
+            hoverBorder[f.accent],
+          ]}
+        >
+          <div class="font-display text-[18px] font-semibold mb-1.5">{f.title}</div>
+          <div class="text-[14.5px] text-muted leading-[1.6]">{f.body}</div>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+    const label = btn.querySelector<HTMLElement>("[data-copy-label]");
+    let timer: number | undefined;
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.code ?? "");
+      } catch {
+        /* clipboard unavailable */
+      }
+      if (label) label.textContent = "✓ copied";
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (label) label.textContent = "copy";
+      }, 1800);
+    });
+  });
+</script>

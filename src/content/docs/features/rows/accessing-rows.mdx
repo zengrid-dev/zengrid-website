@@ -1,0 +1,173 @@
+---
+title: Accessing Rows
+description: Read rows back out of the grid — source-stable access by your own index, or display-aware access that follows the current sort and filter, all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Once data is loaded you often need to read it back — for a selection summary, an
+export, a custom action, or just to inspect a row. ZenGrid exposes those reads on
+`grid.rows`, and it draws a clear line between **two coordinate spaces**:
+
+- **Source** access is keyed by a row's original position in the array you passed
+  to `setData()`. It never moves when the user sorts, filters, or pages — hold an
+  index into your own dataset and read it back with `getSourceValue` /
+  `getSourceRow`.
+- **Displayed** access is keyed by a row's *on-screen* position. It follows the
+  active sort and filter, and returns values in the **visible column order** —
+  `getDisplayedValue`, `getDisplayedRow`, `getDisplayedRowData`.
+
+`toSourceIndex` and `toDisplayedIndex` convert between the two.
+
+```ts
+// Source space — stable, by your own index:
+grid.rows.getSourceValue(0, 0);   // top-left of the array you loaded
+grid.rows.getSourceRow(0);        // ['Aria Vaskov', 'Analyst', …]
+
+// Displayed space — what the user sees, after sort + filter:
+grid.rows.getDisplayedRow(0);            // the first row on screen
+grid.rows.getDisplayedRowData(0);        // { name: …, role: …, … }
+grid.rows.getDisplayedRowCount();        // rows left after filtering
+
+// Convert between them:
+grid.rows.toSourceIndex(0);       // which source row is showing first?
+grid.rows.toDisplayedIndex(0);    // where did source row 0 end up? (-1 if filtered out)
+```
+
+:::note[Why two spaces?]
+ZenGrid's data model is **positional** — the grid never reorders your array. Sort
+and filter build a *view* over it, so the row on screen at position 0 may be any
+source row. Source reads give you stable record access; displayed reads give you
+what's on screen. Pick the one that matches the index you're holding.
+:::
+
+## The `grid.rows` API
+
+| Method | Space | Returns |
+|--------|-------|---------|
+| `getSourceRowCount()` | source | Rows loaded, ignoring sort/filter. |
+| `getDisplayedRowCount()` | displayed | Rows left after the active filter. |
+| `getSourceValue(row, col)` | source | One cell, by source row + source column. |
+| `getSourceRow(row)` | source | A whole source row as an array. |
+| `getDisplayedValue(row, col)` | displayed | One cell, by on-screen row + visible column. |
+| `getDisplayedRow(row)` | displayed | An on-screen row as an array (visible column order). |
+| `getDisplayedRowData(row)` | displayed | An on-screen row as an object keyed by `field`. |
+| `toSourceIndex(displayRow)` | ↔ | The source index behind a displayed row. |
+| `toDisplayedIndex(sourceRow)` | ↔ | The on-screen index of a source row (`-1` if filtered out). |
+| `forEachDisplayedRow(fn)` | displayed | Walk every visible row in view order. |
+
+## Try it live
+
+Each tab reads rows a different way. The snippet sorts and filters the grid so the
+two coordinate spaces diverge — click a control and the grid reads the running
+instance and reports back.
+
+export const columns = `  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'source-vs-displayed',
+    label: 'Source vs displayed',
+    hint: 'The grid is sorted by Name, so displayed row 0 is not source row 0. Read both and compare — source access ignores the sort, displayed access follows it.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// Sort by Name so the on-screen order differs from the source order.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${columns}
+});
+
+grid.setData(rows);
+grid.sort.apply([{ column: 0, direction: 'asc' }]);
+
+// grid.rows.getSourceRow(0)    -> the row you loaded first (unsorted)
+// grid.rows.getDisplayedRow(0) -> the row now showing at the top
+`,
+    controls: [
+      { label: 'Source row 0', action: "alert('source row 0:\\n' + JSON.stringify(grid.rows.getSourceRow(0)))" },
+      { label: 'Displayed row 0', action: "alert('displayed row 0:\\n' + JSON.stringify(grid.rows.getDisplayedRow(0)))" },
+      { label: 'Displayed cell (0, Name)', action: "alert('displayed (0, Name): ' + grid.rows.getDisplayedValue(0, 0))" },
+    ],
+  },
+  {
+    id: 'whole-rows',
+    label: 'Whole rows & objects',
+    hint: 'getDisplayedRowData gives an object keyed by each column field. forEachDisplayedRow walks the whole view — here it totals the Revenue column across visible rows.',
+    code: `// Read whole rows, not just cells. getDisplayedRowData keys the row by
+// each visible column's \`field\`; forEachDisplayedRow walks the view.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${columns}
+});
+
+grid.setData(rows);
+grid.sort.apply([{ column: 3, direction: 'desc' }]); // Revenue, high → low
+
+// grid.rows.getDisplayedRowData(0) -> { name, role, region, revenue, mrr, status }
+// grid.rows.forEachDisplayedRow((vals) => …) -> aggregate the visible rows
+`,
+    controls: [
+      { label: 'Top row as object', action: "alert(JSON.stringify(grid.rows.getDisplayedRowData(0), null, 2))" },
+      {
+        label: 'Sum visible Revenue',
+        action: "let t = 0; grid.rows.forEachDisplayedRow((v) => { t += v[3]; }); alert('Revenue over ' + grid.rows.getDisplayedRowCount() + ' rows: $' + t.toLocaleString('en-US'))",
+      },
+    ],
+  },
+  {
+    id: 'index-mapping',
+    label: 'Index mapping',
+    hint: 'Filter to APAC, then map indices. getDisplayedRowCount drops to the matches; toSourceIndex/toDisplayedIndex translate between screen position and your array index.',
+    code: `// Filter narrows the view. getDisplayedRowCount reflects the matches,
+// and the index mappers translate between screen and source positions.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${columns}
+});
+
+grid.setData(rows);
+grid.filter.set(2, 'equals', 'APAC'); // Region column
+
+// grid.rows.getDisplayedRowCount() -> how many rows match
+// grid.rows.toSourceIndex(0)       -> array index behind the first match
+// grid.rows.toDisplayedIndex(0)    -> where source row 0 landed (-1 if filtered out)
+`,
+    controls: [
+      { label: 'Visible row count', action: "alert('visible rows: ' + grid.rows.getDisplayedRowCount() + ' of ' + grid.rows.getSourceRowCount())" },
+      { label: 'Source behind displayed 0', action: "alert('displayed 0 -> source ' + grid.rows.toSourceIndex(0))" },
+      { label: 'Where is source row 0?', action: "alert('source 0 -> displayed ' + grid.rows.toDisplayedIndex(0) + '  (-1 = filtered out)')" },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Reading the current view in bulk
+
+`grid.rows` reads row-by-row. To pull the **whole** current view at once — for a
+download or a clipboard copy — reach for the export API, which shares the same
+sort/filter view: `grid.export.csv({ rows: 'filtered' })` returns only the rows
+that pass the active filter, in on-screen order, and `grid.export.source()` hands
+back a reusable value accessor for building other formats. See
+[Row Pagination](/features/rows/row-pagination/) for paging that same view.
+
+## Next
+
+- [Row Data](/features/rows/row-data/) — load the rows first.
+- [Getting Values](/features/cells/getting-values/) — read individual cell values.
+- [Row Sorting](/features/rows/row-sorting/) — the sort that displayed access follows.

@@ -1,0 +1,215 @@
+---
+title: Overview
+description: Bucket rows by one or more columns into collapsible group headers, with per-column aggregates.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+**Row grouping** buckets the grid's rows by the value of one or more columns and
+draws a **collapsible header row** for each group. Instead of one long flat list,
+readers see the data organised — `Region → 8 groups`, each openable to reveal its
+rows — with an optional **aggregate summary** (sum, average, count…) in every
+header. Nest several columns and the groups nest too.
+
+Grouping ships in `@zengrid/enterprise`. It's built on the core full-width row
+mechanism: a group header is a single cell spanning every column, so it rides the
+grid's virtualization and scrolls with the body like any other row.
+
+## How it works
+
+Create a grouping manager with `rowGrouping()`, hand its `provider` to the grid's
+`fullWidthProvider` option, then `attach()` the grid and give it the flat rows with
+`setData()`:
+
+```ts
+import { rowGrouping } from '@zengrid/enterprise/grid';
+
+// Group by the Region column (index 2), summing Revenue (3), averaging MRR (4).
+const grouping = rowGrouping({
+  groupBy: [2],
+  aggregations: { 3: 'sum', 4: 'avg' },
+});
+
+const grid = new Zengrid(el, {
+  fullWidthProvider: grouping.provider,
+  columns: [/* … */],
+});
+
+grouping.attach(grid);
+grouping.setData(rows); // the flat, ungrouped rows
+```
+
+The manager owns the displayed rows from here: it buckets `rows` into a tree,
+interleaves a header row before each group, and pushes the result to the grid.
+Clicking a header (or its chevron) collapses or expands that group — the manager
+recomputes which rows are visible and re-renders.
+
+### Options
+
+- **`groupBy`** — the columns to group by, outermost first. Each entry is a source
+  column **index** (positional data) or a `{ col, comparator }` spec to control how
+  sibling groups are ordered. Pass several to **nest** the groups.
+- **`aggregations`** — a map of column index → reducer (`'sum'`, `'avg'`, `'min'`,
+  `'max'`, `'count'`, `'first'`, or your own `(values) => value`). Each result is
+  shown in the group header.
+- **`aggLabel(col, value, ctx)`** — format an aggregate for the header (e.g. as
+  currency). Return `''` to hide one.
+- **`groupLabel(ctx)`** — the header's title text; defaults to the group value.
+- **`expandedByDefault`** — start groups collapsed by setting this to `false`.
+- **`onExpandedChanged({ path, expanded })`** — notified on every expand/collapse.
+
+### API
+
+The manager exposes `expandAll()`, `collapseAll()`, `setExpanded(path, bool)`,
+`toggle(path)`, `isExpanded(path)` and `getGroupCount()` — drive them from your own
+toolbar or keyboard shortcuts.
+
+## Try it live
+
+Each tab is a different facet of grouping. Edit the snippet — change `groupBy`, add
+an aggregate, or nest a second column — and the grid re-renders.
+
+export const basic = `// In scope: Zengrid, mount, currency, rowGrouping
+// Group the rows by ONE column. rowGrouping() buckets them into collapsible
+// header rows — click a header (or its chevron) to open/close it.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({ groupBy: [2] }); // 2 = Region
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 120, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping; // let the buttons reach the manager
+`;
+
+export const aggregates = `// Aggregations summarise each group in its header. Configure them by column
+// index; aggLabel formats each value as currency.
+const data = rows.slice(0, 200);
+const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+
+const grouping = rowGrouping({
+  groupBy: [2],                          // Region
+  aggregations: { 3: 'sum', 4: 'avg' },  // 3 = Revenue (sum), 4 = MRR (avg)
+  aggLabel: (col, value) =>
+    col === 3 ? 'Revenue ' + money(value) : 'Avg MRR ' + money(value),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 120, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const nested = `// Pass several columns to NEST the groups: Region, then Status inside it.
+// groupLabel titles the deeper level, and count still rolls up per group.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region → Status
+  aggregations: { 3: 'sum' },
+  aggLabel: (col, value) => 'Revenue $' + Math.round(value).toLocaleString('en-US'),
+  expandedByDefault: false,        // start collapsed — open a region to see its statuses
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'Group by a column',
+    hint: 'groupBy: [2] buckets by Region. Click a header to expand/collapse. Change the index (try 1 for Role or 5 for Status) and re-run.',
+    code: basic,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'aggregates',
+    label: 'Aggregations',
+    hint: 'aggregations maps column → reducer; aggLabel formats the result. Swap sum/avg, or add { 4: "max" }, and re-run.',
+    code: aggregates,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'nested',
+    label: 'Nested groups',
+    hint: 'groupBy: [2, 5] nests Status inside Region. Starts collapsed (expandedByDefault: false) — open a region, then a status.',
+    code: nested,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **The manager owns the displayed rows.** It transforms your flat rows into
+  header + leaf rows and calls `setData` for you. Keep the flat data as your source
+  of truth and feed it in through `grouping.setData()` (re-call it when the data
+  changes).
+- **Grouping keys are positional.** With array-backed rows, `groupBy` and
+  `aggregations` index into the row array (`region` is column 2, `revenue` is 3),
+  the same indices your `columns` map to.
+- **Headers span the content width.** A group header is a full-width row, so it
+  scrolls with the body and its aggregate summary sits at the right edge.
+- **Nesting is unbounded.** Add more columns to `groupBy`; each header indents by
+  its depth, and `expandAll` / `collapseAll` reach every level.
+
+## Next
+
+- [Grouping Data](/features/row-grouping/grouping-data/) — supply and shape the
+  rows you group.
+- [Group Display Types](/features/row-grouping/group-display-types/) — group rows
+  vs. a single group column.
+- [Expanding Groups](/features/row-grouping/expanding-groups/) — control which
+  groups open, and react to expand/collapse.

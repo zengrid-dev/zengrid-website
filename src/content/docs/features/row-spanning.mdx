@@ -1,0 +1,233 @@
+---
+title: Row Spanning
+description: Merge cells vertically across rows to group repeated values.
+since: 1.4.0
+tier: enterprise
+---
+
+import FeatureMeta from '../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta since="1.4.0" tier="enterprise" />
+
+## Introduction
+
+Row spanning merges consecutive cells in a column that share the same value into
+a single tall cell — the vertical equivalent of a merged header. It turns a run
+of repeated values (a region, a category, an owner) into clean visual groups
+without changing your data. The cells below the anchor are simply not drawn, so
+there are no internal gridlines inside a group.
+
+## How it works
+
+Row spanning ships in `@zengrid/enterprise`. Turn it on by passing the
+`rowSpanning()` provider to the grid's `spanProvider` option, then give each column
+you want to merge a `rowSpan` resolver. For each anchor row the grid asks the
+resolver how many following rows the cell should span; those rows are absorbed into
+the tall anchor cell. Spanning is computed **only for the rows in the render
+window**, so it stays fast at a million rows — the resolver is never called once
+per hidden row.
+
+Because a span merges a **run of equal, consecutive** values, sort your data by the
+spanned column first so the matching values sit next to each other.
+
+## Types
+
+```ts
+interface ColumnDef {
+  field: string;
+  header: string;
+  width?: number;
+  /**
+   * Return how many rows this cell should span (1 = no span). Called once per
+   * anchor row, only for rows in the render window.
+   */
+  rowSpan?: (params: RowSpanParams) => number;
+}
+
+interface RowSpanParams {
+  /** Value of the anchor cell — this column at `rowIndex`. */
+  value: unknown;
+  /** Absolute row index of the anchor cell. */
+  rowIndex: number;
+  /** Read this column's value at any absolute row, to look ahead. */
+  getValue: (row: number) => unknown;
+}
+```
+
+## Code
+
+```ts
+import { rowSpanning } from '@zengrid/enterprise/grid';
+
+const grid = new Zengrid(el, {
+  rowCount,
+  // Enable row spanning (Enterprise). Reads each column's rowSpan resolver.
+  spanProvider: rowSpanning(),
+  columns: [
+    {
+      field: 'region',
+      header: 'Region',
+      width: 160,
+      // Walk forward while the next row shares this value.
+      rowSpan: ({ value, rowIndex, getValue }) => {
+        let span = 1;
+        while (getValue(rowIndex + span) === value) span++;
+        return span;
+      },
+    },
+    { field: 'name', header: 'Name', width: 240 },
+    { field: 'revenue', header: 'Revenue', width: 160 },
+  ],
+});
+```
+
+## Try it live
+
+Each tab spans a different way. Edit the `rowSpan` resolver — return a bigger or
+smaller count — and the grid re-merges. Row spanning follows **display order**, so
+these demos build their rows already grouped (columns line up with the data
+positionally: the first column is the first value in each row).
+
+export const groupByRegion = `// In scope: Zengrid, mount, currency, chips, rowSpanning
+// Rows already grouped by region — [region, name, role, revenue, status].
+const people = [
+  ['APAC',    'Mei Chen',       'Analyst',      82000, 'Active'],
+  ['APAC',    'Kenji Tanaka',   'Platform Eng', 91000, 'Active'],
+  ['APAC',    'Yuki Sato',      'Designer',     76000, 'Trial'],
+  ['APAC',    'Noor Haddad',    'SRE',          88000, 'Active'],
+  ['EU-West', 'Aria Vaskov',    'Analyst',      79000, 'Active'],
+  ['EU-West', 'Otto Bergman',   'Designer',     72000, 'Churned'],
+  ['EU-West', 'Ingrid Larsson', 'Eng Manager',  99000, 'Active'],
+  ['US-East', 'Marcus Webb',    'Staff SWE',   120000, 'Active'],
+  ['US-East', 'Sofia Rossi',    'Researcher',   86000, 'Trial'],
+  ['US-East', 'Idris Okafor',   'SRE',          90000, 'Active'],
+  ['LATAM',   'Lucia Moreno',   'Product Lead', 94000, 'Active'],
+  ['LATAM',   'Priya Nair',     'Designer',     73000, 'Trial'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: people.length,
+  rowHeight: 44,
+  spanProvider: rowSpanning(),   // Enterprise: turn on row spanning
+  columns: [
+    {
+      field: 'region', header: 'Region', width: 150,
+      // Return how many following rows share this region.
+      rowSpan: ({ value, rowIndex, getValue }) => {
+        let span = 1;
+        while (getValue(rowIndex + span) === value) span++;
+        return span;
+      },
+    },
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 170 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(people);
+`;
+
+export const nested = `// Two spanned columns — [region, team, name, revenue, status].
+// The team resolver closes over the data to also stop when the region changes,
+// so team groups nest inside each region instead of merging across the boundary.
+const data = [
+  ['APAC',    'Analyst', 'Mei Chen',       82000, 'Active'],
+  ['APAC',    'Analyst', 'Hana Kim',       80000, 'Trial'],
+  ['APAC',    'SRE',     'Noor Haddad',    88000, 'Active'],
+  ['APAC',    'SRE',     'Kenji Tanaka',   91000, 'Active'],
+  ['EU-West', 'Design',  'Otto Bergman',   72000, 'Churned'],
+  ['EU-West', 'Design',  'Aria Vaskov',    79000, 'Active'],
+  ['EU-West', 'Eng',     'Ingrid Larsson', 99000, 'Active'],
+  ['US-East', 'Eng',     'Marcus Webb',   120000, 'Active'],
+  ['US-East', 'Eng',     'Idris Okafor',   90000, 'Active'],
+  ['US-East', 'Research','Sofia Rossi',    86000, 'Trial'],
+];
+
+// Span col \`c\`, but never cross a change in the parent column \`p\`.
+const spanWithin = (c, p) => ({ rowIndex }) => {
+  let span = 1;
+  while (
+    rowIndex + span < data.length &&
+    data[rowIndex + span][c] === data[rowIndex][c] &&
+    (p == null || data[rowIndex + span][p] === data[rowIndex][p])
+  ) span++;
+  return span;
+};
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  spanProvider: rowSpanning(),
+  columns: [
+    { field: 'region', header: 'Region', width: 140, rowSpan: spanWithin(0) },
+    { field: 'team',   header: 'Team',   width: 140, rowSpan: spanWithin(1, 0) },
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(data);
+`;
+
+export const capped = `// The resolver is just a function — cap it to keep groups readable. Here no
+// cell spans more than 3 rows, so a long run breaks into stacked chunks.
+const people = [
+  ['APAC', 'Mei Chen',       'Analyst',      82000, 'Active'],
+  ['APAC', 'Kenji Tanaka',   'Platform Eng', 91000, 'Active'],
+  ['APAC', 'Yuki Sato',      'Designer',     76000, 'Trial'],
+  ['APAC', 'Noor Haddad',    'SRE',          88000, 'Active'],
+  ['APAC', 'Hana Kim',       'Analyst',      80000, 'Active'],
+  ['APAC', 'Ravi Menon',     'SRE',          84000, 'Trial'],
+  ['APAC', 'Lin Wei',        'Designer',     77000, 'Active'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: people.length,
+  rowHeight: 44,
+  spanProvider: rowSpanning(),
+  columns: [
+    {
+      field: 'region', header: 'Region', width: 150,
+      rowSpan: ({ value, rowIndex, getValue }) => {
+        let span = 1;
+        while (span < 3 && getValue(rowIndex + span) === value) span++;
+        return span;
+      },
+    },
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 170 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(people);
+`;
+
+export const variants = [
+  { id: 'region', label: 'Group a column', hint: 'The Region column merges each run of equal values into one tall cell. Widen a group by returning a larger span, or delete rowSpan to see the ungrouped column.', code: groupByRegion },
+  { id: 'nested', label: 'Nested groups', hint: 'Region and Team both span. The team resolver also stops when the region changes, so each team nests inside its region — a two-level grouping.', code: nested },
+  { id: 'capped', label: 'Cap the span', hint: 'The resolver stops at 3, so no merged cell is taller than three rows — one APAC run breaks into stacked chunks. Change the 3 to reshape how long a group can grow.', code: capped },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **Sort first.** A span only merges a *consecutive* run of equal values. Group
+  your data (sort by the spanned column) before rendering, or spans of 1 are all
+  you'll get.
+- **Window-local by design.** When a group starts above the visible area, the top
+  visible row becomes the anchor for the rest of the run. This is what keeps
+  spanning O(visible rows) at any scroll offset.
+- **Other columns are untouched.** Only columns with a `rowSpan` resolver merge;
+  every other column still renders one cell per row.
+
+## Next
+
+- [Row Data](/features/rows/row-data/) — supply the rows to group.
+- [Row Sorting](/features/rows/row-sorting/) — order the data so runs form.

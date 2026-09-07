@@ -1,0 +1,256 @@
+---
+title: Grid to Grid
+description: Drag rows from one grid and drop them into another — move them across, or copy them, with a live drop indicator and a drop callback.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+**Grid-to-grid** dragging lets a row leave one grid and land in another — the
+staple of transfer-list, kanban, and shortlist UIs. It builds on the same
+`RowDragManager` that powers [in-grid reordering](/features/rows/row-dragging/managed/):
+each grid has its own manager, and you connect them by handing one manager the
+**drop zone** of the other.
+
+```ts
+import { RowDragManager } from '@zengrid/enterprise/grid';
+
+const dragA = new RowDragManager();
+const dragB = new RowDragManager();
+dragA.attach(gridA);
+dragB.attach(gridB);
+
+// Rows dragged out of grid A can be dropped into grid B:
+dragA.addRowDropZone(dragB.getRowDropZone());
+```
+
+`getRowDropZone()` returns a [`RowDropZone`](/features/rows/row-dragging/external-dropzone/)
+bound to *its* grid — but unlike a plain external zone, this one knows how to
+**receive a row**: it shows an in-grid drop line where the row will land and, on
+release, inserts the dragged row's data at that position. Register it on the
+source grid's manager with `addRowDropZone`, and the two are connected.
+
+## Move vs. copy
+
+By default a grid-to-grid drop is a **move**: the row is inserted into the target
+grid and removed from the source. Pass `{ removeSource: false }` to **copy**
+instead — the source keeps its row and the target gets a duplicate:
+
+```ts
+// Move (default): the row leaves grid A.
+dragA.addRowDropZone(dragB.getRowDropZone());
+
+// Copy: grid A keeps the row, grid B gets a copy.
+dragA.addRowDropZone(dragB.getRowDropZone({ removeSource: false }));
+```
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `removeSource` | `true` | `true` removes the row from the source grid on drop (a move); `false` leaves it (a copy). |
+| `onDrop` | — | Called after the row is inserted into the receiving grid. |
+
+## One-way vs. two-way
+
+Wiring is directional. `dragA.addRowDropZone(dragB.getRowDropZone())` only enables
+**A → B**. For a two-way transfer, wire the mirror as well:
+
+```ts
+dragA.addRowDropZone(dragB.getRowDropZone()); // A → B
+dragB.addRowDropZone(dragA.getRowDropZone()); // B → A
+```
+
+Because each grid keeps its own `RowDragManager`, dragging a row *within* a grid
+still reorders that grid — grid-to-grid transfer and in-grid reordering coexist on
+the same managers.
+
+## Reacting to a drop
+
+Pass `onDrop` to react when a row arrives — persist the change, POST to a server,
+or update a model. It receives the inserted `rowData`, the display index it landed
+before (`insertBeforeRow`), and its new source index (`toSource`):
+
+```ts
+dragA.addRowDropZone(
+  dragB.getRowDropZone({
+    onDrop: ({ rowData, insertBeforeRow, toSource }) => {
+      console.log('received', rowData, 'at', insertBeforeRow, '→ source', toSource);
+    },
+  })
+);
+```
+
+The rows are dragged whole here (press anywhere on a row and drag). Add a
+[drag handle](/features/rows/row-dragging/managed/#whole-row-vs-a-drag-handle) or
+[customise the drag preview](/features/rows/row-dragging/customisation/) exactly
+as you would for in-grid dragging — the same options apply.
+
+## Try it live
+
+Both grids share the same columns, so a row moves across intact. Drag a row from
+one grid to the other; a line shows where it will land. Switch tabs to compare a
+two-way move, a copy-only palette, and a one-way flow with a drop callback.
+
+export const variants = [
+  {
+    id: 'move',
+    label: 'Move (two-way)',
+    hint: 'Drag a row from either grid onto the other — it moves across and the line shows where it lands. Drag within a grid to reorder it. A ghost follows the pointer across the gap.',
+    code: `// In scope: Zengrid, mount, mountGrid, rows, currency, RowDragManager
+const columns = [
+  { field: 'name',    header: 'Name',    width: 150 },
+  { field: 'role',    header: 'Role',    width: 150 },
+  { field: 'region',  header: 'Region',  width: 110 },
+  { field: 'revenue', header: 'Revenue', width: 120, renderer: currency },
+];
+
+// Two stacked grids inside the demo host.
+mount.style.display = 'flex';
+mount.style.flexDirection = 'column';
+mount.style.gap = '10px';
+const panel = (title) => {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column';
+  const h = document.createElement('div');
+  h.textContent = title;
+  h.style.cssText = 'font:600 12px/1.7 system-ui;color:var(--muted,#888)';
+  const host = document.createElement('div');
+  host.style.cssText = 'flex:1;min-height:0';
+  wrap.append(h, host);
+  mount.append(wrap);
+  return host;
+};
+
+const dragA = new RowDragManager({ ghost: true });
+const dragB = new RowDragManager({ ghost: true });
+
+const grid  = new Zengrid(panel('Team A'), { rowHeight: 40, columns });
+const gridB = mountGrid(panel('Team B'),   { rowHeight: 40, columns });
+
+grid.setData(rows.slice(0, 6));
+gridB.setData(rows.slice(6, 10));
+
+dragA.attach(grid);
+dragB.attach(gridB);
+
+// Connect both directions — a row dropped on the other grid moves across.
+dragA.addRowDropZone(dragB.getRowDropZone());
+dragB.addRowDropZone(dragA.getRowDropZone());
+`,
+  },
+  {
+    id: 'copy',
+    label: 'Copy (one-way)',
+    hint: 'removeSource: false copies instead of moving — drag a row from the Palette into the Canvas and the Palette keeps its row. Only Palette → Canvas is wired.',
+    code: `// A palette you copy from: rows dragged into the Canvas are duplicated,
+// and the Palette keeps every row (removeSource: false). One-way wiring.
+const columns = [
+  { field: 'name',    header: 'Name',    width: 150 },
+  { field: 'role',    header: 'Role',    width: 150 },
+  { field: 'region',  header: 'Region',  width: 110 },
+  { field: 'revenue', header: 'Revenue', width: 120, renderer: currency },
+];
+
+mount.style.display = 'flex';
+mount.style.flexDirection = 'column';
+mount.style.gap = '10px';
+const panel = (title) => {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column';
+  const h = document.createElement('div');
+  h.textContent = title;
+  h.style.cssText = 'font:600 12px/1.7 system-ui;color:var(--muted,#888)';
+  const host = document.createElement('div');
+  host.style.cssText = 'flex:1;min-height:0';
+  wrap.append(h, host);
+  mount.append(wrap);
+  return host;
+};
+
+const dragPalette = new RowDragManager({ ghost: true });
+const dragCanvas  = new RowDragManager();
+
+const grid   = new Zengrid(panel('Palette (drag to copy)'), { rowHeight: 40, columns });
+const canvas = mountGrid(panel('Canvas'),                    { rowHeight: 40, columns });
+
+grid.setData(rows.slice(0, 6));
+canvas.setData(rows.slice(10, 12));
+
+dragPalette.attach(grid);
+dragCanvas.attach(canvas);
+
+// One-way copy: Palette → Canvas, source untouched.
+dragPalette.addRowDropZone(dragCanvas.getRowDropZone({ removeSource: false }));
+`,
+  },
+  {
+    id: 'ondrop',
+    label: 'Move + onDrop',
+    hint: 'A one-way Inbox → Done flow. onDrop fires on each arrival — it updates the Done count live and logs the row (open the console).',
+    code: `// One-way move with an onDrop callback that reacts to each arrival.
+const columns = [
+  { field: 'name',    header: 'Name',    width: 150 },
+  { field: 'role',    header: 'Role',    width: 150 },
+  { field: 'region',  header: 'Region',  width: 110 },
+  { field: 'revenue', header: 'Revenue', width: 120, renderer: currency },
+];
+
+mount.style.display = 'flex';
+mount.style.flexDirection = 'column';
+mount.style.gap = '10px';
+const panel = (title) => {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column';
+  const h = document.createElement('div');
+  h.textContent = title;
+  h.style.cssText = 'font:600 12px/1.7 system-ui;color:var(--muted,#888)';
+  const host = document.createElement('div');
+  host.style.cssText = 'flex:1;min-height:0';
+  wrap.append(h, host);
+  mount.append(wrap);
+  return { host, setTitle: (t) => { h.textContent = t; } };
+};
+
+const dragInbox = new RowDragManager({ ghost: true });
+const dragDone  = new RowDragManager();
+
+const inboxPanel = panel('Inbox');
+const donePanel  = panel('Done (0)');
+
+const grid = new Zengrid(inboxPanel.host, { rowHeight: 40, columns });
+const done = mountGrid(donePanel.host,     { rowHeight: 40, columns });
+
+grid.setData(rows.slice(0, 6));
+done.setData([]);
+
+dragInbox.attach(grid);
+dragDone.attach(done);
+
+let count = 0;
+dragInbox.addRowDropZone(
+  dragDone.getRowDropZone({
+    onDrop: ({ rowData, insertBeforeRow, toSource }) => {
+      count += 1;
+      donePanel.setTitle('Done (' + count + ')');
+      console.log('completed', rowData[0], { insertBeforeRow, toSource });
+    },
+  })
+);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise view="demo" height={480} />
+
+## Next
+
+- [Managed Row Dragging](/features/rows/row-dragging/managed/) — in-grid reorder,
+  whole-row or handle.
+- [External DropZone](/features/rows/row-dragging/external-dropzone/) — drag rows
+  out to any element, not just another grid.
+- [Row Dragging Customisation](/features/rows/row-dragging/customisation/) — the
+  ghost, drop line, and origin-row styling that carry across grids.

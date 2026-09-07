@@ -1,0 +1,176 @@
+---
+title: Selection API
+description: The full grid.selection surface — read ranges and the active cell, select cells/rows/columns/ranges, toggle, test membership, and clear — driven live from control buttons.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Everything the mouse can do, code can do. `grid.selection` exposes the same model
+the interactive gestures drive, so you can read the current selection, set it from
+a button or workflow, test membership, and clear it — mirroring `grid.sort`,
+`grid.filter`, and `grid.editing`.
+
+```ts
+const grid = new Zengrid(mount, { columns, selectionType: 'range', enableMultiSelection: true });
+
+grid.selection.selectRange(0, 0, 4, 2);   // a rectangle
+grid.selection.getRanges();               // read it back
+grid.selection.isSelected(2, 1);          // true
+grid.selection.clear();
+```
+
+:::note[Source coordinates]
+Every method takes and returns **source** coordinates — a row's original data
+index and a column's `dataIndex` — so a selection survives sort, filter, and
+column reordering. Convert on-screen positions with `grid.rows.toSourceIndex` /
+`toDisplayedIndex`.
+:::
+
+## Reading the selection
+
+| Method | Returns |
+|--------|---------|
+| `getRanges()` | Every selected range `{ startRow, startCol, endRow, endCol }` — empty when nothing is selected. |
+| `getActive()` | The active (last-focused) cell `{ row, col }`, or `null`. |
+| `isSelected(row, col)` | Whether a specific cell is selected. |
+| `isRowSelected(row)` | Whether any cell in a row is selected. |
+| `isColumnSelected(col)` | Whether a whole column is selected (a `selectionType: 'column'` selection). |
+| `getSelectedRows()` | The source row indices covered by whole-row selections, ascending. |
+| `getSelectedColumns()` | The `dataIndex` values covered by whole-column selections, ascending. |
+| `hasSelection()` | Whether anything is selected at all. |
+
+## Changing the selection
+
+| Method | Effect |
+|--------|--------|
+| `selectCell(row, col, additive?)` | Select a single cell. `additive` extends the set (multi-selection only). |
+| `toggleCell(row, col)` | Flip one cell in/out of the selection. |
+| `selectRange(sr, sc, er, ec, additive?)` | Select a rectangle of cells. |
+| `selectRows(startRow, endRow, additive?)` | Select whole rows across every column. |
+| `selectColumns(startCol, endCol, additive?)` | Select whole columns across every row. |
+| `selectAll(rowCount?)` | Select every row. Defaults to the current source row count. |
+| `setActive(cell)` | Move the active cell without changing the ranges. |
+| `clear()` | Clear the selection and the active cell. |
+
+Every `additive` argument defaults to `false` (replace); pass `true` to add to the
+current selection, the code equivalent of ctrl/⌘-click. Additive only applies when
+`enableMultiSelection: true`.
+
+## The `selection:change` event
+
+Beyond the API, wire `onSelectionChange` (or listen for `selection:change`) to
+react whenever the selection moves — update a toolbar, a count, or a detail pane:
+
+```ts
+new Zengrid(mount, {
+  columns,
+  selectionType: 'row',
+  enableMultiSelection: true,
+  onSelectionChange: (ranges) => {
+    const rows = ranges.reduce((n, r) => n + (r.endRow - r.startRow + 1), 0);
+    toolbar.textContent = `${rows} selected`;
+  },
+});
+```
+
+## Try it live
+
+Every control below calls one method on the running grid. Watch the highlight and
+the alerts as you exercise the API.
+
+export const cols = `  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'read',
+    label: 'Read the model',
+    hint: 'Select something in the grid, then read it back: getRanges, getActive, isSelected, hasSelection. All return source coordinates.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+  enableMultiSelection: true,
+${cols}
+});
+
+grid.setData(rows);
+grid.selection.selectRange(1, 1, 3, 3);
+`,
+    controls: [
+      { label: 'getRanges()', action: "alert(JSON.stringify(grid.selection.getRanges(), null, 1))" },
+      { label: 'getActive()', action: "alert(JSON.stringify(grid.selection.getActive()))" },
+      { label: 'isSelected(2, 2)', action: 'alert(grid.selection.isSelected(2, 2))' },
+      { label: 'hasSelection()', action: 'alert(grid.selection.hasSelection())' },
+    ],
+  },
+  {
+    id: 'write',
+    label: 'Drive the selection',
+    hint: 'selectCell / selectRange / selectRows / selectColumns / selectAll set the selection from code. Pass additive:true to add instead of replace.',
+    code: `// Every control below calls one write method on this grid.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+  enableMultiSelection: true,
+${cols}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'selectCell(2, 3)', action: 'grid.selection.selectCell(2, 3)' },
+      { label: 'selectRange(0,0,4,2)', action: 'grid.selection.selectRange(0, 0, 4, 2)' },
+      { label: 'selectRows(6, 9)', action: 'grid.selection.selectRows(6, 9)' },
+      { label: 'selectColumns(3, 4)', action: 'grid.selection.selectColumns(3, 4)' },
+      { label: 'selectAll()', action: 'grid.selection.selectAll()' },
+      { label: 'clear()', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'toggle',
+    label: 'Toggle & test',
+    hint: 'toggleCell flips a single cell; additive selectRange builds several blocks; isRowSelected/isSelected test membership. Great for checkbox-style behaviour.',
+    code: `// toggleCell flips one cell; additive selects build multi-range sets.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+  enableMultiSelection: true,
+${cols}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'toggleCell(1, 1)', action: 'grid.selection.toggleCell(1, 1)' },
+      { label: 'Add block 5,3→7,5', action: 'grid.selection.selectRange(5, 3, 7, 5, true)' },
+      { label: 'isRowSelected(5)', action: 'alert(grid.selection.isRowSelected(5))' },
+      { label: 'Count ranges', action: "alert(grid.selection.getRanges().length + ' range(s)')" },
+      { label: 'clear()', action: 'grid.selection.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where to go next
+
+- [Selection Overview](/features/selection/overview/) — the concepts behind the API.
+- [Cell Selection](/features/selection/cell-selection/) — cells and ranges.
+- [Accessing Rows](/features/rows/accessing-rows/) — turn selected indices into
+  record data.

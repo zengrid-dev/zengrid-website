@@ -1,0 +1,197 @@
+---
+title: Row Height
+description: Size rows uniformly, per row, or let them measure themselves — a single number, a per-row array, and content-aware auto height, all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Every grid needs a row height. ZenGrid gives you three ways to set it, from a
+single fixed value to rows that measure their own content — all through the one
+`rowHeight` option plus `rowHeightMode`.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount,
+  colCount,
+  rowHeight: 40,          // a number for uniform rows…
+  // rowHeight: heights,  // …or a number[] for per-row heights
+  columns,
+});
+```
+
+Because the grid is virtualized, height drives layout math, not just looks: the
+provider ZenGrid picks from your `rowHeight` value computes scroll offsets and the
+total canvas height in constant or logarithmic time, so 100k rows stay smooth
+whether every row is the same height or all different.
+
+## The three ways to size rows
+
+| Setting | Rows are… |
+|---------|-----------|
+| `rowHeight: 40` | **Uniform** — every row is 40px (fastest, the default). |
+| `rowHeight: [72, 36, 36, …]` | **Per-row** — one entry per row, any pattern you like. |
+| `rowHeightMode: 'auto'` \| `'content-aware'` | **Measured** — rows grow to fit their content. |
+
+The mode defaults to `'fixed'`, which honors your `rowHeight` number or array
+verbatim and never measures. Switch it to a measured mode when content length
+varies row to row.
+
+## Measured rows (auto height)
+
+In `'auto'` and `'content-aware'` modes the grid renders a row, measures it, and
+re-lays it out at the height its content actually needs. Two things opt a column
+into driving that height:
+
+- **`autoHeight: true`** on the column — only these columns are measured.
+- **`overflow: { mode: 'wrap' }`** on the column (or a global `cellOverflow`) so
+  the text wraps to multiple lines instead of being clipped to one.
+
+The difference between the two modes is what gets measured:
+
+- **`'auto'`** measures every rendered row.
+- **`'content-aware'`** only measures rows that have an `autoHeight` column, so on
+  a wide grid you don't pay to measure columns that never change height.
+
+Clamp and tune the measured range with `rowHeightConfig`:
+
+```ts
+rowHeightConfig: {
+  minHeight: 40,     // never shorter than this
+  maxHeight: 160,    // never taller (content beyond it clips)
+  defaultHeight: 40, // estimate used before a row is measured
+}
+```
+
+## Try it live
+
+Each tab is a different sizing strategy. Edit the numbers, the per-row rule, or
+the note text and the grid re-lays out instantly.
+
+export const variants = [
+  {
+    id: 'uniform',
+    label: 'Uniform',
+    hint: 'rowHeight is one number — every row is that tall. Change 40 to 64 and re-run.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// rowHeight is a single number — every row is exactly that tall.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'per-row',
+    label: 'Per-row array',
+    hint: 'Pass a number[] and each row gets its own height — one entry per row. Edit the every-third-row rule.',
+    code: `// Pass an array instead of a number and each row gets its own
+// height — one entry per row. Here every third row is taller.
+const data = rows.slice(0, 18);
+const rowHeight = data.map((_, i) => (i % 3 === 0 ? 76 : 38));
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight,                         // number[] — one height per row
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 140, renderer: chips },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'auto',
+    label: 'Auto-fit content',
+    hint: "rowHeightMode:'auto' measures every row and grows it to fit. The Notes column wraps (autoHeight + overflow:'wrap'). Edit a note to make its row taller; rowHeightConfig bounds the range.",
+    code: `// 'auto' measures each row and grows it to fit its content. The
+// Notes column wraps (autoHeight + overflow:'wrap'), so a long note
+// makes its row taller. rowHeightConfig clamps the range.
+const notes = [
+  'Owns the ingestion pipeline; migrating the nightly batch jobs to streaming and clearing three years of accumulated schema drift.',
+  'On call this week.',
+  'Leads the design-system rollout across web and mobile, coordinating five product squads and a weekly office-hours session.',
+  'Reviewing the Q3 capacity plan.',
+  'Shipped the new billing export; now chasing the three edge cases finance flagged in the reconciliation report.',
+  'Out Friday.',
+];
+const data = notes.map((n, i) => [rows[i][0], rows[i][1], n]);
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  rowHeightMode: 'auto',
+  rowHeightConfig: { minHeight: 40, maxHeight: 160 },
+  columns: [
+    { field: 'name',  header: 'Name',  width: 200 },
+    { field: 'role',  header: 'Role',  width: 190 },
+    { field: 'notes', header: 'Notes', width: 380, autoHeight: true, overflow: { mode: 'wrap' } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'content-aware',
+    label: 'Content-aware',
+    hint: "content-aware only measures columns you mark autoHeight. Bio drives the height; the equally-long Summary column stays clipped — cheaper on wide grids.",
+    code: `// 'content-aware' only measures the columns you opt in with
+// autoHeight. Bio drives each row's height; the equally-long Summary
+// column is left clipped, so the row fits Bio alone.
+const bio = [
+  'Backend engineer focused on the streaming ingestion path and the schema-registry migration that unblocks the analytics rebuild.',
+  'Designer.',
+  'Product lead for billing, running the export revamp and the finance reconciliation cleanup across three teams.',
+  'Analyst.',
+  'Site-reliability engineer owning the on-call rotation, the incident review process, and the latency budget for the read path.',
+  'Researcher.',
+];
+const clipped =
+  'Same length of text, but this column is clipped because it is not marked autoHeight, so it never changes the row height.';
+const data = bio.map((b, i) => [rows[i][0], b, clipped]);
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  rowHeightMode: 'content-aware',
+  rowHeightConfig: { minHeight: 40, maxHeight: 160 },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 180 },
+    { field: 'bio',     header: 'Bio',     width: 340, autoHeight: true, overflow: { mode: 'wrap' } },
+    { field: 'summary', header: 'Summary', width: 260 },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} height={440} />
+
+## Next
+
+- [Styling Rows](/features/rows/styling-rows/) — per-row classes and colors.
+- [Row Data](/features/rows/row-data/) — the rows being sized.
+- [Custom Cell Components](/features/columns/custom-components/) — renderers whose
+  content can drive auto height.

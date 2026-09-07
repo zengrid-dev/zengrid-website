@@ -1,0 +1,46 @@
+---
+import { checkout, licenseDelivery } from "../../config/checkout";
+import { links } from "../../config/links";
+---
+
+<section class="max-w-[840px] mb-8" aria-labelledby="purchase-details">
+  <h2 id="purchase-details" class="font-display text-2xl font-bold tracking-tight mb-5">Payment and license delivery</h2>
+  <ol class="grid grid-cols-1 sm:grid-cols-3 gap-5 list-none p-0 m-0">
+    <li class="rounded-[18px] border border-border bg-surface-2 p-5">
+      <h3 class="font-semibold text-base m-0 mb-2">1. Review your order</h3>
+      <p class="text-sm leading-relaxed text-muted m-0">Paid plans renew every year until cancelled. Prices are in USD, before applicable tax. Polar shows your total and renewal terms before you pay.</p>
+    </li>
+    <li class="rounded-[18px] border border-border bg-surface-2 p-5">
+      <h3 class="font-semibold text-base m-0 mb-2">2. Pay securely on Polar</h3>
+      <p class="text-sm leading-relaxed text-muted m-0">Enter your billing and payment details on Polar. Keep your confirmation email for your receipt and access to your billing portal.</p>
+    </li>
+    <li class="rounded-[18px] border border-border bg-surface-2 p-5">
+      <h3 class="font-semibold text-base m-0 mb-2">3. Receive your license</h3>
+      <p class="text-sm leading-relaxed text-muted m-0">{checkout.delivery === "manual"
+        ? "We check your paid order, then email your signed license key and setup instructions. License delivery is handled manually."
+        : "Contact us to confirm availability and delivery details before purchasing a license."}</p>
+    </li>
+  </ol>
+</section>
+
+<section class="max-w-[840px] mb-10" aria-labelledby="payment-help">
+  <h2 id="payment-help" class="font-display text-2xl font-bold tracking-tight mb-4">Questions about your purchase?</h2>
+  <div class="divide-y divide-border border-y border-border">
+    <details class="py-4">
+      <summary class="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-coral">Do I need a ZenGrid account?</summary>
+      <p class="text-sm text-muted leading-relaxed mb-0">No. Use your email at checkout. You can manage invoices, payment methods, and cancellations through <a href={links.billing} class="underline">your Polar billing portal</a>.</p>
+    </details>
+    <details class="py-4">
+      <summary class="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-coral">Where is my license key?</summary>
+      <p class="text-sm text-muted leading-relaxed mb-0">{licenseDelivery}</p>
+    </details>
+    <details class="py-4">
+      <summary class="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-coral">My payment failed or I closed checkout. What now?</summary>
+      <p class="text-sm text-muted leading-relaxed mb-0">Check your email and <a href={links.billing} class="underline">billing portal</a> for an existing order before trying again. If a charge is pending or its status is unclear, <a href={links.contact} class="underline">contact us</a> before making another payment.</p>
+    </details>
+    <details class="py-4">
+      <summary class="cursor-pointer font-semibold focus-visible:outline-2 focus-visible:outline-coral">How do I cancel or request a refund?</summary>
+      <p class="text-sm text-muted leading-relaxed mb-0">Cancel future renewals in your billing portal. For a refund, email us from the address on your order. See the <a href={links.refund} class="underline">14-day refund policy</a>.</p>
+    </details>
+  </div>
+</section>

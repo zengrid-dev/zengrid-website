@@ -1,0 +1,25 @@
+---
+title: Feature Matrix
+description: Which features ship in which version and tier.
+slug: 1.3/feature-matrix
+---
+
+import FeatureMatrix from '../../../components/docs/FeatureMatrix.astro';
+
+Every version-controlled feature, mapped against the versions it's available in
+and the tier that ships it. Use the filter to narrow to a single version.
+
+<FeatureMatrix />
+
+## Legend
+
+* **Since** — the version a feature was first introduced. It's available in that
+  version and every later one, unless deprecated.
+* **Community** — included in the open-source, MIT-licensed core.
+* **Enterprise** — included in paid tiers.
+
+:::note
+Reading an older version of the docs? The version dropdown scopes the site — and
+its search — to that version. If you search for a feature that only exists in a
+newer version, a hint points you to the version that introduced it.
+:::

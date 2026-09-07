@@ -1,0 +1,76 @@
+---
+title: Custom Cell Components
+description: Render your own content inside cells with a custom renderer.
+tier: community
+sidebar:
+  order: 5
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import GridDemo from '../../../../components/docs/GridDemo.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+A column's `renderer` controls how each cell draws its content. It can be the
+name of a registered renderer (like `'text'` or `'checkbox'`) or a `CellRenderer`
+instance you write yourself. Renderers are DOM-based and pooled, so they stay
+fast during virtualized scrolling.
+
+## The `CellRenderer` interface
+
+```ts
+interface CellRenderer {
+  /** First render into a pooled element. */
+  render(element: HTMLElement, params: RenderParams): void;
+  /** Update an existing element when the value changes (hot path — keep it cheap). */
+  update(element: HTMLElement, params: RenderParams): void;
+  /** Cleanup before the element returns to the pool. */
+  destroy?(element: HTMLElement): void;
+}
+```
+
+## Using a renderer instance
+
+Pass a renderer directly on the column definition:
+
+```ts
+const statusPill: CellRenderer = {
+  render(el, params) {
+    el.className = 'pill';
+    this.update(el, params);
+  },
+  update(el, params) {
+    el.textContent = String(params.value);
+    el.dataset.tone = params.value === 'Active' ? 'ok' : 'muted';
+  },
+};
+
+columns: [
+  { field: 'status', header: 'Status', width: 140, renderer: statusPill },
+]
+```
+
+## Registering a named renderer
+
+Register once, then reference it by name from any column. This is handy when the
+same renderer is reused across columns or configured from data.
+
+```ts
+grid.registerRenderer('statusPill', statusPill);
+
+grid.updateOptions({
+  columns: [
+    { field: 'status', header: 'Status', width: 140, renderer: 'statusPill' },
+  ],
+});
+```
+
+For custom **header** rendering, register with
+`grid.registerHeaderRenderer(name, renderer)` and set the column's `header.type`
+to `'custom'` — see [Headers](/features/columns/column-headers/).
+
+## Live demo
+
+<GridDemo label="Custom cell components" />

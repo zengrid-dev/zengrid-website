@@ -1,0 +1,102 @@
+---
+import { pricing, type Accent, type Plan } from "../config/site";
+
+const inkClass: Record<Accent, string> = {
+  coral: "text-ink-coral",
+  teal: "text-ink-teal",
+  violet: "text-ink-violet",
+  amber: "text-ink-amber",
+};
+
+const hoverBorder: Record<Accent, string> = {
+  coral: "hover:border-coral",
+  teal: "hover:border-teal",
+  violet: "hover:border-violet",
+  amber: "hover:border-coral",
+};
+
+const ctaClass = (plan: Plan) =>
+  plan.cta.variant === "primary"
+    ? "bg-coral text-white shadow-[0_4px_0_var(--coral-sh)]"
+    : "bg-surface-2 border border-border text-ink";
+
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+---
+
+<section class="pb-20" id="pricing" aria-labelledby="pricing-heading">
+  <div class="text-center mb-9">
+    <h2
+      id="pricing-heading"
+      class="font-display text-[38px] font-semibold tracking-[-0.025em] m-0 mb-2.5"
+    >
+      {pricing.title}
+    </h2>
+    <p class="text-base text-muted m-0">{pricing.subtitle}</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+    {
+      pricing.plans.map((plan) => (
+        <div
+          class:list={[
+            "rounded-[20px] px-6 py-[26px] flex flex-col relative transition-colors",
+            plan.featured
+              ? "bg-ink text-bg border border-ink"
+              : ["bg-surface border border-border", hoverBorder[plan.accent]],
+          ]}
+        >
+          {plan.badge && (
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-coral text-white font-mono text-[10.5px] font-bold px-3 py-1 rounded-full whitespace-nowrap">
+              {plan.badge}
+            </div>
+          )}
+          <div
+            class:list={[
+              "font-mono text-xs font-bold uppercase tracking-[0.08em] mb-3.5",
+              plan.featured ? "text-coral" : inkClass[plan.accent],
+            ]}
+          >
+            {plan.name}
+          </div>
+          <div class="font-display text-[36px] font-semibold tracking-[-0.02em]">
+            {plan.price}
+          </div>
+          <div
+            class:list={[
+              "text-[13px] mb-[18px]",
+              plan.featured ? "opacity-60" : "text-faint",
+            ]}
+          >
+            {plan.note}
+          </div>
+          <div
+            class:list={[
+              "flex flex-col gap-[9px] text-sm flex-1",
+              plan.featured ? "opacity-80" : "text-muted",
+            ]}
+          >
+            {plan.features.map((f) => (
+              <span>✓ {f}</span>
+            ))}
+          </div>
+          <a
+            href={plan.cta.href}
+            target={isExternal(plan.cta.href) ? "_blank" : undefined}
+            rel={isExternal(plan.cta.href) ? "noopener noreferrer" : undefined}
+            aria-label={`${plan.cta.label} — ${plan.name} plan`}
+            class:list={[
+              "mt-5 text-center font-semibold text-sm px-4 py-[11px] rounded-[11px] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral",
+              ctaClass(plan),
+            ]}
+          >
+            {plan.cta.label}
+          </a>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="text-center font-mono text-xs text-faint mt-[18px]">
+    {pricing.footnote}
+  </div>
+</section>

@@ -1,0 +1,238 @@
+---
+title: Full-Row Cells
+description: Draw chosen rows as a single cell spanning every column — group headers, detail panels, or embedded content.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+A **full-width row** is drawn as one cell that spans the entire content width —
+every column — instead of the usual per-column cells. It's how you drop a group
+header, a detail panel, a call-to-action, or any embedded content into the flow of
+the grid without inventing a fake column. The rest of the rows render normally and
+scroll around it.
+
+## How it works
+
+Full-width rows ship in `@zengrid/enterprise`. You hand the grid a provider through
+the `fullWidthProvider` option via `fullWidthRows()`:
+
+```ts
+import { fullWidthRows } from '@zengrid/enterprise/grid';
+
+const grid = new Zengrid(el, {
+  fullWidthProvider: fullWidthRows({
+    // Decide which rows go full-width. Return true → the row spans all columns.
+    isFullWidth: ({ data }) => data[0] === '__group__',
+    // Produce the cell's content — an HTML string or an element.
+    render: ({ data }) => `<strong>${data[1]}</strong>`,
+    // Optional class/style on the full-width cell (static or a per-row callback).
+    cellClass: 'group-banner',
+    cellStyle: { backgroundColor: '#1f2937', color: '#fff' },
+  }),
+  columns: [/* … */],
+});
+```
+
+For each visible row the grid asks `isFullWidth`. When it returns `true` the row's
+per-column cells are skipped and a single cell is drawn from the row's left edge to
+the right edge of the last column, painted by `render` plus any `cellClass` /
+`cellStyle`. The callbacks receive `{ row, data }` — the display index and that
+row's record — so what a row shows can be driven entirely by its own data.
+
+### Callbacks and customization
+
+- **`isFullWidth({ row, data })`** — the only required option. Cheap and pure; it's
+  consulted per visible row each render pass.
+- **`render({ row, data })`** — return a **string** (set as HTML) or an
+  **`HTMLElement`** (appended as-is, so you can wire up your own DOM). Omit it and
+  the cell falls back to the row's first value as text.
+- **`cellClass`** — a class string/array, or a `({ row, data }) => …` callback for
+  data-driven classes.
+- **`cellStyle`** — inline styles (camelCase or kebab-case keys; custom properties
+  pass through), static or a callback.
+
+### Row height
+
+A full-width row uses its **row height** like any other row. For a taller detail
+panel, give the grid a `rowHeight` **array** and make the detail rows taller — the
+full-width cell grows to fill it.
+
+## Try it live
+
+Each tab is a different use of full-width rows. Edit the snippet — change which
+rows go full-width, or what they render — and the grid re-renders.
+
+export const groups = `// In scope: Zengrid, mount, currency, fullWidthRows
+// Group header rows carry a sentinel in slot 0 so isFullWidth can spot them;
+// their other slots hold the label + member count the banner renders.
+const departments = [
+  { name: 'Engineering', people: [
+    ['Mei Chen', 'Staff SWE', 148000], ['Kenji Tanaka', 'Platform Eng', 132000],
+    ['Aria Vaskov', 'SRE', 121000], ['Ravi Menon', 'Staff SWE', 139000],
+  ]},
+  { name: 'Design', people: [
+    ['Sofia Rossi', 'Product Designer', 118000], ['Otto Bergman', 'Design Lead', 129000],
+    ['Hana Kim', 'UX Researcher', 112000],
+  ]},
+  { name: 'Go-to-market', people: [
+    ['Idris Okafor', 'AE', 104000], ['Lucia Moreno', 'Sales Eng', 116000],
+    ['Noor Haddad', 'CS Lead', 122000], ['Lin Wei', 'AE', 99000],
+  ]},
+];
+
+// Flatten into one list: a group header row, then that group's people.
+const data = [];
+for (const dept of departments) {
+  data.push(['__group__', dept.name, dept.people.length]); // full-width header
+  for (const p of dept.people) data.push(p);
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  fullWidthProvider: fullWidthRows({
+    isFullWidth: ({ data }) => data[0] === '__group__',
+    render: ({ data }) =>
+      \`<span>▾ &nbsp;\${data[1]}</span>\` +
+      \`<span style="margin-left:auto;opacity:.65;font-weight:400">\${data[2]} people</span>\`,
+    cellClass: 'group-banner',
+    cellStyle: { backgroundColor: '#111827', color: '#fff', fontWeight: '600' },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency },
+  ],
+});
+
+grid.setData(data);
+`;
+
+export const detail = `// render() can return a real HTMLElement, not just a string — so a full-width
+// row can embed arbitrary DOM. Here every third row is a taller "detail panel"
+// under the row above it, built as a DOM node with an inline bar chart.
+const names = ['Mei Chen','Kenji Tanaka','Aria Vaskov','Ravi Menon','Sofia Rossi',
+  'Otto Bergman','Hana Kim','Idris Okafor','Lucia Moreno','Noor Haddad','Lin Wei'];
+const roles = ['Staff SWE','Platform Eng','SRE','Product Designer','Design Lead','AE'];
+
+// Normal rows are [name, role, revenue]; a detail row carries a 'detail' marker
+// in slot 0 so isFullWidth can spot it (it's never shown as a column).
+const data = [];
+names.forEach((name, i) => {
+  const role = roles[i % roles.length];
+  const revenue = 90000 + ((i * 7700) % 60000);
+  data.push([name, role, revenue]);
+  if (i % 3 === 2) data.push(['detail', name, role, revenue]);
+});
+
+// Detail rows are taller: give the grid a per-row height array.
+const rowHeight = data.map((r) => (r[0] === 'detail' ? 72 : 40));
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight,
+  fullWidthProvider: fullWidthRows({
+    isFullWidth: ({ data }) => data[0] === 'detail',
+    render: ({ data }) => {
+      const [, name, role, revenue] = data;
+      const pct = Math.min(100, Math.round((revenue / 150000) * 100));
+      const el = document.createElement('div');
+      el.style.cssText = 'display:flex;flex-direction:column;gap:6px;width:100%';
+      el.innerHTML =
+        \`<div style="font-size:12px;opacity:.7">Quota attainment — \${name} · \${role}</div>\` +
+        \`<div style="height:8px;border-radius:4px;background:rgba(125,125,125,.25)">\` +
+          \`<div style="height:100%;width:\${pct}%;border-radius:4px;background:#2d9c8f"></div>\` +
+        \`</div>\`;
+      return el;
+    },
+    cellStyle: { backgroundColor: 'rgba(45,156,143,.08)' },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, cellStyle: { fontWeight: '600' } },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency },
+  ],
+});
+
+grid.setData(data);
+`;
+
+export const styled = `// cellClass and cellStyle can be per-row callbacks, so one banner style can
+// vary by the row's own data. Here each section header is tinted by category.
+const palette = {
+  Priority: { bg: '#7f1d1d', accent: '#fca5a5' },
+  Standard: { bg: '#1e3a8a', accent: '#93c5fd' },
+  Archived: { bg: '#374151', accent: '#d1d5db' },
+};
+const sections = [
+  { cat: 'Priority', rows: [['Aria Vaskov','Renewal',148000], ['Ravi Menon','Expansion',132000]] },
+  { cat: 'Standard', rows: [['Mei Chen','New',88000], ['Kenji Tanaka','Renewal',96000], ['Hana Kim','New',74000]] },
+  { cat: 'Archived', rows: [['Otto Bergman','Churned',0], ['Lin Wei','Churned',0]] },
+];
+
+const data = [];
+for (const s of sections) {
+  data.push(['__section__', s.cat, s.rows.length]);
+  for (const r of s.rows) data.push(r);
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 38,
+  fullWidthProvider: fullWidthRows({
+    isFullWidth: ({ data }) => data[0] === '__section__',
+    render: ({ data }) => \`\${data[1]} &nbsp;·&nbsp; \${data[2]} accounts\`,
+    // Per-row style: colour the banner by the section's category.
+    cellStyle: ({ data }) => {
+      const c = palette[data[1]] || palette.Standard;
+      return { backgroundColor: c.bg, color: '#fff', fontWeight: '600',
+               boxShadow: \`inset 3px 0 0 0 \${c.accent}\` };
+    },
+    cellClass: ({ data }) => \`section-\${String(data[1]).toLowerCase()}\`,
+  }),
+  columns: [
+    { field: 'name',   header: 'Account', width: 220 },
+    { field: 'stage',  header: 'Stage',   width: 200 },
+    { field: 'value',  header: 'Value',   width: 160, renderer: currency },
+  ],
+});
+
+grid.setData(data);
+`;
+
+export const variants = [
+  { id: 'groups', label: 'Group headers', hint: 'isFullWidth spots the group-header rows (sentinel in slot 0) and render() draws the banner. Change a department name or add a person and re-run.', code: groups },
+  { id: 'detail', label: 'Detail panels', hint: 'render() returns a real HTMLElement — a taller detail row with an inline bar. The row is taller because the rowHeight array makes detail rows 72px. Edit the bar or the % math.', code: detail },
+  { id: 'styled', label: 'Data-driven style', hint: 'cellStyle/cellClass are callbacks, so each section banner is tinted by its category via the palette. Add a category or change a colour and re-run.', code: styled },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **Full-width rows are decided per render pass.** `isFullWidth` runs for each
+  visible row; make it cheap. Because it reads the row's data, which rows are
+  full-width can change live — swap the data and the grid re-evaluates.
+- **The cell spans the content width.** It runs from the first column's left edge
+  to the last column's right edge and scrolls horizontally with the body, so keep
+  the total column width within the viewport if you want the content always in
+  view (as these demos do).
+- **`render` owns the content.** Return a string (set as HTML) or an element
+  (appended). The provider reuses one renderer instance across all full-width
+  rows, so there's no per-row churn.
+- **Height comes from the row.** Use a `rowHeight` array to make specific
+  full-width rows taller (see the detail-panel tab).
+
+## Next
+
+- [Row Data](/features/rows/row-data/) — supply the rows, including the ones you
+  mark full-width.
+- [Styling Rows](/features/rows/styling-rows/) — style whole *normal* rows across
+  every cell.
+- [Row Pinning](/features/rows/row-pinning/) — keep summary rows fixed in a band.

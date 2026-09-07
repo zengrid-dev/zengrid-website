@@ -1,0 +1,146 @@
+---
+title: Row Selection
+description: Select whole rows by clicking — single or multiple, with a select-all header checkbox and an onSelectionChange callback — all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Row selection highlights whole rows rather than individual cells — the right model
+for a list you act on record-by-record (bulk delete, export the checked rows, open
+a detail panel). Turn it on with `selectionType: 'row'`:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns,
+  selectionType: 'row',
+  enableMultiSelection: true,   // omit for single-row selection
+  onSelectionChange: (ranges) => {
+    // ranges are row spans in source coordinates
+  },
+});
+```
+
+Clicking a row selects it (and clicking it again clears it). With
+`enableMultiSelection: true`, **ctrl/⌘-click** adds a row and **shift-click** takes
+the contiguous run from the anchor. Every change fires `onSelectionChange` with the
+selected row spans.
+
+## The select-all header checkbox
+
+Give a column a checkbox header and the grid renders a header checkbox that
+selects or clears every row — the same `select-all` the API's `selectAll()` runs:
+
+```ts
+columns: [
+  { field: 'name', header: { text: '', type: 'checkbox' }, width: 44 },
+  // …
+]
+```
+
+:::note[Row spans, not row lists]
+`grid.selection.getRanges()` returns **ranges** — each with a `startRow`/`endRow`.
+A shift-selected run of rows 3–7 is one range, not five. Expand them yourself, or
+use `grid.selection.isRowSelected(row)` to test a single row.
+:::
+
+## Try it live
+
+export const columns = `  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'single',
+    label: 'Single row',
+    hint: 'No enableMultiSelection — exactly one row at a time. Click a row to select it, click it again to clear. onSelectionChange logs each change to the console.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// selectionType 'row' with no multi flag = one row at a time.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'row',
+  onSelectionChange: (ranges) => console.log('selection:', ranges),
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Selected row', action: "alert('selected row: ' + (grid.selection.getRanges()[0]?.startRow ?? 'none'))" },
+      { label: 'Is row 3 selected?', action: "alert(grid.selection.isRowSelected(3))" },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'multi',
+    label: 'Multiple rows',
+    hint: 'enableMultiSelection: true — ctrl/⌘-click adds a row, shift-click takes the run from the anchor. getRanges() returns each selected span.',
+    code: `// enableMultiSelection lets several rows be selected at once:
+// ctrl/⌘-click to add, shift-click to sweep a contiguous run.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'row',
+  enableMultiSelection: true,
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Selected spans', action: "alert('row spans:\\n' + JSON.stringify(grid.selection.getRanges().map(r => [r.startRow, r.endRow])))" },
+      { label: 'Select rows 1–4', action: 'grid.selection.selectRows(1, 4)' },
+      { label: 'Add rows 7–8', action: 'grid.selection.selectRows(7, 8, true)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'checkbox',
+    label: 'Select-all checkbox',
+    hint: 'A leading column with a checkbox header selects or clears every row. The same as grid.selection.selectAll(). Try the header checkbox, then the controls.',
+    code: `// A checkbox header on the first column selects/clears all rows.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'row',
+  enableMultiSelection: true,
+  columns: [
+    { field: 'sel',     header: { text: '', type: 'checkbox' }, width: 44 },
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.map(r => ['', r[0], r[1], r[2], r[5]]));
+`,
+    controls: [
+      { label: 'Select all', action: 'grid.selection.selectAll()' },
+      { label: 'How many selected?', action: "alert(grid.selection.getRanges().reduce((n, r) => n + (r.endRow - r.startRow + 1), 0) + ' rows')" },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where to go next
+
+- [Single Row Selection](/features/selection/single-row/) — restrict to one row at
+  a time.
+- [Multi-Row Selection](/features/selection/multi-row/) — ctrl/shift patterns in
+  depth.
+- [Selection API](/features/selection/row-api/) — read and drive selection from
+  code.

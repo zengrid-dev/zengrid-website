@@ -1,0 +1,230 @@
+---
+title: Full Row
+description: Edit a whole row at once — every editable cell in the row opens together, and Save/Cancel commit or discard them as a unit. Row-level validation, an onRowValueChanged hook, and the programmatic startRowEdit API. Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+By default the grid edits **one cell at a time**. Switch it to **full-row
+editing** and starting an edit on any cell opens editors across **every editable
+cell in that row at once** — you fill in the whole record, then commit or discard
+all of it together.
+
+Turn it on with one core option, then add the premium
+[`fullRowEditing()`](#) helper for the polished layer — a floating **Save /
+Cancel** action bar, a row-level validation veto, and an `onRowValueChanged`
+callback:
+
+```ts
+import { fullRowEditing } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns /* editable cells */,
+  editing: { editType: 'fullRow' }, // ← every editable cell in the row opens together
+});
+
+const fullRow = fullRowEditing(grid, {
+  // block the whole commit unless the row is valid
+  validate: ({ values }) => (Number(values[3]) < 1 ? 'Seats must be at least 1' : true),
+  onRowValueChanged: ({ row, changes }) => console.log('saved row', row, changes),
+});
+```
+
+Double-click any editable cell to open the row; **Enter** commits the whole row,
+**Escape** cancels it, and **Tab** moves between the row's editors. A single
+invalid cell (or a vetoing `validate`) keeps the row open so nothing is written
+half-committed.
+
+### How committing works
+
+Every path commits the row **as a unit**:
+
+- **Enter** or the **Save** button → validate each editor, then run the row-level
+  `validate` guard; if all pass, write every changed cell in one go and fire
+  `edit:rowCommit` / `onRowValueChanged`.
+- **Escape** or **Cancel** → discard every editor, write nothing
+  (`edit:rowCancel`).
+- Clicking outside the row commits it (like leaving a spreadsheet row); set
+  `editing: { stopEditingWhenCellsLoseFocus: false }` to require an explicit
+  Save/Cancel instead.
+
+Values still flow through each column's `valueParser` / `valueSetter`, and each
+changed cell is recorded for **undo/redo** — full-row editing changes *when* the
+write happens, not *how*.
+
+### Helper options
+
+`fullRowEditing(grid, options?)`:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `actionBar` | `boolean` | Show the floating Save/Cancel bar on the editing row. Default `true`. |
+| `saveLabel` / `cancelLabel` | `string` | Button labels (default `Save` / `Cancel`). |
+| `validate` | `({ row, values, rowData }) => true \| string` | Row-level guard run before **every** commit. `values` is each open editor's value keyed by its (view) column index. Return a string to block the commit and show it on the row. |
+| `onRowValueChanged` | `({ row, changes }) => void` | Fires after a row commits, with the cells that changed (`{ col, field, oldValue, newValue }`). |
+
+The returned handle exposes `save()`, `cancel()`, and `destroy()`.
+
+### Without the helper (community)
+
+`editType: 'fullRow'` itself is **core** — the row of editors, `edit:rowStart` /
+`edit:rowCommit` / `edit:rowCancel` events, and the programmatic
+[`grid.editing`](#) surface (`startRowEdit(row)`, `stopRowEdit(cancel?)`,
+`isEditingRow()`, `getEditingRow()`, `setRowValidator(fn)`) all work on their own.
+The enterprise `fullRowEditing()` helper is the batteries-included layer on top:
+the action bar, `validate`, and `onRowValueChanged` in one call.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'basics',
+    label: 'Edit the whole row',
+    hint: "Double-click any cell in a row — every editable cell opens at once (note the accent outline). Tab moves between them, Enter or Save commits the whole row, Escape or Cancel discards it. Change several cells and Save once.",
+    code: `// In scope (enterprise): fullRowEditing
+// Row shape: [company, plan, status, seats]
+const data = [
+  ['Acme Corp', 'Enterprise', 'active', 120],
+  ['Globex',    'Growth',     'active', 48],
+  ['Initech',   'Starter',    'trial',  9],
+  ['Umbrella',  'Enterprise', 'active', 210],
+  ['Soylent',   'Growth',     'churned', 0],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  // One switch turns single-cell editing into full-row editing.
+  editing: { editType: 'fullRow' },
+  columns: [
+    { field: 'company', header: 'Company', width: 190, editable: true, editor: 'text' },
+    { field: 'plan',    header: 'Plan',    width: 150, editable: true, editor: 'select',
+      editorOptions: { options: ['Starter', 'Growth', 'Enterprise'] } },
+    { field: 'status',  header: 'Status',  width: 140, editable: true, editor: 'select',
+      editorOptions: { options: ['active', 'trial', 'churned'] } },
+    { field: 'seats',   header: 'Seats',   width: 120, editable: true, editor: 'number' },
+  ],
+});
+
+grid.setData(data);
+
+// The polished layer: a Save/Cancel bar anchored to the editing row.
+const fullRow = fullRowEditing(grid, {
+  onRowValueChanged: ({ row, changes }) => console.log('saved row', row, changes),
+});
+`,
+  },
+  {
+    id: 'validate',
+    label: 'Row-level validation',
+    hint: "This row has a cross-field rule: an Enterprise plan needs at least 25 seats, and seats can't be negative. Open a row (double-click), set plan=Enterprise with seats below 25, and press Save — the commit is blocked with a message and the row stays open until you fix it.",
+    code: `// validate runs before EVERY commit (Save, Enter, or click-outside).
+// values are keyed by column index — here [company, plan, status, seats].
+const data = [
+  ['Acme Corp', 'Enterprise', 'active', 120],
+  ['Globex',    'Growth',     'active', 48],
+  ['Initech',   'Starter',    'trial',  9],
+  ['Umbrella',  'Growth',     'active', 30],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: {
+    editType: 'fullRow',
+    // Require an explicit Save/Cancel — clicking away won't silently commit.
+    stopEditingWhenCellsLoseFocus: false,
+  },
+  columns: [
+    { field: 'company', header: 'Company', width: 190, editable: true, editor: 'text' },
+    { field: 'plan',    header: 'Plan',    width: 150, editable: true, editor: 'select',
+      editorOptions: { options: ['Starter', 'Growth', 'Enterprise'] } },
+    { field: 'status',  header: 'Status',  width: 140, editable: true, editor: 'select',
+      editorOptions: { options: ['active', 'trial', 'churned'] } },
+    { field: 'seats',   header: 'Seats',   width: 120, editable: true, editor: 'number' },
+  ],
+});
+
+grid.setData(data);
+
+const fullRow = fullRowEditing(grid, {
+  validate: ({ values }) => {
+    const plan = values[1];
+    const seats = Number(values[3]);
+    if (seats < 0) return 'Seats cannot be negative';
+    if (plan === 'Enterprise' && seats < 25) return 'Enterprise needs at least 25 seats';
+    return true; // ok to commit
+  },
+});
+`,
+  },
+  {
+    id: 'api',
+    label: 'Events & programmatic API',
+    hint: "editType:'fullRow' is community — drive it from grid.editing without the mouse. Use the controls to open row 0, then Save or Cancel it. The panel logs every committed row from onRowValueChanged.",
+    code: `// The core grid.editing surface controls full-row editing directly.
+const data = [
+  ['Ada Lovelace',   'Engineering', 'active', 5],
+  ['Grace Hopper',   'Compilers',   'active', 8],
+  ['Alan Turing',    'Research',    'trial',  3],
+  ['Katherine Johnson','Orbital',   'active', 6],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { editType: 'fullRow' },
+  columns: [
+    { field: 'name', header: 'Name', width: 200, editable: true, editor: 'text' },
+    { field: 'team', header: 'Team', width: 170, editable: true, editor: 'text' },
+    { field: 'plan', header: 'Plan', width: 130, editable: true, editor: 'select',
+      editorOptions: { options: ['active', 'trial', 'churned'] } },
+    { field: 'seats', header: 'Seats', width: 110, editable: true, editor: 'number' },
+  ],
+});
+
+grid.setData(data);
+
+// A log panel fed by onRowValueChanged.
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-fullrow-log');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-fullrow-log';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft)';
+  mount.parentElement.insertBefore(out, mount);
+}
+if (out) out.textContent = 'onRowValueChanged → (edit a row)';
+
+const fullRow = fullRowEditing(grid, {
+  onRowValueChanged: ({ row, changes }) => {
+    if (out) out.textContent = 'onRowValueChanged → row ' + row + ': ' +
+      (changes.length ? changes.map((c) => (c.field || c.col) + '=' + c.newValue).join(', ') : 'no change');
+  },
+});
+`,
+    controls: [
+      { label: 'startRowEdit(0)', action: `grid.editing.startRowEdit(0)` },
+      { label: 'Save row', action: `grid.editing.stopRowEdit()` },
+      { label: 'Cancel row', action: `grid.editing.stopRowEdit(true)` },
+      { label: 'isEditingRow?', action: `alert('editing row: ' + grid.editing.getEditingRow())` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled per cell.
+- [Undo / Redo Edits](/features/editing/undo-redo/) — every committed cell,
+  including full-row commits, is undoable.
+- [Batch Editing](/features/editing/batch/transactions/) — apply and roll back
+  many row changes as one transaction.

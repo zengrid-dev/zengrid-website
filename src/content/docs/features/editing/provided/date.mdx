@@ -1,0 +1,289 @@
+---
+title: Date Editors
+description: Edit date cells with the built-in date editor (calendar popup or native picker, format, min/max, validation) or the premium dateEditor() — a matching formatted display, min/max bounds and a disabledDates rule in one call. Live, editable examples in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+ZenGrid edits dates in two layers:
+
+- **Built-in date editor (Community).** Set `editor: 'date'` on an editable
+  column for a calendar-popup date picker (or the native browser control).
+  Configure it declaratively through `editorOptions` — `format`, `type`,
+  `minDate`, `maxDate`, `required`, `useCalendarPopup`, `placeholder`, and a
+  custom `validator`. No license needed.
+- **Formatted date column (Enterprise).** `dateEditor()` returns a ready-made
+  column that wires the same calendar editor **and** formats the cell display
+  with the same `format` — so a column reads and edits as `15 Mar 2024` in one
+  call. It adds a `disabledDates` rule (block weekends, holidays, …) on top of
+  the built-in `minDate`/`maxDate` bounds.
+
+Dates are read and written as JavaScript `Date` values. Store your cell values
+as **timestamps** (or `Date`s) and render them with core's re-exported
+`zg.DateRenderer` so the display, the popup, and validation all agree.
+
+## Built-in date editor (Community)
+
+Select it on any editable column:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'joined', header: 'Joined', editable: true, editor: 'date',
+      editorOptions: { format: 'DD MMM YYYY', minDate: '2020-01-01' },
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }) },
+  ],
+});
+```
+
+### `editorOptions`
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `format` | `string` | Display/parse format in the calendar input (default `'DD/MM/YYYY'`). Tokens: `YYYY`/`YY`/`MMMM`/`MMM`/`MM`/`M`/`DD`/`D` (+ time). |
+| `type` | `'date' \| 'datetime-local' \| 'time'` | Native input kind when `useCalendarPopup: false` (default `'date'`). |
+| `minDate` | `Date \| string` | Earliest selectable date. |
+| `maxDate` | `Date \| string` | Latest selectable date. |
+| `useCalendarPopup` | `boolean` | Calendar popup (default `true`) or the native browser picker (`false`). |
+| `required` | `boolean` | Reject an empty value on commit. |
+| `placeholder` | `string` | Placeholder shown when empty. |
+| `validator` | `(value: Date \| null) => boolean \| string` | Custom check run after the required/range checks; return a string to supply the error message. |
+
+A failing `required` / range / `validator` commit is governed by the grid-level
+[`editing.invalidEditMode`](/features/editing/validation/): `'block'` (default)
+keeps the editor open and flags the cell.
+
+export const communityVariants = [
+  {
+    id: 'calendar',
+    label: 'Calendar & format',
+    hint: "Joined uses editor:'date' with format:'DD MMM YYYY'. Double-click a Joined cell — the calendar popup opens; pick a date and it commits. The cell renders via zg.DateRenderer with the same format. Change format to 'YYYY-MM-DD' and re-run.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg (for zg.DateRenderer)
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const data = [
+  ['Aria Vaskov', day(2021, 3, 15)],
+  ['Kenji Tanaka', day(2022, 7, 2)],
+  ['Lucia Moreno', day(2020, 11, 24)],
+  ['Otto Bergman', day(2023, 1, 9)],
+  ['Priya Nair', day(2019, 6, 30)],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'joined', header: 'Joined', width: 200, editable: true, editor: 'date',
+      editorOptions: { format: 'DD MMM YYYY' },
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }) },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'native',
+    label: 'Native picker + bounds',
+    hint: "useCalendarPopup:false swaps to the browser's native <input type=date>. minDate/maxDate set its selectable range (2023-01-01 … 2024-12-31). Double-click Renewal and pick a date — dates outside the range aren't selectable.",
+    code: `// The native browser date control, bounded by minDate/maxDate.
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const data = [
+  ['api.zengrid.io', day(2024, 5, 1)],
+  ['cdn.zengrid.io', day(2023, 9, 14)],
+  ['db.zengrid.io', day(2024, 2, 28)],
+  ['edge.zengrid.io', day(2023, 12, 31)],
+  ['queue.zengrid.io', day(2024, 8, 20)],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'service', header: 'Service', width: 220 },
+    { field: 'renewal', header: 'Renewal', width: 200, editable: true, editor: 'date',
+      editorOptions: {
+        useCalendarPopup: false,
+        type: 'date',
+        minDate: '2023-01-01',
+        maxDate: '2024-12-31',
+      },
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }) },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'validation',
+    label: 'Required & validation',
+    hint: "Under invalidEditMode:'block', Deadline is required and must be a weekday (custom validator supplies the message). Double-click Deadline and pick a Saturday/Sunday → the commit is blocked and the editor stays open; pick a weekday → it commits.",
+    code: `// required + a custom validator; invalidEditMode:'block' keeps the editor
+// open on a failing commit.
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const data = [
+  ['Migrate billing', day(2024, 6, 14)],
+  ['Ship v2 API', day(2024, 7, 5)],
+  ['Security audit', day(2024, 8, 12)],
+  ['Q3 planning', day(2024, 9, 2)],
+  ['Data backfill', day(2024, 6, 28)],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'task', header: 'Task', width: 200 },
+    { field: 'deadline', header: 'Deadline (weekday)', width: 220, editable: true, editor: 'date',
+      editorOptions: {
+        format: 'DD MMM YYYY',
+        required: true,
+        validator: (v) => !v ? 'Pick a date'
+          : (v.getDay() !== 0 && v.getDay() !== 6) || 'Must be a weekday',
+      },
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }) },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={communityVariants} />
+
+## Formatted date column (Enterprise)
+
+<FeatureMeta tier="enterprise" />
+
+`dateEditor()` returns a `ColumnDef` — drop it straight into `columns`. It wires
+the calendar editor and, by default, formats the cell display with the same
+`format`, so you don't hand-wire a `renderer`:
+
+```ts
+import { dateEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    dateEditor({ field: 'joined', header: 'Joined',
+      format: 'DD MMM YYYY', minDate: '2020-01-01',
+      disabledDates: (d) => d.getDay() === 0 || d.getDay() === 6 }),
+  ],
+});
+```
+
+### Options
+
+Everything from the built-in editor (`format`/`type`/`minDate`/`maxDate`/
+`useCalendarPopup`/`required`/`placeholder`/`validator`) **plus**:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `disabledDates` | `(value: Date) => boolean` | Return `true` for a date that is **not** selectable (weekends, holidays…). Rejected on commit, before `validator`. |
+| `formatDisplay` | `boolean` | Also format the cell display with `format` (default `true`; `false` keeps your own `renderer` or the raw value). |
+
+export const enterpriseVariants = [
+  {
+    id: 'formatted',
+    label: 'Formatted column',
+    hint: "dateEditor() gives a formatted display + calendar editor in one call — no separate renderer. Joined cells read '15 Mar 2021'; double-click one, pick a date, and it re-renders in the same format. It stores a Date.",
+    code: `// dateEditor() — calendar editor + matching display, in one call.
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const data = [
+  ['Aria Vaskov', day(2021, 3, 15)],
+  ['Kenji Tanaka', day(2022, 7, 2)],
+  ['Lucia Moreno', day(2020, 11, 24)],
+  ['Otto Bergman', day(2023, 1, 9)],
+  ['Priya Nair', day(2019, 6, 30)],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    dateEditor({ field: 'joined', header: 'Joined', width: 200,
+      format: 'DD MMM YYYY' }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'disabled',
+    label: 'Bounds & disabled dates',
+    hint: "disabledDates blocks weekends and minDate/maxDate bound the range (2024). Under invalidEditMode:'block', double-click Ship date and pick a Saturday → the commit is blocked; pick a weekday inside 2024 → it commits.",
+    code: `// disabledDates rejects weekends; minDate/maxDate bound the year.
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const data = [
+  ['Migrate billing', day(2024, 6, 14)],
+  ['Ship v2 API', day(2024, 7, 5)],
+  ['Security audit', day(2024, 8, 12)],
+  ['Q3 planning', day(2024, 9, 3)],
+  ['Data backfill', day(2024, 6, 28)],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'task', header: 'Task', width: 200 },
+    dateEditor({ field: 'ship', header: 'Ship date', width: 220,
+      format: 'DD MMM YYYY',
+      minDate: '2024-01-01', maxDate: '2024-12-31',
+      disabledDates: (d) => d.getDay() === 0 || d.getDay() === 6 }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'native',
+    label: 'Native picker + ISO format',
+    hint: "Set useCalendarPopup:false to edit with the native browser control while formatDisplay keeps the cell in ISO 'YYYY-MM-DD'. Double-click Renewal and pick a date — the cell shows the ISO string.",
+    code: `// Native browser picker for editing, ISO display via the same format.
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const data = [
+  ['Northwind', day(2024, 5, 1)],
+  ['Initech', day(2023, 9, 14)],
+  ['Umbrella', day(2024, 2, 28)],
+  ['Hooli', day(2023, 12, 31)],
+  ['Vandelay', day(2024, 8, 20)],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'account', header: 'Account', width: 200 },
+    dateEditor({ field: 'renewal', header: 'Renewal (ISO)', width: 200,
+      format: 'YYYY-MM-DD',
+      useCalendarPopup: false, type: 'date' }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={enterpriseVariants} enterprise />
+
+## Next
+
+- [Checkbox Editor](/features/editing/provided/checkbox/) — toggle boolean cells.
+- [Select Editor](/features/editing/provided/select/) — pick from a fixed list.
+- [Number Editor](/features/editing/provided/number/) — formatted numeric editing.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

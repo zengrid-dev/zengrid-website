@@ -1,0 +1,146 @@
+---
+title: Column Selection
+description: Select whole columns by clicking a cell — single or multiple, with shift-click to sweep a run and ctrl/⌘-click to add — backed by isColumnSelected and getSelectedColumns, live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Column selection highlights whole columns rather than individual cells or rows —
+the model you want when the action is column-shaped: sum a column, hide it, export
+just those fields. Turn it on with `selectionType: 'column'`:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns,
+  selectionType: 'column',
+  enableMultiSelection: true,   // omit for one column at a time
+  onSelectionChange: (ranges) => {
+    // ranges are column spans in source coordinates
+  },
+});
+```
+
+Clicking **any cell in a column** selects that whole column. With
+`enableMultiSelection: true`, **ctrl/⌘-click** adds a column and **shift-click**
+takes the contiguous run of columns from the anchor. Every change fires
+`onSelectionChange` with the selected column spans.
+
+## Reading the selected columns
+
+Two accessors mirror the row-side API so column code reads the same way:
+
+```ts
+grid.selection.selectColumns(1, 3);      // select columns 1–3
+grid.selection.getSelectedColumns();     // → [1, 2, 3]
+grid.selection.isColumnSelected(2);      // → true
+grid.selection.clear();
+```
+
+`getSelectedColumns()` returns the **data-column indices** covered by whole-column
+selections (in ascending order), and `isColumnSelected(col)` tests a single column
+— the column counterparts of `getSelectedRows()` / `isRowSelected(row)`.
+
+:::note[Column indices are `dataIndex`, not screen position]
+A column index is its position in your `columns` array (its `dataIndex`), not its
+on-screen position — so a selection survives column reordering. `getRanges()` still
+returns each selection as a range with a `startCol`/`endCol`; `getSelectedColumns()`
+expands those spans to a flat list for you.
+:::
+
+## Try it live
+
+export const columns = `  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'single',
+    label: 'Single column',
+    hint: 'No enableMultiSelection — one column at a time. Click any cell to select its whole column. isColumnSelected / getSelectedColumns read it back.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// selectionType 'column' with no multi flag = one column at a time.
+// Click any cell to select its whole column.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'column',
+  onSelectionChange: (ranges) => console.log('selection:', ranges),
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Selected columns', action: "alert('columns: ' + JSON.stringify(grid.selection.getSelectedColumns()))" },
+      { label: 'Is Revenue (3) selected?', action: 'alert(grid.selection.isColumnSelected(3))' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'multi',
+    label: 'Multiple columns',
+    hint: 'enableMultiSelection: true — ctrl/⌘-click adds a column, shift-click sweeps the run from the anchor. getSelectedColumns() flattens every span.',
+    code: `// enableMultiSelection lets several columns be selected at once:
+// ctrl/⌘-click to add, shift-click to sweep a contiguous run.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'column',
+  enableMultiSelection: true,
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Selected columns', action: "alert('columns: ' + JSON.stringify(grid.selection.getSelectedColumns()))" },
+      { label: 'Select cols 3–4', action: 'grid.selection.selectColumns(3, 4)' },
+      { label: 'Add col 1', action: 'grid.selection.selectColumns(1, 1, true)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'api',
+    label: 'Act on the selection',
+    hint: 'Select the numeric columns, then read them back with getSelectedColumns() and total each one — the column-shaped equivalent of a footer aggregation.',
+    code: `// Drive column selection from code, then act on getSelectedColumns().
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'column',
+  enableMultiSelection: true,
+${columns}
+});
+
+grid.setData(rows);
+grid.selection.selectColumns(3, 4);   // Revenue + MRR
+`,
+    controls: [
+      { label: 'Total selected columns', action: "const cols = grid.selection.getSelectedColumns(); alert(cols.length ? cols.map(c => 'col ' + c + ' = ' + rows.reduce((n, r) => n + (Number(r[c]) || 0), 0)).join('\\n') : 'no columns selected')" },
+      { label: 'Select Revenue only', action: 'grid.selection.selectColumns(3, 3)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where to go next
+
+- [Row Selection](/features/selection/row-selection/) — the row-shaped counterpart.
+- [Cell Selection](/features/selection/cell-selection/) — cells and rectangular
+  ranges.
+- [Selection API](/features/selection/row-api/) — the full `grid.selection`
+  surface, including `getSelectedColumns` / `isColumnSelected`.

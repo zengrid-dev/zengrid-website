@@ -1,43 +1,70 @@
-# Astro Starter Kit: Minimal
+# ZenGrid website
+
+Static Astro marketing pages and versioned Starlight documentation.
+
+## Development
 
 ```sh
-npm create astro@latest -- --template minimal
+npm install
+npm run dev -- --background
+npm run astro -- dev status
+npm run astro -- dev logs
+npm run astro -- dev stop
 ```
 
-> **Seasoned astronaut?** Delete this file. Have fun!
+Always start through the npm script: its pre-hook clears the Astro content
+cache. The build uses local ZenGrid enterprise/license bundles configured in
+`astro.config.mjs`.
 
-##  Project Structure
+## Build and verify
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```sh
+npm run build
+npm run test:payments
+npm run preview
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Payment build-output tests expect the default disabled checkout configuration.
+The configuration tests also cover enabling individual reviewed plans.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Payments
 
-Any static assets, like images, can be placed in the `public/` directory.
+See [PAYMENT-SETUP.md](PAYMENT-SETUP.md) for the corrected live Polar catalog,
+remaining account/fulfillment blockers, and the later backend work.
 
-##  Commands
+- `/buy/`: shared plan prices, checkout availability, delivery and order help.
+- `/billing/`: Polar's hosted customer portal for invoices and subscriptions.
+- `.env.example`: public checkout destinations and per-plan readiness flags.
+- `src/config/plans.ts`: canonical Solo/Team pricing and seat counts.
+- `src/config/checkout-validation.ts`: validates links and fulfillment readiness.
+- `src/config/polar-catalog.ts`: public IDs of the reviewed live Polar offers.
+- `npm run payments:audit`: private, read-only API check of pricing and account capabilities.
 
-All commands are run from the root of the project, from a terminal:
+Checkout is disabled until the sandbox lifecycle and license delivery are ready.
+A local `.env` API token can run the admin audit; it is never imported by the
+static site. Signing secrets belong outside this repository. The fulfillment
+backend under `serverless/backend/` is deployed separately to Cloud Run.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Production cutover
 
-##  Want to learn more?
+See [SITE-CUTOVER-PLAN.md](SITE-CUTOVER-PLAN.md) for replacing the existing
+Vercel deployment while preserving the production domains, legacy URLs, private
+commercial dependencies, and rollback path.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Vercel serves the reviewed `dist/` artifact committed to Git. It does not rebuild
+the Astro source because the Enterprise and license demo packages are unpublished.
+Prepare every production update on a trusted checkout before committing it:
+
+```sh
+npm ci
+npm run deploy:prepare
+git add dist
+```
+
+The Git-triggered Vercel build runs `npm run deploy:verify` and rejects an absent,
+incomplete, or checkout-enabled artifact.
+
+## Documentation work
+
+Follow [AGENTS.md](AGENTS.md) and [DOCS-HANDOVER.md](DOCS-HANDOVER.md) for feature
+documentation iterations.

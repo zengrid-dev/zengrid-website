@@ -1,0 +1,137 @@
+---
+title: Row Numbers
+description: A built-in index column that labels each row with its position — continuous or per-page, with a configurable start, step, and styling.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Row numbers add a built-in index column that labels each row with its sequential
+position. It ships in `@zengrid/enterprise`: `rowNumberColumn()` returns a ready
+column definition you drop into the grid's `columns` — no data field required, the
+number comes from the row's position.
+
+```ts
+import { rowNumberColumn } from '@zengrid/enterprise/grid';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    rowNumberColumn(),                 // the index column
+    { field: 'name',   header: 'Name' },
+    { field: 'region', header: 'Region' },
+  ],
+});
+```
+
+Counting is either **continuous** (unbroken across the whole dataset) or
+**per-page** (restarts at the start value every `pageSize` rows). Everything is
+configurable through one options object:
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `start` | `1` | Number given to the first row. |
+| `step` | `1` | Increment between successive rows. |
+| `mode` | `'continuous'` | `'continuous'` counts across the dataset; `'per-page'` restarts each page. |
+| `pageSize` | `0` | Rows per page, used by `'per-page'` mode. |
+| `header` | `'#'` | Column header label. |
+| `width` | `64` | Column width in pixels. |
+| `field` | `'__rownum__'` | Column id (carries no data). |
+| `className` | — | Extra CSS class applied to each number cell. |
+
+The returned column also exposes `.manager` — a `RowNumberManager` — for reading
+or reconfiguring the numbering at runtime (`setStart`, `setStep`, `setMode`,
+`setPageSize`), followed by a `grid.refresh()`.
+
+## Try it live
+
+Each tab is a different numbering setup. Edit the `rowNumberColumn(...)` options
+and the index column re-renders. Scroll the grid to watch the numbers follow the
+rows.
+
+export const variants = [
+  {
+    id: 'index',
+    label: 'Index column',
+    hint: 'Prepend rowNumberColumn() to columns. It numbers continuously from 1 — scroll to row 50,000 and the count keeps going.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg, rowNumberColumn
+// rowNumberColumn() returns a ready column — drop it in first.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    rowNumberColumn(),
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'startstep',
+    label: 'Start & step',
+    hint: 'Change start, step, header and width. Here numbering opens at 1000 and climbs by 10, under a wider "No." header.',
+    code: `// Offset and space out the numbers, and relabel/resize the column.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    rowNumberColumn({ start: 1000, step: 10, header: 'No.', width: 90 }),
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'perpage',
+    label: 'Per-page',
+    hint: "mode: 'per-page' restarts the count at the start value every pageSize rows. Scroll: 1–25 repeats down the grid, so each 25-row page reads 1…25.",
+    code: `// Per-page numbering restarts each page. Pair pageSize with row
+// pagination to number the visible page 1…pageSize.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    rowNumberColumn({ mode: 'per-page', pageSize: 25 }),
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Continuous vs. per-page
+
+**Continuous** numbering runs unbroken across the dataset — row 30,001 reads
+`30001`. It's the default and suits a plain scrolling grid. **Per-page**
+numbering restarts at `start` every `pageSize` rows, so paired with
+[Row Pagination](/features/rows/row-pagination/) each page reads `1…pageSize`.
+The **Per-page** tab above shows the restart directly on the scrolling grid.
+
+## Next
+
+- [Row Data](/features/rows/row-data/) — supply the rows to number.
+- [Row Pagination](/features/rows/row-pagination/) — pair with per-page numbering.

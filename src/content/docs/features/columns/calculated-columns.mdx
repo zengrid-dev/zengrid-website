@@ -1,0 +1,162 @@
+---
+title: Calculated Columns
+description: Derive a column's value from other fields in the row — sums, ratios, categories — without adding it to your source data, live in the page.
+tier: enterprise
+sidebar:
+  order: 11
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+A calculated column computes its value from the rest of the row — a `total` from
+`revenue + mrr`, a ratio, a category — without that value living in your source
+data. It's an **enterprise** feature built with `calculatedColumn`, which returns a
+normal column you drop into `columns`:
+
+```ts
+import { calculatedColumn } from '@zengrid/enterprise';
+
+const grid = new Zengrid(el, {
+  columns: [
+    { field: 'revenue', header: 'Revenue' },
+    { field: 'mrr', header: 'MRR' },
+    calculatedColumn({
+      field: 'total',
+      header: 'Total',
+      renderer: currency,
+      value: ({ getValue }) => getValue('revenue') + getValue('mrr'),
+    }),
+  ],
+});
+```
+
+The `value` function receives `getValue(field)` to read any other column in the
+same row, plus the raw `data` and `row` index. Anything else you set — `renderer`,
+`width`, `align` — applies like a normal column.
+
+:::note[Ordering]
+Because the grid maps columns to data positionally, put calculated columns **after**
+your data columns so the source columns keep their alignment.
+:::
+
+## Try it live
+
+Each tab derives a different column. Edit the `value` function and the grid
+recomputes as you scroll.
+
+export const variants = [
+  {
+    id: 'sum',
+    label: 'Sum',
+    hint: "value: ({ getValue }) => getValue('revenue') + getValue('mrr'). Give it the currency renderer and right align, like any column.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, calculatedColumn
+const data = rows.slice(0, 1000).map((r) => ({
+  name: r[0], role: r[1], revenue: r[3], mrr: r[4],
+}));
+const fields = ['name', 'role', 'revenue', 'mrr'];
+const gridRows = data.map((o) => fields.map((f) => o[f]));
+
+const grid = new Zengrid(mount, {
+  rowCount: gridRows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    calculatedColumn({
+      field: 'total',
+      header: 'Revenue + MRR',
+      width: 170,
+      align: 'right',
+      renderer: currency,
+      value: ({ getValue }) => getValue('revenue') + getValue('mrr'),
+    }),
+  ],
+});
+
+grid.setData(gridRows);
+`,
+  },
+  {
+    id: 'ratio',
+    label: 'Ratio → text',
+    hint: 'A getter can return any type. This one computes annual-MRR share of total and returns a formatted percent string.',
+    code: `const data = rows.slice(0, 1000).map((r) => ({
+  name: r[0], role: r[1], revenue: r[3], mrr: r[4],
+}));
+const fields = ['name', 'role', 'revenue', 'mrr'];
+const gridRows = data.map((o) => fields.map((f) => o[f]));
+
+const grid = new Zengrid(mount, {
+  rowCount: gridRows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    calculatedColumn({
+      field: 'share',
+      header: 'MRR share',
+      width: 150,
+      align: 'right',
+      value: ({ getValue }) => {
+        const annualMrr = getValue('mrr') * 12;
+        const pct = (annualMrr / (getValue('revenue') + annualMrr)) * 100;
+        return Math.round(pct) + '%';
+      },
+    }),
+  ],
+});
+
+grid.setData(gridRows);
+`,
+  },
+  {
+    id: 'category',
+    label: 'Category → chips',
+    hint: 'Return a category from the row and hand it to the chips renderer — a derived status with no source column.',
+    code: `const data = rows.slice(0, 1000).map((r) => ({
+  name: r[0], role: r[1], revenue: r[3], mrr: r[4],
+}));
+const fields = ['name', 'role', 'revenue', 'mrr'];
+const gridRows = data.map((o) => fields.map((f) => o[f]));
+
+const grid = new Zengrid(mount, {
+  rowCount: gridRows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency },
+    calculatedColumn({
+      field: 'tier',
+      header: 'Tier',
+      width: 130,
+      renderer: chips,
+      value: ({ getValue }) => (getValue('revenue') > 120000 ? 'Active' : 'Trial'),
+    }),
+  ],
+});
+
+grid.setData(gridRows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} height={440} enterprise />
+
+## Next
+
+- [Custom Cell Components](/features/columns/custom-components/) — render the derived
+  value however you like.
+- [Auto-Generate Columns](/features/columns/auto-generate-columns/) — infer the base
+  columns, then add calculated ones.
+- [Getting Values](/features/cells/getting-values/) — how the grid reads cell values.

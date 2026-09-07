@@ -1,0 +1,37 @@
+---
+import Logo from "./Logo.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import { nav, links } from "../config/site";
+
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+const destination = (href: string) =>
+  href.startsWith("#") && Astro.url.pathname !== "/" ? `/${href}` : href;
+---
+
+<nav class="flex flex-wrap items-center justify-between gap-4 py-[22px]" aria-label="Primary">
+  <a href="/" aria-label="ZenGrid home" class="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral">
+    <Logo />
+  </a>
+  <div class="flex flex-wrap items-center gap-x-5 gap-y-3 text-[15px] font-medium text-muted">
+    {
+      nav.map((item) => (
+        <a
+          href={destination(item.href)}
+          target={isExternal(item.href) ? "_blank" : undefined}
+          rel={isExternal(item.href) ? "noopener noreferrer" : undefined}
+          class="text-muted hover:text-coral-sh transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral"
+        >
+          {item.label}
+        </a>
+      ))
+    }
+    <ThemeToggle />
+    <a
+      href={links.getStarted}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-ink text-bg px-[18px] py-[9px] rounded-full font-semibold cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+      >Get started</a
+    >
+  </div>
+</nav>

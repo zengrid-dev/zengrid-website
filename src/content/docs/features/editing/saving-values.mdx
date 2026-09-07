@@ -1,0 +1,187 @@
+---
+title: Saving Values
+description: Where a committed edit goes — the default positional write, reacting with edit:commit, and taking over the save with a column valueSetter that can update sibling columns.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Once an edit is [parsed](/features/editing/parsing-values/), it has to be
+**saved**. By default ZenGrid writes the committed value straight back into your
+row and refreshes the cell — no configuration needed. Two hooks let you take it
+further:
+
+- **React to a save** — the `edit:commit` event fires after every change, so you
+  can persist to a server, recompute a total, or log an audit trail.
+- **Own the save** — a column's `valueSetter` replaces the default write, so you
+  can run a side effect, or update *other* columns in the same row.
+
+```ts
+grid.on('edit:commit', ({ cell, oldValue, newValue }) => {
+  // persist however you like — REST, GraphQL, a store action…
+  api.patch(rowId(cell.row), { [field(cell.col)]: newValue });
+});
+```
+
+### Taking over the write with `valueSetter`
+
+When assigning the value isn't enough — you need to update a derived sibling
+column, or run a save yourself — set a `valueSetter` on the column:
+
+```ts
+{
+  field: 'revenue',
+  editable: true,
+  editor: 'text',
+  valueParser: ({ newValue }) => Number(newValue),
+  valueSetter: ({ newValue, setValue }) => {
+    setValue('revenue', newValue);            // save this column
+    setValue('mrr', Math.round(newValue / 12)); // and derive a sibling
+  },
+}
+```
+
+It runs on commit **after** `valueParser`, with these params:
+
+| Field | What it is |
+|-------|------------|
+| `newValue` | The committed (already parsed) value. |
+| `oldValue` | The cell's value before the edit. |
+| `data` | The source row — mutate it directly if you prefer. |
+| `setValue(field, value)` | Write any column in this row by its `field`. |
+| `row` / `field` | The display row index and this column's field. |
+
+Return `false` to signal nothing changed and skip the repaint; return anything
+else (or nothing) and the grid refreshes. Writing a sibling column repaints the
+visible rows so the derived value shows immediately.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'react',
+    label: 'Default save + react',
+    hint: "No valueSetter here — the edit writes into the row the normal way. The edit:commit handler is where you'd persist: the readout logs a fake PATCH for every change. Edit a Name/Role/Revenue/MRR cell and commit to see it fire with oldValue → newValue.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// The default save just writes the value back. Use edit:commit to persist.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+
+const fields = ['name','role','region','revenue','mrr','status'];
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-api-readout');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-api-readout';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft);white-space:pre-wrap';
+  mount.parentElement.insertBefore(out, mount);
+}
+grid.say = (m) => { if (out) out.textContent = m; };
+grid.say('Edit a cell and commit — the save is logged here.');
+
+grid.on('edit:commit', (e) =>
+  grid.say('PATCH row ' + e.cell.row + '  { ' + fields[e.cell.col] + ': ' + JSON.stringify(e.newValue) + ' }  (was ' + JSON.stringify(e.oldValue) + ')'));
+`,
+  },
+  {
+    id: 'setter',
+    label: 'Own the write',
+    hint: "Revenue uses a valueSetter to run its own save: it writes the value and logs a server call, and returns false when the value didn't actually change (edit a cell, press Enter without changing it → no PATCH). setValue(field, value) is how the setter writes its own column.",
+    code: `// valueSetter takes over the save. Persist a side effect, and skip the
+// write (return false) when nothing changed.
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-api-readout');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-api-readout';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft);white-space:pre-wrap';
+  mount.parentElement.insertBefore(out, mount);
+}
+const log = (m) => { if (out) out.textContent = m; };
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, editable: true, editor: 'text',
+      valueParser: ({ newValue, oldValue }) => {
+        const n = Number(String(newValue).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(n) ? n : oldValue;
+      },
+      valueSetter: ({ newValue, oldValue, setValue }) => {
+        if (newValue === oldValue) { log('no change — nothing saved'); return false; }
+        setValue('revenue', newValue);                 // own the write
+        log('PUT /accounts revenue ' + oldValue + ' → ' + newValue);
+      },
+      renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+log('Edit Revenue and commit — or commit unchanged to see the skip.');
+`,
+  },
+  {
+    id: 'derive',
+    label: 'Update sibling columns',
+    hint: "Editing Revenue (treated as an annual figure) derives MRR = revenue / 12 in the same save via setValue('mrr', …) — both cells update at once. Try any Revenue cell: MRR follows. The setter writes two columns, so the grid repaints the visible rows.",
+    code: `// A valueSetter can write MORE than its own column. Editing annual
+// Revenue keeps monthly MRR in sync via setValue(field, value).
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue (annual)', width: 180, editable: true, editor: 'text',
+      valueParser: ({ newValue, oldValue }) => {
+        const n = Number(String(newValue).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(n) ? n : oldValue;
+      },
+      valueSetter: ({ newValue, setValue }) => {
+        setValue('revenue', newValue);
+        setValue('mrr', Math.round(Number(newValue) / 12)); // derived sibling
+      },
+      renderer: currency },
+    { field: 'mrr',     header: 'MRR', width: 140, renderer: currency },
+    { field: 'status',  header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Provided Cell Editors](/features/editing/provided/text/) — the built-in
+  editors and their options.
+- [Undo / Redo Edits](/features/editing/undo-redo/) — every committed save is
+  reversible.
+- [Validation](/features/editing/validation/) — reject bad input before it saves.

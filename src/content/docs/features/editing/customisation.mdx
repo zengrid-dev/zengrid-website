@@ -1,0 +1,421 @@
+---
+title: Customisation
+description: Customise how the cell editor is presented — render it as a floating popup (over or under the cell) and veto opening or committing with the isCancelBeforeStart / isCancelAfterEnd lifecycle hooks. Or wrap any editor in a polished dialog with the premium popupEditor(). Live, editable examples in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Once you've chosen *which* editor a column uses (see
+[Edit Components](/features/editing/edit-components/) and the
+[provided editors](/features/editing/provided/text/)), ZenGrid lets you
+customise **how that editor is presented and when it opens or commits** — no
+custom component required:
+
+- **Popup editors (Community).** By default an editor is clamped to the cell
+  box. Set `editorPopup: true` on the column to float it instead: it sizes to
+  its own content and sits `'over'` or `'under'` the cell (`editorPopupPosition`)
+  — ideal for editors bigger than the cell (pickers, panels, dialogs).
+- **Lifecycle veto hooks (Community).** A `CellEditor` can implement
+  `isCancelBeforeStart()` to refuse opening for an ineligible cell, and
+  `isCancelAfterEnd()` to reject its own final value on commit (the edit reverts
+  as if `Escape` was pressed).
+- **Popup dialog wrapper (Enterprise).** `popupEditor()` wraps *any* editor in a
+  polished dialog — a title header and a Save/Cancel footer, positioned over or
+  under the cell — in one call.
+
+## Popup editors (Community)
+
+A column opts into popup rendering declaratively:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'color', header: 'Color', editable: true,
+      editor: SwatchPicker,          // any editor — built-in or custom
+      editorPopup: true,             // float instead of clamping to the cell
+      editorPopupPosition: 'over' }, // 'over' (default) | 'under'
+  ],
+});
+```
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `editorPopup` | `boolean` | Render the editor as a floating popup sized to its content instead of clamped to the cell. |
+| `editorPopupPosition` | `'over' \| 'under'` | Where the popup sits relative to the cell (default `'over'`). The grid flips it above the cell when `'under'` would overflow the viewport. |
+
+An editor can also opt in itself by returning `true` from `CellEditor.isPopup()`
+(and a default side from `getPopupPosition()`); the declarative `editorPopup`
+flag wins when both are set.
+
+### Lifecycle veto hooks
+
+Two optional `CellEditor` methods let the editor gate its own lifecycle:
+
+| Hook | Called | Return `true` to… |
+|------|--------|-------------------|
+| `isCancelBeforeStart()` | Once, right after `init` | Abort opening — the editor is destroyed and no `edit:start` fires. |
+| `isCancelAfterEnd()` | On commit, after validation | Discard the edit and revert the cell (like `Escape`). |
+
+export const communityVariants = [
+  {
+    id: 'popup',
+    label: 'Popup editor',
+    hint: "The Color column uses a custom swatch picker rendered as a popup (editorPopup: true) — it floats over the cell and sizes to its own content instead of being cropped. Double-click a Color cell and pick a swatch. Try removing editorPopup to see it clamp to the cell.",
+    code: `// In scope: Zengrid, mount, zg
+// A custom editor wider/taller than the cell — a 3x2 grid of color swatches.
+class SwatchPicker {
+  init(container, value, params) {
+    this.value = value;
+    const palette = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#64748b'];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:grid;grid-template-columns:repeat(3,30px);gap:8px;padding:12px;';
+    for (const c of palette) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText =
+        'width:30px;height:30px;border-radius:6px;cursor:pointer;background:' + c +
+        ';border:2px solid ' + (c === value ? '#111827' : 'transparent') + ';';
+      b.addEventListener('click', () => { this.value = c; params.onComplete(c, false); });
+      wrap.appendChild(b);
+    }
+    container.appendChild(wrap);
+  }
+  getValue() { return this.value; }
+  focus() {}
+  destroy() {}
+}
+
+// A renderer so the cell shows the chosen color, not just the hex.
+const swatch = {
+  render(el, params) {
+    el.innerHTML = '';
+    const dot = document.createElement('span');
+    dot.style.cssText =
+      'display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:8px;' +
+      'vertical-align:middle;background:' + (params.value || 'transparent') + ';';
+    el.appendChild(dot);
+    el.appendChild(document.createTextNode(params.value || ''));
+  },
+  update(el, params) { this.render(el, params); },
+  destroy(el) { el.innerHTML = ''; },
+};
+
+const data = [
+  ['Aria Vaskov', '#22c55e'],
+  ['Kenji Tanaka', '#3b82f6'],
+  ['Lucia Moreno', '#ef4444'],
+  ['Otto Bergman', '#a855f7'],
+  ['Priya Nair', '#f59e0b'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'color', header: 'Color', width: 200, renderer: swatch,
+      editable: true, editor: SwatchPicker, editorPopup: true },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'position',
+    label: 'Position: under',
+    hint: "Same picker, but editorPopupPosition: 'under' places the popup directly below the cell. The grid flips it above automatically if it would overflow the bottom of the viewport. Double-click a Color cell near the bottom to see the flip.",
+    code: `// editorPopupPosition: 'under' drops the popup below the cell.
+class SwatchPicker {
+  init(container, value, params) {
+    this.value = value;
+    const palette = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#64748b'];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:grid;grid-template-columns:repeat(3,30px);gap:8px;padding:12px;';
+    for (const c of palette) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText =
+        'width:30px;height:30px;border-radius:6px;cursor:pointer;background:' + c +
+        ';border:2px solid ' + (c === value ? '#111827' : 'transparent') + ';';
+      b.addEventListener('click', () => { this.value = c; params.onComplete(c, false); });
+      wrap.appendChild(b);
+    }
+    container.appendChild(wrap);
+  }
+  getValue() { return this.value; }
+  focus() {}
+  destroy() {}
+}
+
+const swatch = {
+  render(el, params) {
+    el.innerHTML = '';
+    const dot = document.createElement('span');
+    dot.style.cssText =
+      'display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:8px;' +
+      'vertical-align:middle;background:' + (params.value || 'transparent') + ';';
+    el.appendChild(dot);
+    el.appendChild(document.createTextNode(params.value || ''));
+  },
+  update(el, params) { this.render(el, params); },
+  destroy(el) { el.innerHTML = ''; },
+};
+
+const data = [
+  ['Aria Vaskov', '#22c55e'], ['Kenji Tanaka', '#3b82f6'],
+  ['Lucia Moreno', '#ef4444'], ['Otto Bergman', '#a855f7'],
+  ['Priya Nair', '#f59e0b'], ['Diego Costa', '#22c55e'],
+  ['Mei Lin', '#3b82f6'], ['Sara Holt', '#ef4444'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'color', header: 'Color', width: 200, renderer: swatch,
+      editable: true, editor: SwatchPicker,
+      editorPopup: true, editorPopupPosition: 'under' },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'veto',
+    label: 'Lifecycle veto hooks',
+    hint: "The Name editor implements isCancelBeforeStart() (locked rows — the last column true — won't open) and isCancelAfterEnd() (an empty value is rejected on commit and reverts). Try editing a locked row (Otto, Priya) → nothing opens; edit an unlocked one and clear it → the commit reverts.",
+    code: `// A guarded text editor that vetoes opening (locked rows) and empty commits.
+class GuardedEditor {
+  init(container, value, params) {
+    this.locked = !!(params.rowData && params.rowData[2]); // col 2 = locked flag
+    this.input = document.createElement('input');
+    this.input.type = 'text';
+    this.input.value = value == null ? '' : String(value);
+    this.input.style.cssText = 'width:100%;height:100%;box-sizing:border-box;padding:0 8px;';
+    container.appendChild(this.input);
+    setTimeout(() => this.input.focus(), 0);
+  }
+  getValue() { return this.input.value; }
+  focus() { this.input && this.input.focus(); }
+  destroy() {}
+  // Refuse to open the editor at all for a locked row.
+  isCancelBeforeStart() { return this.locked; }
+  // Reject an empty value on commit — the cell reverts to its original text.
+  isCancelAfterEnd() { return this.getValue().trim() === ''; }
+}
+
+// Row shape: [name, status, locked]
+const data = [
+  ['Aria Vaskov', 'active', false],
+  ['Kenji Tanaka', 'pending', false],
+  ['Lucia Moreno', 'inactive', false],
+  ['Otto Bergman', 'active', true],   // locked
+  ['Priya Nair', 'pending', true],    // locked
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name (locked rows won\\'t edit)', width: 260,
+      editable: true, editor: GuardedEditor },
+    { field: 'status', header: 'Status', width: 160 },
+    { field: 'locked', header: 'Locked', width: 100 },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={communityVariants} />
+
+## Popup dialog wrapper (Enterprise)
+
+<FeatureMeta tier="enterprise" />
+
+`popupEditor()` returns a `ColumnDef` that wraps **any** editor — a built-in
+class, a custom component, or a factory — in a polished popup dialog: an optional
+title header and a Save / Cancel footer, floated over or under the cell. You keep
+your editor; the dialog chrome, positioning, and commit/cancel wiring come for
+free.
+
+```ts
+import { popupEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    popupEditor({ field: 'notes', header: 'Notes', title: 'Edit notes',
+      width: 340, position: 'under', editor: NotesEditor }),
+  ],
+});
+```
+
+### Options
+
+Everything on a normal `ColumnDef` (`field`/`header`/`width`/…) **plus**:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `editor` | `CellEditor \| class \| () => CellEditor` | The editor to wrap in the dialog. |
+| `title` | `string` | Heading shown at the top of the popup. |
+| `position` | `'over' \| 'under'` | Where the dialog sits relative to the cell (default `'over'`). |
+| `width` | `number` | Fixed popup width in px; omit to size to the editor's content. |
+| `buttons` | `boolean` | Show the Save/Cancel footer (default `true`). |
+| `saveLabel` / `cancelLabel` | `string` | Footer button labels (default `Save` / `Cancel`). |
+
+The Save button commits the inner editor's value (honouring its `isValid()`
+under [`editing.invalidEditMode`](/features/editing/validation/)); Cancel reverts.
+
+export const enterpriseVariants = [
+  {
+    id: 'dialog',
+    label: 'Dialog wrapper',
+    hint: "popupEditor() wraps a plain textarea notes editor in a titled dialog with a Save/Cancel footer, 340px wide, floated over the cell. Double-click a Notes cell: type (Enter adds a newline), then click Save to commit or Cancel to revert.",
+    code: `// In scope (enterprise): popupEditor
+// A minimal multi-line notes editor (Enter = newline; the dialog's Save commits).
+class NotesEditor {
+  init(container, value, params) {
+    this.area = document.createElement('textarea');
+    this.area.value = value == null ? '' : String(value);
+    this.area.rows = 4;
+    this.area.style.cssText = 'width:100%;box-sizing:border-box;resize:vertical;font:inherit;padding:6px 8px;';
+    // Keep Enter as a newline instead of committing.
+    this.area.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.stopPropagation(); });
+    container.appendChild(this.area);
+    setTimeout(() => this.area.focus(), 0);
+  }
+  getValue() { return this.area.value; }
+  focus() { this.area && this.area.focus(); }
+  destroy() {}
+}
+
+const data = [
+  ['Northwind', 'Renewal call booked for Q3.'],
+  ['Acme Co', 'Waiting on security review.'],
+  ['Globex', 'Expansion opportunity — 3 new seats.'],
+  ['Initech', 'Churn risk; exec sponsor left.'],
+  ['Umbrella', 'Happy path, reference customer.'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'account', header: 'Account', width: 200 },
+    popupEditor({ field: 'notes', header: 'Notes', width: 360,
+      title: 'Edit notes', editor: NotesEditor }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'position-labels',
+    label: 'Position & labels',
+    hint: "position: 'under' drops the dialog below the cell; saveLabel/cancelLabel relabel the footer to Apply/Discard. Double-click a Notes cell — the dialog opens beneath it.",
+    code: `class NotesEditor {
+  init(container, value, params) {
+    this.area = document.createElement('textarea');
+    this.area.value = value == null ? '' : String(value);
+    this.area.rows = 4;
+    this.area.style.cssText = 'width:100%;box-sizing:border-box;resize:vertical;font:inherit;padding:6px 8px;';
+    this.area.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.stopPropagation(); });
+    container.appendChild(this.area);
+    setTimeout(() => this.area.focus(), 0);
+  }
+  getValue() { return this.area.value; }
+  focus() { this.area && this.area.focus(); }
+  destroy() {}
+}
+
+const data = [
+  ['Aria Vaskov', 'Prefers async updates.'],
+  ['Kenji Tanaka', 'On PTO until next week.'],
+  ['Lucia Moreno', 'Leading the migration.'],
+  ['Otto Bergman', 'New hire — onboarding.'],
+  ['Priya Nair', 'Owns the billing epic.'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Person', width: 200 },
+    popupEditor({ field: 'note', header: 'Note', width: 320,
+      title: 'Edit note', position: 'under',
+      saveLabel: 'Apply', cancelLabel: 'Discard',
+      editor: NotesEditor }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'validated',
+    label: 'Validation in the dialog',
+    hint: "The wrapped editor implements isValid() (require at least 3 characters). Under editing.invalidEditMode:'block', clicking Save with a too-short value keeps the dialog open and flags it; a valid value commits and closes.",
+    code: `// The inner editor's isValid() flows through the dialog's Save button.
+class NameEditor {
+  init(container, value, params) {
+    this.input = document.createElement('input');
+    this.input.type = 'text';
+    this.input.value = value == null ? '' : String(value);
+    this.input.style.cssText = 'width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;';
+    container.appendChild(this.input);
+    setTimeout(() => this.input.focus(), 0);
+  }
+  getValue() { return this.input.value; }
+  focus() { this.input && this.input.focus(); }
+  destroy() {}
+  isValid() {
+    return this.getValue().trim().length >= 3
+      ? true
+      : { valid: false, message: 'At least 3 characters' };
+  }
+}
+
+const data = [
+  ['Aria Vaskov', 'Engineer'],
+  ['Kenji Tanaka', 'Designer'],
+  ['Lucia Moreno', 'Manager'],
+  ['Otto Bergman', 'Analyst'],
+  ['Priya Nair', 'Engineer'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    popupEditor({ field: 'name', header: 'Name', width: 300,
+      title: 'Rename', editor: NameEditor }),
+    { field: 'role', header: 'Role', width: 180 },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={enterpriseVariants} enterprise />
+
+## Next
+
+- [Async Values](/features/editing/async-values/) — populate an editor from an
+  asynchronous source.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

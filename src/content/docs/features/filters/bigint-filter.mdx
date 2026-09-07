@@ -1,0 +1,216 @@
+---
+title: BigInt Filter
+description: Filter 64-bit and larger integer IDs without precision loss — the bigintFilter() column helper, its BigInt-parsing popup, ranges and the API, operator tailoring, and grouped display, all demonstrated live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+JavaScript numbers are IEEE-754 doubles, so every integer past
+`Number.MAX_SAFE_INTEGER` (`2^53 − 1`, i.e. `9007199254740991`) starts to
+**round**. Snowflake IDs, database `BIGINT` primary keys, and blockchain amounts
+routinely exceed that — and a plain [number filter](/features/filters/number-filter/)
+that runs its comparisons through `Number()` will treat two distinct 19-digit IDs
+as equal. The **BigInt filter** compares in arbitrary precision so those IDs never
+collide.
+
+`bigintFilter()` is an **enterprise** column helper. It sets up the whole column
+for precise big-integer filtering — the popup parses typed input to a real
+`BigInt`, comparisons run without rounding, and (optionally) the digits render
+grouped for readability.
+
+```ts
+import { bigintFilter } from '@zengrid/enterprise';
+
+const grid = new Zengrid(el, {
+  columns: [
+    bigintFilter({ field: 'id', header: 'Snowflake ID', format: true }),
+    { field: 'account', header: 'Account' },
+  ],
+});
+```
+
+`bigintFilter()` defaults `filterable` to `true`, so the header funnel appears
+automatically. Store the value as a **`bigint`**, a `number`, or a **numeric
+string** — all three compare precisely (a `number` only preserves precision if it
+was safe to begin with; strings and bigints always do).
+
+:::note[Under the hood]
+The comparison primitive — `filterType: 'bigint'`, a BigInt-parsing popup, and
+arbitrary-precision operators — lives in **core**. `bigintFilter()` is the
+license-gated helper that wires it up in one call and adds grouped display plus
+operator presets.
+:::
+
+## The operators
+
+A BigInt filter offers the same nine comparisons as the number filter, but every
+value is parsed to a `BigInt`:
+
+| Operator | Value | Matches when the cell… |
+|----------|-------|------------------------|
+| `equals` (default) | bigint | equals the value exactly |
+| `notEquals` | bigint | does **not** equal the value |
+| `greaterThan` | bigint | is strictly greater |
+| `greaterThanOrEqual` | bigint | is greater or equal |
+| `lessThan` | bigint | is strictly less |
+| `lessThanOrEqual` | bigint | is less or equal |
+| `between` | [min, max] | falls inside the inclusive range |
+| `blank` | — | is empty / null |
+| `notBlank` | — | has a value |
+
+The popup uses a **text** input (a native number input would itself round large
+values) that accepts digit grouping and a trailing `n` — `1,234,567`, `1234567`,
+and `1234567n` all parse to the same `BigInt`. Anything that isn't an integer is
+kept as-is and simply never matches, rather than throwing.
+
+## Restrict, reorder, pre-select, and format
+
+`bigintFilter()` forwards the same per-column knobs as every other filter, plus a
+`format` for display:
+
+- **`filterOptions`** restricts and **reorders** the operators in the dropdown.
+- **`defaultOption`** is the operator a fresh condition opens on.
+- **`format`** groups the displayed digits. `true` inserts thousands separators;
+  a function `(value: bigint) => string` fully controls the text. It's
+  **display only** — the filter always reads the raw integer, so precision holds.
+
+```ts
+bigintFilter({
+  field: 'id', header: 'Snowflake ID',
+  filterOptions: ['equals', 'between'], // an "exact or range" column
+  defaultOption: 'equals',
+  format: (v) => `#${v}`,               // render as #1234567890123456789
+});
+```
+
+## Try it live
+
+Two of these IDs — `9,007,199,254,740,992` and `9,007,199,254,740,993` — differ
+only past `2^53`. Filter for one and you get **exactly one row**; a number filter
+would return both. Click the Snowflake ID funnel, use the buttons to drive the
+API, or edit the code and re-run.
+
+export const accounts = `  // 64-bit IDs — the last pair differs only past 2^53, where Number() rounds.
+  const data = [
+    [9007199254740993n, 'Northwind Traders', 'Enterprise', 420],
+    [9007199254740992n, 'Aterra Cloud',      'Enterprise', 380],
+    [723456789012345679n, 'Doric Analytics',  'Scale',      210],
+    [723456789012345678n, 'Everly Foods',     'Scale',       95],
+    [1288834974657000n, 'Blue Bottle Labs',   'Growth',      58],
+    [1305512400000000n, 'Cobalt Systems',     'Growth',      72],
+    [451233667788990011n, 'Umbra Robotics',   'Enterprise', 640],
+    [88112233445566778n,  'Vantage Health',   'Scale',      132],
+  ];`;
+
+export const cols = (extras = {}) => `  columns: [
+    ${extras.id ?? `bigintFilter({ field: 'id', header: 'Snowflake ID', width: 240, align: 'right', format: true })`},
+    { field: 'account', header: 'Account', width: 200 },
+    { field: 'plan',    header: 'Plan',    width: 140 },
+    { field: 'seats',   header: 'Seats',   width: 110, align: 'right', filterable: true, filterType: 'number' },
+  ],`;
+
+export const variants = [
+  {
+    id: 'precise',
+    label: 'Precise 64-bit IDs',
+    hint: 'Open the Snowflake ID funnel → Equals 9007199254740993 → exactly one row. Its sibling ...992 stays hidden. A number filter would show both, since Number() rounds them to the same value. Use the buttons to prove it.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, bigintFilter, currency, chips
+// bigintFilter() sets filterType: 'bigint' + a BigInt-parsing popup, so
+// 64-bit IDs compare without the rounding a number filter suffers.
+${accounts}
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(data);
+`,
+    controls: [
+      { label: 'Equals …993', action: `grid.filter.set(0, 'equals', 9007199254740993n)` },
+      { label: 'Equals …992', action: `grid.filter.set(0, 'equals', 9007199254740992n)` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'api',
+    label: 'Ranges & the API',
+    hint: 'grid.filter.set(0, op, value) takes a BigInt (or a [min, max] pair for "between"). The range 88112233445566778…723456789012345679 keeps the mid-size and large IDs and drops the two near-2^53 ones.',
+    code: `// Every operator has an imperative twin. Pass BigInt literals (the 'n'
+// suffix) so nothing is ever coerced through Number(). 'between' takes a
+// [min, max] array of bigints.
+${accounts}
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(data);
+`,
+    controls: [
+      { label: '> 2^53', action: `grid.filter.set(0, 'greaterThan', 9007199254740993n)` },
+      { label: 'Between 88.1e15 … 7.23e17', action: `grid.filter.set(0, 'between', [88112233445566778n, 723456789012345679n])` },
+      { label: '≤ 2^53', action: `grid.filter.set(0, 'lessThanOrEqual', 9007199254740992n)` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'tailor',
+    label: 'Tailor & format',
+    hint: 'Open the ID funnel: the dropdown is trimmed to Equals / Between and opens on Equals. The ID also renders with a "#" prefix via a custom format function — display only, the filter still reads the raw integer.',
+    code: `// filterOptions restricts + reorders the operators; defaultOption picks the
+// preselected one; format((v) => string) controls the displayed text without
+// touching the value the filter compares.
+${accounts}
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+${cols({
+  id: `bigintFilter({
+      field: 'id', header: 'Snowflake ID', width: 240, align: 'right',
+      filterOptions: ['equals', 'between'],
+      defaultOption: 'equals',
+      format: (v) => '#' + v,
+    })`,
+})}
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Driving the filter from code
+
+Everything the popup does has an imperative twin on `grid.filter.*`. Pass real
+`BigInt` values (the `n` suffix) so nothing is coerced through `Number()`:
+
+```ts
+grid.filter.set(0, 'equals', 9007199254740993n);
+grid.filter.set(0, 'between', [1000000000000000000n, 2000000000000000000n]);
+grid.filter.clear();
+```
+
+A cell stored as a numeric string works too — `bigintFilter()` compares
+`'9007199254740993'` against the parsed `BigInt` and they match. See the
+[Filtering Overview](/features/filters/overview/#the-filter-api) for the full API.
+
+## Next
+
+- [Number Filter](/features/filters/number-filter/) — the same comparisons for
+  values that fit safely in a JavaScript number.
+- [Date Filter](/features/filters/date-filter/) — comparisons over dates.
+- [Column Filters](/features/filters/column-filters/) — enabling filters and
+  stacking AND / OR conditions.

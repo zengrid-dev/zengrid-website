@@ -1,0 +1,136 @@
+---
+title: Text Formatting
+description: Turn raw cell values into formatted text with provided renderers and alignment.
+---
+
+import Playground from '../../../../components/docs/Playground.astro';
+
+## Introduction
+
+A cell's raw value and the text a reader sees are two different things. `1234.5`
+in your data can display as `$1,235`, `1,234.50`, or `123,450%`. In ZenGrid that
+transformation is the job of a **renderer** — the value stays untouched in the
+row, and the renderer decides how to format it into DOM.
+
+Text is the default: with no `renderer`, a column uses `TextRenderer`, which
+coerces the value with `String(value)` and shows an empty cell for
+`null`/`undefined`. To format numbers, dates, or anything else, assign a
+formatting renderer on the column's `renderer`.
+
+## Aligning text
+
+Alignment isn't a renderer concern — it's the column-level `align` option, which
+applies to both the header and the body cells of that column.
+
+```ts
+columns: [
+  { field: 'name',    header: 'Name',    align: 'left' },   // default
+  { field: 'region',  header: 'Region',  align: 'center' },
+  { field: 'revenue', header: 'Revenue', align: 'right' },  // numbers read best right-aligned
+]
+```
+
+## Formatting numbers
+
+`NumberRenderer` wraps `Intl.NumberFormat`, so every option is locale-aware. Pass
+its options to the constructor:
+
+```ts
+import { NumberRenderer } from '@zengrid/core';
+
+const currency = new NumberRenderer({
+  style: 'currency',   // 'decimal' | 'currency' | 'percent'
+  currency: 'USD',     // required when style is 'currency'
+  maximumFractionDigits: 0,
+});
+
+const rate = new NumberRenderer({
+  style: 'percent',    // 0.125 → "12.5%"
+  minimumFractionDigits: 1,
+});
+
+const precise = new NumberRenderer({
+  locale: 'de-DE',     // "1.234,50" instead of "1,234.50"
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+```
+
+Full option set (from `NumberRendererOptions`):
+
+| Option | Type | Default | Purpose |
+|--------|------|---------|---------|
+| `style` | `'decimal' \| 'currency' \| 'percent'` | `'decimal'` | Formatting style. |
+| `currency` | `string` | — | ISO currency code; required for `'currency'`. |
+| `locale` | `string` | browser default | Grouping/decimal separators, e.g. `'de-DE'`. |
+| `minimumFractionDigits` | `number` | `0` | Minimum decimals shown. |
+| `maximumFractionDigits` | `number` | `2` | Maximum decimals shown. |
+| `negativeClass` | `string` | `'zg-cell-negative'` | Class toggled on when the value is negative. |
+
+Negative values automatically get `negativeClass`, so you can colour them with
+plain CSS:
+
+```css
+.zg-cell-negative { color: var(--negative, #d64545); }
+```
+
+## Formatting dates
+
+`DateRenderer` formats date values (read-only) via `DateRendererOptions`:
+
+```ts
+import { DateRenderer } from '@zengrid/core';
+
+const renderer = new DateRenderer({
+  format: 'DD MMM YYYY',     // default 'DD/MM/YYYY'
+  useRelativeLabels: true,   // "Today", "Yesterday", …
+  emptyText: '—',            // shown for null/invalid dates
+});
+```
+
+## Live demo
+
+The demo formats the same numeric data two ways and varies alignment. Switch to
+**Code** or **Split** and tweak it: change `style` to `'percent'`, drop
+`currency`, set a `locale` like `'de-DE'`, or flip a column's `align`. The grid
+re-runs as you type.
+
+export const code = `// In scope: Zengrid, mount, rows, zg (the @zengrid/core module).
+// rows are arrays — columns read left-to-right:
+// [name, role, region, revenue, mrr, status]
+
+// Build formatting renderers from zg.NumberRenderer — tweak the options.
+const usd = new zg.NumberRenderer({
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
+
+const grouped = new zg.NumberRenderer({
+  minimumFractionDigits: 2,   // try locale: 'de-DE' for 1.234,50
+  maximumFractionDigits: 2,
+});
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, align: 'left' },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150, align: 'center' },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: usd },
+    { field: 'mrr',     header: 'MRR',      width: 150, align: 'right', renderer: grouped },
+    { field: 'status',  header: 'Status',  width: 130 },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+<Playground code={code} view="split" />
+
+## Next
+
+- [Cell Components](/features/cells/cell-components/) — write your own renderer for full control.
+- [Cell Data Types](/features/cells/cell-data-types/) — how values are typed before formatting.
+- [Getting Values](/features/cells/getting-values/) — where a cell's value comes from.

@@ -1,0 +1,206 @@
+---
+title: List Filter
+description: Filter a column by picking from a checkbox list of its distinct values — the enterprise setFilter() helper, with select-all, a mini search box, occurrence counts, and custom values, labels and ordering, all demonstrated live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The **List Filter** replaces a column's condition-builder popup with a **checkbox
+list of every distinct value** in the column. Instead of choosing an operator and
+typing text, the reader ticks the values they want — the classic spreadsheet
+"filter by selection" experience. It's ideal for **low-cardinality** columns
+(status, region, category, owner) where the useful query is "show me these, hide
+those."
+
+`setFilter()` is an **enterprise** column helper. It builds the value list from
+your data, renders the checkbox popup, and — when the reader applies a subset —
+sets an [`in` filter](/features/filters/column-filters/) on the column.
+
+```ts
+import { setFilter } from '@zengrid/enterprise';
+
+const grid = new Zengrid(el, {
+  columns: [
+    { field: 'name', header: 'Name' },
+    setFilter({ field: 'region', header: 'Region' }),
+  ],
+});
+```
+
+`setFilter()` defaults `filterable` to `true`, so the header funnel appears
+automatically. Click it and the popup shows the checkbox list with a **Select
+all** row and a **search box** on top; the popup's own **Apply** / **Clear** run
+the selection.
+
+:::note[Under the hood]
+The seam is in **core**: a column may set a `filterComponent` that replaces the
+popup body while the popup keeps its header and Apply/Clear footer. `setFilter()`
+is the license-gated helper that supplies a value-list body and maps the ticked
+values to an `in` condition. (The same core seam backs
+[Custom Column Filters](/features/filters/custom-column-filters/).)
+:::
+
+## How the selection maps to a filter
+
+- **All boxes ticked** → *no filter* (Apply clears the column). A fresh popup
+  opens with everything ticked.
+- **A subset ticked** → an `in` condition of exactly those values.
+- **Nothing ticked** → `in []`, which matches no rows.
+
+Because the match is an `in` set-membership test, values compare **exactly** —
+there's no case-folding or substring logic here (that's the
+[Text Filter](/features/filters/text-filter/)). Re-opening the popup restores the
+current selection from the active `in` condition.
+
+## Customising the list
+
+`setFilter()` takes the usual `ColumnDef` fields plus a handful of list knobs:
+
+| Option | What it does |
+|--------|--------------|
+| `values` | Replace the derived uniques — an **array**, or a **function** `(derived) => list` to filter/reorder/extend them. |
+| `valueFormatter` | Label each value: `(value) => string`. Blank values show as `(Blanks)`. |
+| `comparator` | Order the rows: `(a, b) => number`. Default is ascending by label. |
+| `miniFilter` | Show the search box. Default `true`. |
+| `selectAll` | Show the "Select all" row (tri-state; acts on the **visible** rows). Default `true`. |
+| `showCount` | Show each value's occurrence count. Default `false`. |
+
+```ts
+setFilter({
+  field: 'status', header: 'Status',
+  valueFormatter: (v) => v.toUpperCase(),
+  comparator: (a, b) => ORDER.indexOf(a) - ORDER.indexOf(b),
+  showCount: true,
+});
+```
+
+## Try it live
+
+Click a **Region**, **Role**, or **Status** funnel to open the checkbox list.
+Tick a subset and press Apply, type in the search box to narrow the list, or use
+the buttons to drive the same `in` filter from code.
+
+export const cols = (region, role, status) => `  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    ${role},
+    ${region},
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, align: 'right', renderer: currency },
+    ${status},
+  ],`;
+
+export const plainRole = `{ field: 'role', header: 'Role', width: 180 }`;
+export const plainStatus = `{ field: 'status', header: 'Status', width: 150, renderer: chips }`;
+
+export const variants = [
+  {
+    id: 'pick',
+    label: 'Pick from a list',
+    hint: 'Open the Region funnel → a checkbox list of the eight regions. Untick a few and press Apply to keep only the ticked ones. The buttons drive the same in filter from code.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, setFilter, currency, chips
+// setFilter() turns Region's popup into a checkbox list of its distinct
+// values. Ticking a subset applies an { operator: 'in', value: [...] } filter.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+${cols(`setFilter({ field: 'region', header: 'Region', width: 160 })`, plainRole, plainStatus)}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Keep APAC + EU-West', action: `grid.filter.set(2, 'in', ['APAC', 'EU-West'])` },
+      { label: 'Keep US regions', action: `grid.filter.set(2, 'in', ['US-East', 'US-West'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'search-counts',
+    label: 'Search + counts',
+    hint: 'The Role funnel lists ten roles with occurrence counts and a search box. Type "eng" to narrow the list; Select all then acts only on the visible (matching) rows. Region also shows counts.',
+    code: `// showCount surfaces how many rows carry each value; the search box (miniFilter,
+// on by default) narrows the visible rows and Select all acts on just those.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+${cols(
+  `setFilter({ field: 'region', header: 'Region', width: 160, showCount: true })`,
+  `setFilter({ field: 'role', header: 'Role', width: 180, showCount: true })`,
+  plainStatus,
+)}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Only Analyst', action: `grid.filter.set(1, 'in', ['Analyst'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'custom',
+    label: 'Custom values, labels & order',
+    hint: 'Status is capitalised via valueFormatter, ordered Active → Trial → Churned via comparator, and drops its search box (miniFilter: false). Region is restricted to a curated subset via a values() function.',
+    code: `// valueFormatter labels each value, comparator sets the order, values() curates
+// the list, and miniFilter: false hides the search box for a short list.
+const STATUS_ORDER = ['Active', 'Trial', 'Churned'];
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+${cols(
+  `setFilter({
+      field: 'region', header: 'Region', width: 160,
+      // Keep only the EU regions in the list, in a fixed order.
+      values: (derived) => derived.filter((r) => r.startsWith('EU-')),
+    })`,
+  plainRole,
+  `setFilter({
+      field: 'status', header: 'Status', width: 150, renderer: chips,
+      valueFormatter: (v) => v.toUpperCase(),
+      comparator: (a, b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b),
+      miniFilter: false,
+    })`,
+)}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Active only', action: `grid.filter.set(5, 'in', ['Active'])` },
+      { label: 'Trial + Churned', action: `grid.filter.set(5, 'in', ['Trial', 'Churned'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Driving it from code
+
+The List Filter is just an `in` condition on the column, so the imperative API is
+the ordinary [filter API](/features/filters/overview/#the-filter-api):
+
+```ts
+grid.filter.set(2, 'in', ['APAC', 'EU-West']); // keep these two regions
+grid.filter.set(2, 'in', []);                  // keep none
+grid.filter.clearColumn(2);                    // back to "all"
+```
+
+Setting the filter from code and opening the popup stay in sync — the checkboxes
+restore from whatever `in` condition is currently active on the column.
+
+## Next
+
+- [Column Filters](/features/filters/column-filters/) — enabling filters and the
+  `in` operator the List Filter builds on.
+- [Text Filter](/features/filters/text-filter/) — substring and equality matching
+  for free-text columns.
+- [Custom Column Filters](/features/filters/custom-column-filters/) — the core
+  `filterComponent` seam for building your own popup body.

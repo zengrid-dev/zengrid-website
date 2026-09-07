@@ -1,0 +1,152 @@
+---
+title: Range Selection
+description: Drag the handle at the corner of a selected range to resize it — a spreadsheet-style range handle over ZenGrid's cell ranges. Enterprise, live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Shift-click extends a range, but a spreadsheet also gives you a **handle** — the
+little square at the range's bottom-right corner you grab and drag to resize the
+selection. `rangeHandle()` adds exactly that on top of ZenGrid's built-in
+[cell ranges](/features/selection/cell-selection/): attach it to a
+`selectionType: 'range'` grid and a handle appears at the corner of the current
+selection; drag it to grow or shrink the range.
+
+```ts
+import { rangeHandle } from '@zengrid/enterprise/grid';
+
+const handle = rangeHandle();
+const grid = new Zengrid(mount, { selectionType: 'range', columns });
+grid.setData(rows);
+handle.attach(grid);
+```
+
+The manager owns the handle element and repositions it whenever the selection or
+the scroll position moves — you never place it yourself. Dragging keeps the range's
+top-left corner anchored and moves the opposite corner to the cell under the
+pointer, so the selection resizes exactly like a spreadsheet's.
+
+:::note[Enterprise]
+`rangeHandle()` is license-gated (`range-selection`) and lives in
+`@zengrid/enterprise/grid`. The handle's CSS ships in
+`@zengrid/enterprise/styles.css` — import it once. The underlying cell-range
+selection is [community](/features/selection/cell-selection/); the drag handle is
+the enterprise addition.
+:::
+
+## Customizing
+
+| Option | Effect |
+|--------|--------|
+| `handleClass` | Extra CSS class on the handle element (on top of `zg-selection-handle`), to restyle its size, colour, or shape. |
+
+## Try it live
+
+Each demo seeds a range, then attaches the handle. Grab the square at the
+selection's bottom-right corner and drag — the range resizes and the controls read
+it back.
+
+export const cols = `  columns: [
+    { field: 'name',    header: 'Name',    width: 160 },
+    { field: 'role',    header: 'Role',    width: 140 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 140, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'resize',
+    label: 'Resize a range',
+    hint: 'Drag the square at the bottom-right of the selection to grow or shrink the range. The top-left corner stays anchored.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, currency, chips, rangeHandle
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(rows);
+
+const handle = rangeHandle();
+handle.attach(grid);
+grid.selection.selectRange(0, 0, 2, 2);   // seed a 3×3 range
+`,
+    controls: [
+      { label: 'Current range', action: "alert(JSON.stringify(grid.selection.getRanges()[0] ?? 'none'))" },
+      { label: 'Reset to 0,0→2,2', action: 'grid.selection.selectRange(0, 0, 2, 2)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'from-cell',
+    label: 'Grow from a cell',
+    hint: 'A single selected cell is a 1×1 range — its handle drags out into a full rectangle. Select any cell, then drag its corner.',
+    code: `// Even a single cell shows a handle — drag it to grow a rectangle.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(rows);
+
+const handle = rangeHandle();
+handle.attach(grid);
+grid.selection.selectCell(1, 1);   // one cell to start
+`,
+    controls: [
+      { label: 'Current range', action: "alert(JSON.stringify(grid.selection.getRanges()[0] ?? 'none'))" },
+      { label: 'Select (1, Role)', action: 'grid.selection.selectCell(1, 1)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'styled',
+    label: 'Styled handle',
+    hint: 'handleClass adds your own class to the handle so you can restyle it — here a larger teal square. Drag it just the same.',
+    code: `// handleClass lets you restyle the grip. This one injects a teal, larger box.
+const style = document.createElement('style');
+style.textContent = \`.my-range-grip {
+  width: 12px; height: 12px; margin-left: -7px; margin-top: -7px;
+  background: #0d9488; border-radius: 2px;
+}\`;
+document.head.appendChild(style);
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(rows);
+
+const handle = rangeHandle({ handleClass: 'my-range-grip' });
+handle.attach(grid);
+grid.selection.selectRange(0, 0, 3, 1);
+`,
+    controls: [
+      { label: 'Current range', action: "alert(JSON.stringify(grid.selection.getRanges()[0] ?? 'none'))" },
+      { label: 'Reset', action: 'grid.selection.selectRange(0, 0, 3, 1)' },
+    ],
+  },
+];
+
+<DemoPlayground enterprise view="demo" variants={variants} />
+
+## Where to go next
+
+- [Cell Selection](/features/selection/cell-selection/) — the community cell-range
+  selection the handle builds on.
+- [Fill Handle](/features/selection/fill-handle/) — the same corner handle, but it
+  copies values across the cells you sweep.
+- [Selection API](/features/selection/row-api/) — read and drive ranges from code.

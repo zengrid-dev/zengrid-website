@@ -1,0 +1,246 @@
+---
+title: Hierarchical Values
+description: Show a List Filter's values as a collapsible hierarchy instead of a flat list — group regions by continent or dates by Year › Month › Day — with the enterprise setFilter() treeList option, demonstrated live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+A **Hierarchical Values** renders a [List Filter](/features/filters/list-filter/)'s value
+list as a **collapsible hierarchy** instead of a flat checkbox list. Values group
+under a path you derive — regions under their continent, dates under
+`Year › Month › Day` — and ticking a group node checks or unchecks every value
+beneath it. Leaf selection still drives the same `in` condition, so a tree list
+is purely a nicer *view* over the values a List Filter already offers.
+
+It's an option on the enterprise `setFilter()` helper:
+
+```ts
+import { setFilter } from '@zengrid/enterprise';
+
+setFilter({
+  field: 'region', header: 'Region',
+  treeList: true,                                   // render as a tree
+  treeListPathGetter: (v) =>                         // one segment per level
+    String(v).includes('-') ? String(v).split('-') : [String(v)],
+  treeListFormatter: ({ key, level, isLeaf }) =>     // label each node
+    level === 0 && !isLeaf ? key + ' region' : key,
+});
+```
+
+## Turning on the tree
+
+`treeList: true` swaps the flat list for the tree. On its own — with no path
+getter — every value sits at the top level (a one-deep tree), so the interesting
+part is the hierarchy you give it.
+
+The **mini search box** and **(Select all)** row work exactly as they do for a
+flat List Filter: searching narrows the leaves and auto-opens the groups that hold
+a match, and select-all spans everything currently visible. A group's own
+checkbox is **tri-state** — checked, unchecked, or a dash when its leaves are
+mixed.
+
+## Shaping the hierarchy
+
+`treeListPathGetter: (value) => string[]` returns one segment per level, **top
+level first**. ZenGrid builds the branches from those paths and binds each
+value to a leaf at the end of its path:
+
+```ts
+// Dates → Year › Month › Day
+treeListPathGetter: (v) => {
+  const d = new Date(v);
+  return [
+    String(d.getFullYear()),
+    d.toLocaleString('en-US', { month: 'long' }),
+    String(d.getDate()),
+  ];
+},
+```
+
+Return a single-element array for a value that doesn't nest (it becomes a
+top-level leaf), or an empty array to fall back to the value's label. Order the
+tree with `comparator: (a, b) => number` over the **raw values** — for dates,
+compare timestamps so months read chronologically rather than alphabetically.
+
+## Labelling nodes
+
+`treeListFormatter: ({ key, level, parents, isLeaf, value }) => string` sets each
+node's label from its path segment without touching the value that gets filtered.
+`level` is the 0-based depth, `parents` are the ancestor segments, and `isLeaf`
+tells a group apart from a value. Use it to expand a code into a name at the top
+level while leaving leaves as-is.
+
+## Expanding
+
+By default every level opens on show. `treeListExpandDepth` limits that — `0`
+starts fully collapsed, `1` opens the first level only — and the reader expands
+the rest with the twisties. Turn on `showCount` to append each node's aggregated
+occurrence count.
+
+## Try it live
+
+Open each column's funnel to see the tree. Tick a **group** to select its whole
+branch, expand a node with its twisty, or search to auto-open matches. The buttons
+drive the same `in` filter from code.
+
+export const variants = [
+  {
+    id: 'region',
+    label: 'Region by continent',
+    hint: 'Open the Region funnel: EU-* and US-* values fold under "Europe" and "Americas" (treeListFormatter renames the top level); APAC, LATAM and MEA stay top-level leaves. Tick a continent to select its whole branch.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, setFilter, currency, chips
+// treeListPathGetter splits "EU-West" → ["EU", "West"] so regions nest under
+// their continent; treeListFormatter renames the continent nodes.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'role', header: 'Role', width: 180 },
+    setFilter({
+      field: 'region', header: 'Region', width: 200, showCount: true,
+      treeList: true,
+      treeListPathGetter: (v) =>
+        String(v).includes('-') ? String(v).split('-') : [String(v)],
+      treeListFormatter: ({ key, level, isLeaf }) =>
+        level === 0 && !isLeaf ? ({ EU: 'Europe', US: 'Americas' }[key] ?? key) : key,
+    }),
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'All of Europe', action: `grid.filter.set(2, 'in', ['EU-West', 'EU-North', 'EU-South'])` },
+      { label: 'Americas', action: `grid.filter.set(2, 'in', ['US-East', 'US-West'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'dates',
+    label: 'Dates: Year › Month › Day',
+    hint: 'The Joined funnel groups dates under Year › Month › Day. treeListExpandDepth: 1 opens the years but leaves months collapsed — click a month twisty to reveal its days. comparator sorts by timestamp so months read chronologically.',
+    code: `// In scope: Zengrid, mount, setFilter, zg (for zg.DateRenderer)
+// A three-level date tree: store timestamps, derive [year, month, day].
+const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const records = [
+  ['Aria Vaskov',    day(2023, 1, 9),   'EU-West'],
+  ['Kenji Tanaka',   day(2023, 1, 22),  'APAC'],
+  ['Lucia Moreno',   day(2023, 4, 3),   'LATAM'],
+  ['Otto Bergman',   day(2023, 4, 15),  'EU-North'],
+  ['Priya Nair',     day(2024, 2, 12),  'US-East'],
+  ['Marcus Webb',    day(2024, 2, 28),  'EU-South'],
+  ['Sofia Rossi',    day(2024, 6, 1),   'US-West'],
+  ['Idris Okafor',   day(2024, 6, 18),  'MEA'],
+  ['Mei Chen',       day(2024, 11, 5),  'APAC'],
+  ['Noor Haddad',    day(2025, 3, 18),  'EU-West'],
+  ['Diego Silva',    day(2025, 3, 30),  'LATAM'],
+  ['Ingrid Larsson', day(2025, 8, 8),   'EU-North'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: records.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    setFilter({
+      field: 'joined', header: 'Joined', width: 200, showCount: true,
+      treeList: true,
+      treeListExpandDepth: 1, // open years, leave months collapsed
+      comparator: (a, b) => Number(a) - Number(b), // chronological
+      treeListPathGetter: (v) => {
+        const d = new Date(v);
+        return [String(d.getFullYear()), d.toLocaleString('en-US', { month: 'long' }), String(d.getDate())];
+      },
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }),
+    }),
+    { field: 'region', header: 'Region', width: 160 },
+  ],
+});
+
+grid.setData(records);
+`,
+    controls: [
+      {
+        label: '2023 only',
+        action: `const ts = []; for (let i = 0; i < grid.rows.getSourceRowCount(); i++) { const v = grid.rows.getSourceValue(i, 1); if (new Date(v).getFullYear() === 2023) ts.push(v); } grid.filter.set(1, 'in', ts)`,
+      },
+      {
+        label: '2024 only',
+        action: `const ts = []; for (let i = 0; i < grid.rows.getSourceRowCount(); i++) { const v = grid.rows.getSourceValue(i, 1); if (new Date(v).getFullYear() === 2024) ts.push(v); } grid.filter.set(1, 'in', ts)`,
+      },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'custom',
+    label: 'Custom groups + collapsed',
+    hint: 'Roles group under a discipline from a lookup (treeListPathGetter). treeListExpandDepth: 0 starts every group collapsed — expand "Engineering" to see its roles, and tick the group to select them all at once.',
+    code: `// treeListPathGetter can group by anything — here a lookup maps each role to a
+// discipline. treeListExpandDepth: 0 starts collapsed; expand to drill in.
+const DISCIPLINE = {
+  'Data Engineer': 'Engineering', 'Platform Eng': 'Engineering', 'Staff SWE': 'Engineering',
+  'SRE': 'Engineering', 'Solutions Eng': 'Engineering',
+  'Product Lead': 'Product', 'Researcher': 'Product',
+  'Designer': 'Design', 'Eng Manager': 'Management', 'Analyst': 'Analytics',
+};
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    setFilter({
+      field: 'role', header: 'Role', width: 220, showCount: true,
+      treeList: true,
+      treeListExpandDepth: 0, // start fully collapsed
+      treeListPathGetter: (v) => [DISCIPLINE[v] ?? 'Other', String(v)],
+    }),
+    { field: 'region', header: 'Region', width: 160 },
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Engineering', action: `grid.filter.set(1, 'in', ['Data Engineer', 'Platform Eng', 'Staff SWE', 'SRE', 'Solutions Eng'])` },
+      { label: 'Product', action: `grid.filter.set(1, 'in', ['Product Lead', 'Researcher'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Options reference
+
+| Option | What it does |
+|--------|--------------|
+| `treeList` | Render the value list as a collapsible tree. Default `false`. |
+| `treeListPathGetter` | `(value) => string[]` — the value's path, top level first. Default: a single level per value. |
+| `treeListFormatter` | `({ key, level, parents, isLeaf, value }) => string` — label each node. Default: the raw path segment. |
+| `treeListExpandDepth` | Open groups down to this depth (`0` = all collapsed). Default: every level. |
+| `comparator` | Order the raw values: `(a, b) => number`. Drives the branch and leaf order. |
+| `showCount` | Append each node's aggregated occurrence count. Default `false`. |
+
+Every other [List Filter](/features/filters/list-filter/) and
+[Value List](/features/filters/value-list/) option (`values`, `valueFormatter`,
+`miniFilter`, `selectAll`, `defaultToNothingSelected`) applies to a tree list too.
+
+## Next
+
+- [List Filter](/features/filters/list-filter/) — the checkbox filter this tree is a
+  view over, and how a selection maps to an `in` condition.
+- [Value List](/features/filters/value-list/) — supplying, sorting and
+  formatting the values the tree groups.
+- [Filter Search](/features/filters/filter-search/) — the search box that narrows the
+  tree and auto-opens matches.

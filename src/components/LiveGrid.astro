@@ -1,0 +1,311 @@
+---
+import { liveGrid } from "../config/site";
+import { demoRowCountLabel, demoViewportHeight } from "../config/demo-grid";
+import { rows, columns, sortRows, defaultSort, formatRevenue } from "../config/grid";
+
+// Static, accessible fallback shown before the grid mounts (and for no-JS / crawlers).
+const fallbackRows = sortRows(rows, defaultSort.key, defaultSort.dir);
+const filename = `customers.grid — ${demoRowCountLabel} rows · virtualized`;
+---
+
+<section class="pb-20" aria-labelledby="demo-heading" id="demo">
+  <div class="flex items-baseline justify-between mb-5 flex-wrap gap-2">
+    <h2
+      id="demo-heading"
+      class="font-display text-[38px] font-semibold tracking-[-0.025em] m-0"
+    >
+      {liveGrid.heading}
+    </h2>
+    <span class="font-mono text-xs text-faint font-medium">{liveGrid.caption}</span>
+  </div>
+
+  <div class="border border-border rounded-[18px] bg-surface overflow-hidden shadow-[var(--card-shadow)]">
+    <!-- window chrome -->
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-border-soft bg-surface-2">
+      <span class="w-3 h-3 rounded-full bg-[#ff5f56]" aria-hidden="true"></span>
+      <span class="w-3 h-3 rounded-full bg-[#ffbd2e]" aria-hidden="true"></span>
+      <span class="w-3 h-3 rounded-full bg-[#27c93f]" aria-hidden="true"></span>
+      <span class="ml-2.5 font-mono text-xs text-faint">{filename}</span>
+      <span
+        data-zg-timing
+        class="ml-auto font-mono text-[11px] text-teal-ink font-bold empty:hidden"
+      ></span>
+    </div>
+
+    <!-- real @zengrid/core mounts here on scroll; the table below is the fallback -->
+    <div data-zg-mount>
+      <div
+        data-zg-grid
+        class="hidden"
+        style={`height:${demoViewportHeight}px;`}
+        aria-label="Live demo: virtualized customer grid"
+      >
+      </div>
+
+      <table
+        data-zg-fallback
+        class="w-full border-collapse text-left"
+      >
+        <caption class="sr-only">
+          Sample of the customers dataset. The interactive, virtualized grid loads on scroll.
+        </caption>
+        <thead>
+          <tr>
+            {
+              columns.map((col) => (
+                <th
+                  scope="col"
+                  class:list={[
+                    "px-[18px] py-3 font-mono text-[11px] font-bold uppercase tracking-[0.06em] text-faint border-b border-border-soft bg-surface-2",
+                    col.align === "right" ? "text-right" : "text-left",
+                  ]}
+                >
+                  {col.label}
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody>
+          {
+            fallbackRows.map((row) => {
+              const key = row.status.toLowerCase();
+              return (
+                <tr>
+                  <td class="px-[18px] py-[13px] text-sm font-semibold border-b border-row-line">
+                    {row.name}
+                  </td>
+                  <td class="px-[18px] py-[13px] text-sm text-muted border-b border-row-line">
+                    {row.role}
+                  </td>
+                  <td class="px-[18px] py-[13px] text-sm text-muted border-b border-row-line">
+                    {row.region}
+                  </td>
+                  <td class="px-[18px] py-[13px] text-sm font-mono text-right border-b border-row-line">
+                    {formatRevenue(row.revenue)}
+                  </td>
+                  <td class="px-[18px] py-[13px] text-sm font-mono text-right border-b border-row-line">
+                    {formatRevenue(row.mrr)}
+                  </td>
+                  <td class="px-[18px] py-[13px] border-b border-row-line">
+                    <span
+                      class="font-mono text-[11px] font-bold px-[9px] py-[3px] rounded-full"
+                      style={`background:var(--pill-${key}-bg);color:var(--pill-${key}-ink);`}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Type-level polish the theme tokens can't express: the grid's own class
+     hooks styled to match the fallback table — mono/uppercase header labels in
+     `faint`, a flat header, and right-aligned mono figures in the Revenue
+     column. Scoped under [data-zg-grid] so nothing leaks. -->
+<style is:global>
+  [data-zg-grid] .zg-header,
+  [data-zg-grid] .zg-header-cell {
+    font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  [data-zg-grid] .zg-header {
+    box-shadow: none;
+  }
+  [data-zg-grid] .zg-cell[data-col="3"],
+  [data-zg-grid] .zg-cell[data-col="4"] {
+    justify-content: flex-end;
+    font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  }
+  [data-zg-grid] .zg-header-cell:nth-child(4),
+  [data-zg-grid] .zg-header-cell:nth-child(5) {
+    justify-content: flex-end;
+  }
+</style>
+
+<script>
+  import {
+    generateRows,
+    demoColumns,
+    demoColWidths,
+    demoRowHeight,
+    demoHeaderHeight,
+    DEMO_ROW_COUNT,
+    demoRowCountLabel,
+    zenGridTheme,
+  } from "../config/demo-grid";
+  // Core + enterprise grid CSS as one statically-emitted asset (see the file
+  // header for why the separate dynamic imports get dropped in the build).
+  import "../styles/zengrid.css";
+
+  const mount = document.querySelector<HTMLElement>("[data-zg-mount]");
+  const gridEl = mount?.querySelector<HTMLElement>("[data-zg-grid]");
+  const fallback = mount?.querySelector<HTMLElement>("[data-zg-fallback]");
+  const timingEl = document.querySelector<HTMLElement>("[data-zg-timing]");
+
+  const currentTheme = () =>
+    document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+
+  let started = false;
+
+  async function init() {
+    if (started || !gridEl || !mount) return;
+    started = true;
+
+    // Dynamic imports: the ~100KB grid engine + its stylesheet are fetched
+    // only when the demo is about to be seen, keeping initial load light.
+    const [{ Zengrid, NumberRenderer, ChipRenderer }] = await Promise.all([
+      import("@zengrid/enterprise"),
+    ]);
+
+    // Status chips read our own pill CSS variables, so they re-colour with the
+    // site theme automatically on re-render.
+    const chipRenderer = new ChipRenderer({
+      size: "small",
+      chips: (params) => {
+        const key = String(params.value).toLowerCase();
+        const cs = getComputedStyle(document.documentElement);
+        return [
+          {
+            label: String(params.value),
+            color: cs.getPropertyValue(`--pill-${key}-bg`).trim() || "#eee",
+            textColor: cs.getPropertyValue(`--pill-${key}-ink`).trim() || "#333",
+          },
+        ];
+      },
+    });
+
+    const revenueRenderer = new NumberRenderer({
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    });
+
+    const renderers: Record<string, unknown> = {
+      revenue: revenueRenderer,
+      mrr: revenueRenderer,
+      status: chipRenderer,
+    };
+
+    const columns = demoColumns.map((c, i) => ({
+      field: c.field,
+      header: c.header,
+      width: demoColWidths[i],
+      sortable: true,
+      ...(renderers[c.field] ? { renderer: renderers[c.field] } : {}),
+    }));
+
+    gridEl.classList.remove("hidden");
+
+    const t0 = performance.now();
+    const grid = new Zengrid(gridEl, {
+      rowCount: DEMO_ROW_COUNT,
+      colCount: demoColumns.length,
+      rowHeight: demoRowHeight,
+      headerHeight: demoHeaderHeight,
+      colWidth: demoColWidths,
+      columns: columns as any,
+      enableA11y: true,
+      enableColumnDrag: false,
+      theme: zenGridTheme(currentTheme()),
+    });
+    grid.setData(generateRows(DEMO_ROW_COUNT));
+    grid.render();
+
+    fallback?.remove();
+
+    // Honest timing: measure through to the first painted frame, so the pill
+    // reflects real generate + build + layout + paint of the full dataset —
+    // not just constructor time.
+    requestAnimationFrame(() => {
+      const ms = Math.round(performance.now() - t0);
+      if (timingEl) timingEl.textContent = `built in ${ms}ms`;
+    });
+
+    // Live readout: while the virtualized grid is scrolled, sample the real
+    // frame rate and the number of row nodes actually in the DOM — both read
+    // from the live page each frame, so the pill genuinely changes on scroll.
+    // The scrollable element's class differs across grid versions, so find it
+    // by behaviour: the descendant that actually overflows and scrolls.
+    const viewport =
+      [...gridEl.querySelectorAll<HTMLElement>("*")].find(
+        (el) =>
+          el.scrollHeight > el.clientHeight + 4 &&
+          /auto|scroll/.test(getComputedStyle(el).overflowY),
+      ) ?? gridEl;
+    const colCount = demoColumns.length;
+    const domRows = () =>
+      Math.round(gridEl.querySelectorAll(".zg-cell").length / colCount);
+
+    let rafId = 0;
+    let lastT = 0;
+    let fps = 60;
+    let scrolling = false;
+    let idleTimer: number | undefined;
+
+    const frame = (t: number) => {
+      if (lastT) fps += (1000 / (t - lastT) - fps) * 0.25;
+      lastT = t;
+      if (timingEl)
+        timingEl.textContent = `${Math.round(fps)} fps · ${domRows()} rows in DOM`;
+      if (scrolling) rafId = requestAnimationFrame(frame);
+    };
+
+    viewport.addEventListener(
+      "scroll",
+      () => {
+        if (!scrolling) {
+          scrolling = true;
+          lastT = 0;
+          rafId = requestAnimationFrame(frame);
+        }
+        window.clearTimeout(idleTimer);
+        idleTimer = window.setTimeout(() => {
+          scrolling = false;
+          cancelAnimationFrame(rafId);
+          if (timingEl)
+            timingEl.textContent = `${domRows()} rows in DOM · ${demoRowCountLabel} total`;
+        }, 350);
+      },
+      { passive: true },
+    );
+
+    // Keep the grid's theme in sync with the site toggle.
+    new MutationObserver(() => {
+      grid.setTheme(zenGridTheme(currentTheme()));
+      grid.refresh();
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+
+  // Defer the heavy work until the demo is near the viewport, so it never
+  // taxes initial page load.
+  if (mount) {
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        (entries, obs) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            obs.disconnect();
+            init();
+          }
+        },
+        { rootMargin: "200px" },
+      );
+      io.observe(mount);
+    } else {
+      init();
+    }
+  }
+</script>

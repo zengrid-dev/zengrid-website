@@ -1,0 +1,94 @@
+---
+title: Getting Started
+description: Install ZenGrid and render your first virtualized grid — then edit it live, right here in the docs.
+tableOfContents: false
+---
+
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import Playground from '../../components/docs/Playground.astro';
+
+ZenGrid renders only the rows you can see — a million-row dataset stays a handful
+of DOM nodes. This guide gets a grid on screen fast, then lets you edit it live.
+
+## Install
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh frame="none"
+    npm i @zengrid/core
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh frame="none"
+    pnpm add @zengrid/core
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```sh frame="none"
+    yarn add @zengrid/core
+    ```
+  </TabItem>
+</Tabs>
+
+## Try it live
+
+The panel below runs the **real `@zengrid/core`** in your browser — no sandbox,
+no sign-up. It opens on the rendered grid; switch to **Code** or **Split** with
+the toggle to edit the config. Changes re-render as you type (or hit **Run** /
+<kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd>) — try changing a `width`, renaming a
+`header`, toggling `sortable`, or reordering the columns.
+
+<Playground />
+
+:::note[Rows are arrays]
+`setData` takes an array of arrays, so each column reads its cell by
+**position** — the columns map to the data left-to-right. The `field` is just a
+label. Reorder a column and its data follows its slot.
+:::
+
+## The code, explained
+
+Here's the same setup as a copy-paste starting point.
+
+<Steps>
+
+1. Import the grid and its stylesheet.
+
+   ```ts
+   import { Zengrid } from '@zengrid/core';
+   import '@zengrid/core/dist/styles.css';
+   ```
+
+2. Create a grid against a mount element.
+
+   ```ts
+   const grid = new Zengrid(document.getElementById('app')!, {
+     rowCount: 1_000_000,
+     columns: [
+       { field: 'name', header: 'Name', width: 240, sortable: true },
+       { field: 'region', header: 'Region', width: 160 },
+       { field: 'revenue', header: 'Revenue', width: 160 },
+     ],
+   });
+   ```
+
+3. Feed it data — `setData` renders automatically.
+
+   ```ts
+   grid.setData(rows);
+   ```
+
+   Disabling auto-render? Call `grid.render()` yourself after `setData`.
+
+</Steps>
+
+## Where to next
+
+- Browse the [Feature Matrix](/feature-matrix/) to see what ships in each version and tier.
+- Read the [Release Notes](/release-notes/) for what changed between versions.
+- Explore individual features in the sidebar — each one includes a live, working demo.
+
+:::tip[Versioned docs]
+Use the version dropdown in the top bar to read the docs for the exact version
+you're running. Search is scoped to the version you're viewing.
+:::

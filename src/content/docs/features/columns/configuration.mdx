@@ -1,0 +1,79 @@
+---
+title: Configuration
+description: How columns are configured on the grid.
+tier: community
+sidebar:
+  order: 1
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Columns are configured through the options object you pass to `new Zengrid(el, options)`.
+The `columns` array describes each column, and a handful of grid-level options
+control column behavior that applies to the whole grid (header height, resizing,
+drag-to-reorder, and default widths).
+
+This page is the map for everything under **Columns** — start here, then follow
+the links to each topic.
+
+## The `columns` option
+
+Each entry in `columns` is a [column definition](/features/columns/column-definitions/).
+At minimum a column needs a `field` (which data key it reads) and a `header`.
+
+```ts
+import { Zengrid } from '@zengrid/core';
+
+const grid = new Zengrid(el, {
+  rowCount: data.length,
+  colCount: 4,
+  rowHeight: 36,
+  colWidth: 160,
+  columns: [
+    { field: 'name', header: 'Name', width: 240 },
+    { field: 'role', header: 'Role', width: 200 },
+    { field: 'region', header: 'Region', width: 160 },
+    { field: 'status', header: 'Status', width: 140 },
+  ],
+});
+```
+
+## Grid-level column options
+
+These `GridOptions` fields configure columns across the whole grid:
+
+| Option | Type | Default | Purpose |
+|--------|------|---------|---------|
+| `columns` | `ColumnDef[]` | — | Per-column definitions. |
+| `colWidth` | `number \| number[]` | — | Uniform or per-column fallback width. |
+| `headerHeight` | `number` | `40` | Height of the header row in pixels. |
+| `hideLastColumnBorder` | `boolean` | `false` | Drop the last column's right-edge border. |
+| `enableColumnResize` | `boolean` | `true` | Turn column resizing on/off. |
+| `columnResize` | `object` | — | [Resize behavior](/features/columns/column-sizing/) (zone width, auto-fit, handles). |
+| `enableColumnDrag` | `boolean` | `true` | Turn drag-to-reorder on/off. |
+| `columnDrag` | `object` | — | [Moving behavior](/features/columns/column-moving/) (ghost, drop indicator, touch). |
+| `overscanCols` | `number` | `5` | Columns rendered beyond the viewport. |
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount,
+  colCount,
+  rowHeight: 36,
+  colWidth: 160,
+  headerHeight: 44,
+  enableColumnResize: true,
+  enableColumnDrag: true,
+  columns,
+});
+```
+
+## Where to go next
+
+- [Column Definitions](/features/columns/column-definitions/) — every field on a column, and updating them at runtime.
+- [Headers](/features/columns/column-headers/) — header text, icons, tooltips, height, and styling.
+- [Sizing & Resizing](/features/columns/column-sizing/) — widths, constraints, and auto-fit.
+- [Custom Cell Components](/features/columns/custom-components/) — render your own cell content.

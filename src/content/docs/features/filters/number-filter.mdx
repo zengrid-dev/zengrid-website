@@ -1,0 +1,170 @@
+---
+title: Number Filter
+description: The built-in number filter — its comparison operators, ranges, the numeric input, and how to restrict, reorder, and pre-select operators per column — all demonstrated live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+The **number filter** is the popup a numeric column opens when you click its
+header funnel. A text column is the default, so you opt a column in by setting
+`filterType: 'number'` — that swaps the operator list to numeric comparisons and
+renders a numeric input (`<input type="number">`) in the popup.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  columns: [
+    { field: 'revenue', header: 'Revenue', filterable: true, filterType: 'number' },
+  ],
+});
+```
+
+Number filtering is **core** — no license, no plugin. Everything below configures
+the same built-in popup.
+
+## The operators
+
+A number filter offers nine operators. The comparisons work on the cell's raw
+numeric value; `between` takes **two** values (an inclusive range) and
+`blank` / `notBlank` take none.
+
+| Operator | Value | Matches when the cell… |
+|----------|-------|------------------------|
+| `equals` (default) | number | equals the value |
+| `notEquals` | number | does **not** equal the value |
+| `greaterThan` | number | is strictly greater |
+| `greaterThanOrEqual` | number | is greater or equal |
+| `lessThan` | number | is strictly less |
+| `lessThanOrEqual` | number | is less or equal |
+| `between` | [min, max] | falls inside the inclusive range |
+| `blank` | — | is empty / null |
+| `notBlank` | — | has a value |
+
+Non-numeric cells (and values that don't parse as numbers) never match a
+comparison — they're excluded rather than throwing.
+
+## Restrict, reorder, and pre-select the operators
+
+`filterParams` tailors the popup per column without leaving core — the same knobs
+as every other built-in filter:
+
+- **`filterOptions`** restricts and **reorders** which operators the dropdown
+  shows. Unknown entries are dropped; an empty result falls back to the full set,
+  so a typo can never produce an operator-less popup.
+- **`defaultOption`** is the operator a fresh condition opens on. It must be one
+  of the offered operators.
+
+```ts
+{
+  field: 'revenue', header: 'Revenue', filterable: true, filterType: 'number',
+  filterParams: {
+    filterOptions: ['between', 'greaterThan', 'lessThan'], // a range-first column
+    defaultOption: 'between',                              // popup opens on "Between"
+  },
+}
+```
+
+## Try it live
+
+Each tab configures the same grid a different way. Click a numeric header's funnel
+to open its popup, use the buttons to drive the filter API, or edit the code and
+re-run.
+
+export const cols = (extras = {}) => `  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'region',  header: 'Region',  width: 120 },
+    { field: 'revenue', header: 'Revenue', width: 160, renderer: currency, filterable: true, filterType: 'number'${extras.revenue ?? ''} },
+    { field: 'mrr',     header: 'MRR',     width: 140, renderer: currency, filterable: true, filterType: 'number'${extras.mrr ?? ''} },
+    { field: 'status',  header: 'Status',  width: 120, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'operators',
+    label: 'The operators',
+    hint: 'Open the Revenue funnel: try "Greater than" 150000, then "Between" 100000 and 200000 (two inputs appear), then "Is not blank". filterType: "number" is what swaps text operators for these numeric ones + a number input.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips
+// filterType: 'number' turns a filterable column into a number
+// filter — numeric operators (>, >=, <, <=, between, ...) and a
+// numeric input in the popup.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'api',
+    label: 'Ranges & the API',
+    hint: 'Every operator has an imperative twin. The buttons call grid.filter.set(col, op, value) directly — note "between" takes a [min, max] array. Column 3 is Revenue, column 4 is MRR.',
+    code: `// The popup is a front-end for grid.filter.*. set(col, op, value)
+// applies one condition; a "between" range passes a [min, max]
+// array. clear() removes every filter.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Revenue > 150k', action: `grid.filter.set(3, 'greaterThan', 150000)` },
+      { label: 'Revenue 100k–200k', action: `grid.filter.set(3, 'between', [100000, 200000])` },
+      { label: 'MRR ≤ 5k', action: `grid.filter.set(4, 'lessThanOrEqual', 5000)` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'tailor',
+    label: 'Tailor operators',
+    hint: 'Open Revenue: its dropdown is trimmed to Between / Greater than / Less than and opens on Between. Open MRR: only ≥ and ≤. filterParams.filterOptions restricts + reorders; defaultOption pre-selects.',
+    code: `// filterParams tailors each popup: filterOptions restricts and
+// reorders the operators; defaultOption picks the preselected one.
+// Handy for turning a column into a "range only" or "threshold only" filter.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${cols({
+  revenue: `,
+      filterParams: { filterOptions: ['between', 'greaterThan', 'lessThan'], defaultOption: 'between' }`,
+  mrr: `,
+      filterParams: { filterOptions: ['greaterThanOrEqual', 'lessThanOrEqual'], defaultOption: 'greaterThanOrEqual' }`,
+})}
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Driving the number filter from code
+
+Everything the popup does has an imperative twin on `grid.filter.*` (with grid
+shorthands) — `grid.filter.set(col, op, value)` for a single condition (pass a
+`[min, max]` array for `between`), `grid.filter.setColumn(col, conditions, logic)`
+to stack several with AND / OR. The buttons in the **Ranges & the API** tab call
+`grid.filter.set` directly. See the
+[Filtering Overview](/features/filters/overview/#the-filter-api) for the full API.
+
+## Next
+
+- [Date Filter](/features/filters/date-filter/) — comparisons over dates, with a
+  date picker in the popup.
+- [BigInt Filter](/features/filters/bigint-filter/) — the same comparisons for
+  arbitrarily large integers.
+- [Text Filter](/features/filters/text-filter/) — the default string filter.
+- [Column Filters](/features/filters/column-filters/) — enabling filters and
+  stacking AND / OR conditions.

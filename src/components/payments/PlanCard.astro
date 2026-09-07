@@ -1,0 +1,25 @@
+---
+import { priceLabel, seatLabel, type BuyPlan } from "../../config/plans";
+import CheckoutAction from "./CheckoutAction.astro";
+
+interface Props { plan: BuyPlan }
+const { plan } = Astro.props;
+---
+
+<article id={plan.key} aria-labelledby={`${plan.key}-name`} class="scroll-mt-6 rounded-[22px] bg-surface border border-border px-6 sm:px-8 py-8 flex flex-col">
+  <h2 id={`${plan.key}-name`} class:list={[
+    "font-mono text-xs font-bold uppercase tracking-[0.08em] m-0 mb-3",
+    plan.accent === "violet" ? "text-ink-violet" : "text-ink-coral",
+  ]}>{plan.name}</h2>
+  <p class="font-display text-[40px] font-extrabold tracking-[-0.03em] m-0">{priceLabel(plan)} <span class="text-sm font-sans font-normal tracking-normal text-muted">USD / year</span></p>
+  <p class="text-sm text-muted m-0 mb-4">{seatLabel(plan)}</p>
+  <p class="text-sm leading-[1.6] text-muted m-0 mb-5">{plan.summary}</p>
+  <ul class="list-none p-0 m-0 mb-7 flex flex-col gap-2.5">
+    {plan.includes.map((item) => (
+      <li class="flex items-start gap-2.5 text-[15px]">
+        <span class="text-ink-teal mt-0.5" aria-hidden="true">✓</span><span>{item}</span>
+      </li>
+    ))}
+  </ul>
+  <CheckoutAction plan={plan} />
+</article>

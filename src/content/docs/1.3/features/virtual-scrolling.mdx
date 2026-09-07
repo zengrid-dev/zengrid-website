@@ -1,0 +1,65 @@
+---
+title: Virtual Scrolling
+description: Render only the rows in view so huge datasets stay fast.
+since: 1.0.0
+tier: community
+slug: 1.3/features/virtual-scrolling
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import GridDemo from '../../../../components/docs/GridDemo.astro';
+
+<FeatureMeta since="1.0.0" tier="community" />
+
+## Introduction
+
+Virtual scrolling is the core of ZenGrid. Instead of putting every row in the
+DOM, the grid renders only the rows inside (and just around) the viewport and
+recycles those nodes as you scroll. A one-million-row dataset stays a few dozen
+nodes.
+
+## How it works
+
+The grid measures the scroll container, computes which row range is visible from
+the scroll offset and a fixed `rowHeight`, and renders just that window. A
+spacer preserves the full scroll height so the scrollbar behaves as if every row
+were present. As the offset changes, the same nodes are repositioned and
+repainted — no per-row create/destroy churn.
+
+This is on by default; there is no flag to enable. It is available in every
+tier, in every version of ZenGrid.
+
+## Types
+
+```ts
+interface GridOptions {
+  /** Total number of rows. The grid never materializes them all. */
+  rowCount: number;
+  /** Fixed row height in px, used to compute the visible window. */
+  rowHeight?: number;
+  /** Height of the scroll viewport in px. */
+  viewportHeight?: number;
+}
+```
+
+## Code
+
+```ts
+import { Grid } from '@zengrid/core';
+import '@zengrid/core/dist/styles.css';
+
+const grid = new Grid(el, {
+  rowCount: 1_000_000,
+  rowHeight: 46,
+  columns,
+});
+
+grid.setData(rows);
+grid.render();
+```
+
+## Live demo
+
+Scroll the grid below — watch how only a small window of rows is ever in the DOM.
+
+<GridDemo label="1,000,000 rows · only ~30 in the DOM" />

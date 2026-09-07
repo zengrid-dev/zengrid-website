@@ -1,0 +1,186 @@
+---
+title: Date Filter
+description: The built-in date filter — its After / Before / Between operators, the native date picker in the popup, how to store and display dates, and driving it from the filter API — all demonstrated live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+The **date filter** is the popup a date column opens when you click its header
+funnel. You opt a column in by setting `filterType: 'date'` — that swaps the
+operator list to date comparisons and renders a native date picker
+(`<input type="date">`) in the popup.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  columns: [
+    {
+      field: 'joined', header: 'Joined',
+      filterable: true, filterType: 'date',
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }),
+    },
+  ],
+});
+```
+
+Date filtering is **core** — no license, no plugin. Everything below configures
+the same built-in popup.
+
+## Store dates as timestamps, display them with a renderer
+
+The filter compares the cell's raw value on a numeric timeline, so store each
+date as a **timestamp** (or a `Date`) rather than a display string. Pair the
+column with core's `DateRenderer` (re-exported on `zg`) so the cell still reads as
+a human date:
+
+```ts
+const day = (y, m, d) => new Date(y, m - 1, d).getTime(); // local midnight
+const rows = [
+  ['Aria Vaskov', 'Analyst', day(2024, 3, 12)],
+  // …
+];
+
+// column:
+{ field: 'joined', header: 'Joined', filterable: true, filterType: 'date',
+  renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' }) }
+```
+
+`DateRenderer` accepts a `format` (`DD`, `MM`, `MMM`, `MMMM`, `YYYY`, …),
+`useRelativeLabels` for "Today"/"Yesterday", and an `emptyText` for null cells.
+
+## The operators
+
+A date filter offers six operators. `equals` / `after` / `before` take one date;
+`between` takes two (an inclusive range); `blank` / `notBlank` take none.
+
+| Operator | Popup label | Value | Matches when the cell… |
+|----------|-------------|-------|------------------------|
+| `equals` (default) | Equals | date | is that exact date |
+| `greaterThan` | After | date | falls after the value |
+| `lessThan` | Before | date | falls before the value |
+| `between` | Between | [from, to] | falls inside the inclusive range |
+| `blank` | Is blank | — | is empty / null |
+| `notBlank` | Is not blank | — | has a date |
+
+## Try it live
+
+Each tab configures the same grid a different way. Click a date header's funnel to
+pick dates with the native picker, use the buttons to drive the filter API, or
+edit the code and re-run.
+
+export const data = `const day = (y, m, d) => new Date(y, m - 1, d).getTime();
+const records = [
+  ['Aria Vaskov',  'Analyst',      day(2023, 1, 9),  day(2025, 1, 9)],
+  ['Kenji Tanaka', 'Data Engineer',day(2023, 4, 22), day(2025, 4, 22)],
+  ['Lucia Moreno', 'Product Lead', day(2023, 7, 3),  day(2025, 7, 3)],
+  ['Otto Bergman', 'Designer',     day(2023, 10, 15),day(2025, 10, 15)],
+  ['Priya Nair',   'Staff SWE',    day(2024, 1, 12), day(2026, 1, 12)],
+  ['Marcus Webb',  'SRE',          day(2024, 3, 12), day(2026, 3, 12)],
+  ['Sofia Rossi',  'Researcher',   day(2024, 6, 1),  day(2026, 6, 1)],
+  ['Idris Okafor', 'Platform Eng', day(2024, 9, 27), day(2026, 9, 27)],
+  ['Mei Chen',     'Analyst',      day(2024, 11, 5), day(2026, 11, 5)],
+  ['Noor Haddad',  'Eng Manager',  day(2025, 2, 18), day(2027, 2, 18)],
+  ['Diego Silva',  'Solutions Eng',day(2025, 5, 30), day(2027, 5, 30)],
+  ['Ingrid Larsson','Designer',    day(2025, 8, 8),  day(2027, 8, 8)],
+];`;
+
+export const cols = (extras = {}) => `  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'role', header: 'Role', width: 180 },
+    { field: 'joined', header: 'Joined', width: 170, filterable: true, filterType: 'date',
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' })${extras.joined ?? ''} },
+    { field: 'renewal', header: 'Renewal', width: 170, filterable: true, filterType: 'date',
+      renderer: new zg.DateRenderer({ format: 'DD MMM YYYY' })${extras.renewal ?? ''} },
+  ],`;
+
+export const variants = [
+  {
+    id: 'operators',
+    label: 'The operators',
+    hint: 'Open the Joined funnel: pick "After" and a 2024 date, then "Between" two dates (two pickers appear). Data is stored as timestamps; DateRenderer draws each cell as "DD MMM YYYY".',
+    code: `// In scope: Zengrid, mount, zg (for zg.DateRenderer)
+// filterType: 'date' turns a filterable column into a date filter
+// — After / Before / Between operators and a native date picker.
+// Store timestamps; render them with DateRenderer.
+${data}
+
+const grid = new Zengrid(mount, {
+  rowCount: records.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(records);
+`,
+  },
+  {
+    id: 'api',
+    label: 'Ranges & the API',
+    hint: 'The buttons call grid.filter.set(col, op, value) with timestamps — "between" takes a [from, to] array. Column 2 is Joined, column 3 is Renewal.',
+    code: `// The popup is a front-end for grid.filter.*. Pass a timestamp as
+// the value (or a [from, to] array for "between"). Here the buttons
+// filter Joined by After / Between and Renewal by Before.
+${data}
+
+const grid = new Zengrid(mount, {
+  rowCount: records.length,
+  rowHeight: 44,
+${cols()}
+});
+
+grid.setData(records);
+`,
+    controls: [
+      { label: 'Joined after 2024', action: `grid.filter.set(2, 'greaterThan', new Date(2024, 0, 1).getTime())` },
+      { label: 'Joined in 2024', action: `grid.filter.set(2, 'between', [new Date(2024, 0, 1).getTime(), new Date(2024, 11, 31).getTime()])` },
+      { label: 'Renewal before 2026', action: `grid.filter.set(3, 'lessThan', new Date(2026, 0, 1).getTime())` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'tailor',
+    label: 'Tailor operators',
+    hint: 'Open Joined: its dropdown is trimmed to After / Before and opens on After. filterParams.filterOptions restricts + reorders; defaultOption pre-selects — the same knobs as the text and number filters.',
+    code: `// filterParams tailors each popup: filterOptions restricts and
+// reorders the operators; defaultOption picks the preselected one.
+${data}
+
+const grid = new Zengrid(mount, {
+  rowCount: records.length,
+  rowHeight: 44,
+${cols({
+  joined: `,
+      filterParams: { filterOptions: ['greaterThan', 'lessThan'], defaultOption: 'greaterThan' }`,
+})}
+});
+
+grid.setData(records);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Driving the date filter from code
+
+Everything the popup does has an imperative twin on `grid.filter.*` (with grid
+shorthands) — `grid.filter.set(col, op, value)` for a single condition (pass a
+`[from, to]` array of timestamps for `between`),
+`grid.filter.setColumn(col, conditions, logic)` to stack several with AND / OR.
+The buttons in the **Ranges & the API** tab call `grid.filter.set` with
+timestamps. See the
+[Filtering Overview](/features/filters/overview/#the-filter-api) for the full API.
+
+## Next
+
+- [Number Filter](/features/filters/number-filter/) — the same comparison
+  operators over plain numbers.
+- [Text Filter](/features/filters/text-filter/) — the default string filter.
+- [List Filter](/features/filters/list-filter/) — an Excel-style checklist of
+  distinct values.

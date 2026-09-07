@@ -1,0 +1,208 @@
+---
+title: Filter Styling
+description: The per-column filter popup is theme-aware out of the box, and enterprise filterTheme() customizes it down to the minute level — scoped tokens, per-part classes and styles, or a full DOM slot override. Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The per-column filter popup — the panel that opens from a column's filter funnel —
+is **theme-aware in core**. It reads the grid's font, a coherent accent, radius and
+shadow from a dedicated `--zg-filter-*` token group, so it matches your grid without
+any configuration. Retheming it is as simple as overriding those tokens:
+
+```css
+.zg-grid {
+  --zg-filter-radius: 12px;
+  --zg-filter-accent: #7c3aed;   /* focus rings, primary button, segmented toggle */
+  --zg-filter-condition-bg: #faf5ff;
+}
+```
+
+That covers the common case. When you need to go further — target a single part, add
+your own classes, or replace a part's DOM entirely — reach for **`filterTheme()`**, an
+enterprise helper that drives the popup's customization surface at runtime:
+
+```ts
+import { filterTheme } from '@zengrid/enterprise/grid';
+
+const theme = filterTheme(grid, {
+  tokens: { '--zg-filter-radius': '12px', '--zg-filter-accent': '#7c3aed' },
+  parts: { applyBtn: { class: 'my-apply' }, valueInput: { style: { fontWeight: '600' } } },
+  render: { title: (ctx) => myTitle(ctx.columnDef) },
+});
+// later: theme.update({ ... }) or theme.detach()
+```
+
+`filterTheme()` is license-gated (it asserts the `filter-theme` feature). It's the
+ergonomic front-end to core's `filterUI.setCustomization` extension point, so the deep
+customization lives in the library, not in your app's CSS overrides.
+
+## The three levers
+
+- **`tokens`** — CSS custom properties set on the popup root. The cleanest path:
+  retint the whole popup by overriding `--zg-filter-*`.
+- **`parts`** — per-part `class` and inline `style`, composed over the defaults. Parts:
+  `popup`, `header`, `title`, `close`, `match`, `conditions`, `conditionRow`,
+  `operatorSelect`, `valueInput`, `valueInputTo`, `addBtn`, `actions`, `applyBtn`,
+  `clearBtn`.
+- **`render`** — replace a part's DOM outright. Return an element and it becomes that
+  part; return nothing and the default is kept. Replacing a control part
+  (`operatorSelect` / `valueInput*`) means your element becomes the control, so it must
+  expose a `.value`.
+
+export const tokens = `// In scope: Zengrid, mount, rows, currency, chips, filterTheme
+// Click the filter funnel on any column header to open the themed popup.
+const data = rows.slice(0, 60).map((r) => r.slice());
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true },
+    { field: 'region',  header: 'Region',  width: 150, filterable: true },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips, filterable: true },
+  ],
+});
+grid.setData(data);
+
+// Enterprise: retint the popup at the token level. Edit these and re-open a popup.
+filterTheme(grid, {
+  tokens: {
+    '--zg-filter-radius': '14px',
+    '--zg-filter-accent': '#7c3aed',
+    '--zg-filter-condition-bg': 'rgba(124, 58, 237, 0.08)',
+  },
+});
+`;
+
+export const parts = `// Per-part classes + inline styles. Inject the class CSS once (self-contained).
+if (!document.getElementById('demo-filter-parts')) {
+  const style = document.createElement('style');
+  style.id = 'demo-filter-parts';
+  style.textContent = \`
+    .demo-apply { text-transform: uppercase; letter-spacing: .04em; }
+    .demo-condition { border-style: dashed !important; }
+  \`;
+  document.head.appendChild(style);
+}
+
+const data = rows.slice(0, 60).map((r) => r.slice());
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency, filterable: true, filterType: 'number' },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips, filterable: true },
+  ],
+});
+grid.setData(data);
+
+// Target individual parts by name — add a class, an inline style, or both.
+filterTheme(grid, {
+  parts: {
+    applyBtn:      { class: 'demo-apply' },
+    conditionRow:  { class: 'demo-condition' },
+    valueInput:    { style: { fontWeight: '600' } },
+    title:         { style: { color: '#7c3aed' } },
+  },
+});
+`;
+
+export const render = `// Full slot override: replace the popup title with your own DOM.
+const data = rows.slice(0, 60).map((r) => r.slice());
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 220, filterable: true },
+    { field: 'role',   header: 'Role',   width: 190, filterable: true },
+    { field: 'region', header: 'Region', width: 150, filterable: true },
+    { field: 'status', header: 'Status', width: 130, renderer: chips, filterable: true },
+  ],
+});
+grid.setData(data);
+
+// render.title returns a custom element that becomes the popup's title part.
+filterTheme(grid, {
+  tokens: { '--zg-filter-accent': '#0ea5e9' },
+  render: {
+    title: (ctx) => {
+      const el = document.createElement('div');
+      el.style.cssText = 'font-weight:700;display:flex;align-items:center;gap:6px';
+      const label = ctx.columnDef.header?.text ?? ctx.columnDef.header ?? ctx.columnDef.field;
+      el.innerHTML = '<span>🔎</span><span>Filter · ' + label + '</span>';
+      return el;
+    },
+  },
+});
+`;
+
+export const variants = [
+  { id: 'tokens', label: 'Tokens', hint: 'Override --zg-filter-* to retint the whole popup. Open a column funnel, then edit the token values and re-open.', code: tokens },
+  { id: 'parts', label: 'Per-part class / style', hint: 'parts targets one piece at a time — applyBtn, conditionRow, valueInput, title… Add a class or an inline style.', code: parts },
+  { id: 'render', label: 'Render slot override', hint: 'render.title returns custom DOM that replaces the title part entirely. ctx carries columnDef + dataCol.', code: render },
+];
+
+<DemoPlayground variants={variants} enterprise height={460} />
+
+## Types
+
+```ts
+interface FilterPopupCustomization {
+  tokens?: Record<string, string>;                 // set on the popup root
+  parts?: Partial<Record<FilterPart, {
+    class?: string | string[];
+    style?: Record<string, string>;
+  }>>;
+  render?: Partial<Record<FilterPart, (ctx: FilterPartContext) => HTMLElement | void>>;
+}
+
+type FilterPart =
+  | 'popup' | 'header' | 'title' | 'close' | 'match' | 'conditions'
+  | 'conditionRow' | 'operatorSelect' | 'valueInput' | 'valueInputTo'
+  | 'addBtn' | 'actions' | 'applyBtn' | 'clearBtn';
+
+interface FilterPartContext {
+  part: FilterPart;
+  columnDef: ColumnDef;
+  dataCol: number;
+  defaultElement: HTMLElement;   // what the popup built by default
+}
+
+function filterTheme(grid, options?: FilterThemeOptions): FilterThemeHandle;
+
+interface FilterThemeHandle {
+  update(options: FilterThemeOptions): void;   // replace the customization
+  detach(): void;                              // restore the default popup
+}
+```
+
+## Notes
+
+- **Core is already theme-aware.** You only need `filterTheme()` for per-part or
+  slot-level control — plain retinting is just `--zg-filter-*` in your stylesheet.
+- **`filterTheme()` applies to the next open.** It re-opens cleanly; a popup that's
+  already open closes so the new customization takes effect.
+- **Replacing control parts is powerful but fragile** — your element becomes the
+  control and must expose a `.value` the popup can read on Apply.
+- **Tokens over `!important`.** Prefer token overrides and part classes to fighting
+  the defaults with specificity.
+
+## Next
+
+- [Filter Templates](/features/filters/filter-templates/) — save a filter and apply it in one click.
+- [Custom Column Filters](/features/filters/custom-column-filters/) — column-level filter configuration.
+- [Applying Filters](/features/filters/applying-filters/) — the `grid.filter.*` API.
+```

@@ -1,0 +1,237 @@
+---
+title: Grouping Toolbar
+description: An interactive toolbar of chips that lets users group, ungroup, and re-order the nesting at runtime — driven straight from the grouping manager.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The earlier pages set the grouping up in code. The **Grouping Toolbar** hands that
+control to the user: a toolbar of chips — one per grouped column — that sits above
+the grid. Remove a chip to ungroup, drag chips to re-order the nesting, or pick a
+new column from the add menu. It's a thin, presentational view over the same
+[`rowGrouping()`](/features/row-grouping/overview/) manager, so every change it
+makes flows through `setGroupBy`/`addGroup`/`removeGroup` — and, conversely, any
+**programmatic** re-grouping re-renders the chips to match.
+
+Build the panel with `rowGroupPanel()`: give it the manager it should drive and
+the `columns` it may group by (each a source index + label), then mount it above
+the grid.
+
+```ts
+const grouping = rowGrouping({ groupBy: [2] });   // start grouped by Region
+
+const grid = new Zengrid(mount, {
+  fullWidthProvider: grouping.provider,
+  columns: dataColumns,
+});
+grouping.attach(grid);
+grouping.setData(rows);
+
+const panel = rowGroupPanel({
+  grouping,                                        // the manager to drive + mirror
+  columns: [
+    { col: 1, label: 'Role' },
+    { col: 2, label: 'Region' },
+    { col: 5, label: 'Status' },
+  ],
+});
+mount.before(panel.element);                       // toolbar above the grid
+```
+
+## Customising the panel
+
+Everything the panel shows is tunable on `rowGroupPanel()`:
+
+- **`columns`** — the groupable columns (`{ col, label }`). The add menu lists the
+  ones not already grouped; chips read their label here.
+- **`allowRemove`** *(default `true`)* — show the `×` remove control on each chip.
+- **`allowReorder`** *(default `true`)* — let chips be dragged to change the
+  nesting order (outermost is leftmost).
+- **`allowAdd`** *(default `true`)* — show the add menu of ungrouped columns.
+- **`addLabel`** — the add-menu button text (default `Group by +`).
+- **`placeholder`** — the text shown when nothing is grouped.
+- **`chipLabel({ col, label, index })`** — return the text drawn on a chip
+  (e.g. prefix it, or number the nesting level).
+- **`onChange(groupBy)`** — called with the new grouping (source column indices)
+  after any panel-driven change.
+
+The panel also exposes `refresh()` (rebuild the chips) and `destroy()` (unsubscribe
+and detach). It subscribes to the manager, so you rarely need `refresh()` yourself.
+
+## Try it live
+
+export const basic = `// In scope: Zengrid, mount, rowGrouping, rowGroupPanel, currency
+// A live grouping toolbar. Start grouped by Region; use the "Group by +" menu to
+// nest another column, drag a chip to re-order the nesting, or click a chip's ×
+// to ungroup it. The grid re-groups instantly on every change.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2],                       // Region
+  aggregations: { 3: 'sum' },
+  aggLabel: (_c, v) => 'Revenue $' + Math.round(Number(v)).toLocaleString('en-US'),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+grouping.attach(grid);
+grouping.setData(data);
+
+const panel = rowGroupPanel({
+  grouping,
+  columns: [
+    { col: 1, label: 'Role' },
+    { col: 2, label: 'Region' },
+    { col: 5, label: 'Status' },
+  ],
+});
+panel.element.style.marginBottom = '8px';
+mount.before(panel.element);
+grid.__grouping = grouping;
+`;
+
+export const reorder = `// The panel mirrors the manager both ways. Start grouped Region -> Status; drag
+// the chips to swap the nesting, OR press the controls below to call setGroupBy()
+// in code — the chips re-order themselves to match. Outermost group = leftmost chip.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                    // Region, then Status
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 190 },
+    { field: 'role',   header: 'Role',   width: 160 },
+    { field: 'region', header: 'Region', width: 130 },
+    { field: 'status', header: 'Status', width: 120 },
+  ],
+});
+grouping.attach(grid);
+grouping.setData(data);
+
+const panel = rowGroupPanel({
+  grouping,
+  columns: [
+    { col: 1, label: 'Role' },
+    { col: 2, label: 'Region' },
+    { col: 5, label: 'Status' },
+  ],
+  onChange: (g) => console.log('grouped by', g),
+});
+panel.element.style.marginBottom = '8px';
+mount.before(panel.element);
+grid.__grouping = grouping;
+`;
+
+export const custom = `// A styled, ungrouped-to-start panel. It opens with a custom placeholder; add a
+// column from the "+ Add grouping" menu and each chip renders a numbered, upper-
+// cased label via chipLabel. Reordering is disabled here, so the order is fixed to
+// the sequence you add columns in.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [],                        // start ungrouped -> placeholder shows
+  aggregations: { 3: 'sum' },
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+grouping.attach(grid);
+grouping.setData(data);
+
+const panel = rowGroupPanel({
+  grouping,
+  columns: [
+    { col: 1, label: 'Role' },
+    { col: 2, label: 'Region' },
+    { col: 5, label: 'Status' },
+  ],
+  allowReorder: false,
+  addLabel: '+ Add grouping',
+  placeholder: 'No grouping yet — add a column to begin',
+  chipLabel: ({ label, index }) => (index + 1) + '. ' + label.toUpperCase(),
+});
+panel.element.style.marginBottom = '8px';
+mount.before(panel.element);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'Chips + add menu',
+    hint: 'Grouped by Region. Open "Group by +" to nest Role or Status, drag a chip to re-order, or click a chip × to ungroup. Every change re-groups the grid live.',
+    code: basic,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'reorder',
+    label: 'Reorder = re-nest',
+    hint: 'Region -> Status. Drag the chips to swap the nesting, or press the buttons to call setGroupBy() in code — the chips follow. The outermost group is the leftmost chip.',
+    code: reorder,
+    controls: [
+      { label: 'Region ▸ Status', action: 'grid.__grouping.setGroupBy([2, 5])' },
+      { label: 'Status ▸ Region', action: 'grid.__grouping.setGroupBy([5, 2])' },
+    ],
+  },
+  {
+    id: 'custom',
+    label: 'Custom + no reorder',
+    hint: 'Starts ungrouped with a custom placeholder. Add columns from "+ Add grouping"; chipLabel numbers + upper-cases each chip. allowReorder:false fixes the order to the add sequence.',
+    code: custom,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **The panel drives the manager — it owns no grouping state.** Chips are always
+  rendered from `grouping.getGroupBy()`, so the panel and the grid can never
+  disagree. A programmatic `setGroupBy`/`addGroup`/`removeGroup` re-renders the
+  chips automatically.
+- **Order is nesting.** The leftmost chip is the outermost group. Dragging a chip
+  calls `setGroupBy` with the re-ordered levels, preserving any per-level
+  `comparator`/`keyGetter` you configured on the manager.
+- **The add menu self-filters.** It only lists `columns` that aren't already
+  grouped; once every column is grouped, the button disappears.
+- **Mount it where you like.** `panel.element` is a plain element — put it above
+  the grid (`mount.before(...)`), in a card header, or anywhere in your layout.
+  Call `panel.destroy()` when you tear the grid down.
+
+## Next
+
+- [Expanding Groups](/features/row-grouping/expanding-groups/) — control which
+  groups start open and drive expand/collapse in code.
+- [Grouping Data](/features/row-grouping/grouping-data/) — the `setGroupBy` /
+  `addGroup` / `removeGroup` API the panel is built on.

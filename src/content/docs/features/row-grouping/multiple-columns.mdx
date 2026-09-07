@@ -1,0 +1,232 @@
+---
+title: Multiple Columns
+description: Give every grouping level its own leading column — and size, name, and render each one independently.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+[Group Display Types](/features/row-grouping/group-display-types/) introduced the
+three ways to surface a group hierarchy. This page is a deep dive on
+**`displayType: 'multipleColumns'`** — instead of collapsing every level into one
+indented column ([Single Column](/features/row-grouping/single-column/)), each
+`groupBy` level gets **its own leading column**. A row's group header sits in the
+column that matches its nesting level; leaf rows stay blank in the group columns
+and render as ordinary data rows. Aggregates render **in their own data column**,
+formatted by that column's `renderer`.
+
+Ask the manager for those columns with **`getGroupColumns()`** — it returns one
+column per grouping level — and spread them ahead of your data columns:
+
+```ts
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region, then Status — a column each
+  displayType: 'multipleColumns',
+  aggregations: { 3: 'sum' },      // renders in the real Revenue column
+});
+
+new Zengrid(mount, {
+  columns: [...grouping.getGroupColumns(), ...dataColumns],
+  fullWidthProvider: grouping.provider,
+});
+```
+
+Because the manager reshapes the rows to match the prepended columns, **keep your
+data columns contiguous from the first source index** — the group columns own the
+leading slots.
+
+## Customising each group column
+
+With one column per level, the tuning is **per column**. All of these are options
+on `rowGrouping()`:
+
+- **`groupColumnLabel(index, spec)`** — the header text for each group column.
+  `index` is the level (outermost is `0`) and `spec` carries the `col` it groups
+  by, so you can name each column after its source column.
+- **`groupColumnWidth`** — a single number sizes every group column the same, or
+  pass a **function** `(index, spec) => number` to size each level's column
+  independently (e.g. a wide `Region` column and a narrow `Status` one).
+- **`suppressCount`** — hide the `(N)` leaf-count suffix after each label.
+- **`groupCellRenderer(params)`** — draw the group cell yourself. It's called for
+  every group column, so branch on **`params.level`** to render each level
+  differently. Return an HTML string or an `HTMLElement`; the chevron and
+  click-to-toggle stay wired.
+
+```ts
+const labels = { 2: 'Region', 5: 'Status' };
+
+rowGrouping({
+  groupBy: [2, 5],
+  displayType: 'multipleColumns',
+  groupColumnLabel: (_index, spec) => labels[spec.col],
+  groupColumnWidth: (_index, spec) => (spec.col === 2 ? 220 : 140),
+  groupCellRenderer: ({ label, level }) =>
+    `${level === 0 ? '🌐' : '•'} <strong>${label}</strong>`,
+});
+```
+
+## Try it live
+
+export const basic = `// In scope: Zengrid, mount, currency, rowGrouping
+// The default multiple-columns layout: Region -> Status, each level in its OWN
+// leading column. getGroupColumns() returns one column per groupBy level; the
+// Revenue aggregate renders in the real Revenue column.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region, then Status
+  displayType: 'multipleColumns',
+  aggregations: { 3: 'sum' },      // 3 = Revenue -> rendered in its own column
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),  // two columns: Group 1, Group 2
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const namedSized = `// Name and size each group column independently. groupColumnLabel(index, spec)
+// reads spec.col to title each column; groupColumnWidth as a function gives the
+// Region column more room than Status.
+const data = rows.slice(0, 200);
+const labels = { 2: 'Region', 5: 'Status' };
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region, then Status
+  displayType: 'multipleColumns',
+  aggregations: { 3: 'sum' },
+  groupColumnLabel: (_index, spec) => labels[spec.col],
+  groupColumnWidth: (_index, spec) => (spec.col === 2 ? 220 : 140),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),  // 'Region' (220px), 'Status' (140px)
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const perLevel = `// Render each level's column differently. groupCellRenderer runs for every group
+// column, so branch on params.level: a globe + bold Region up top, a coloured
+// status pill below. suppressCount drops the (N) suffix.
+const data = rows.slice(0, 200);
+const labels = { 2: 'Region', 5: 'Status' };
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region, then Status
+  displayType: 'multipleColumns',
+  aggregations: { 3: 'sum' },
+  suppressCount: true,
+  groupColumnLabel: (_index, spec) => labels[spec.col],
+  groupColumnWidth: (_index, spec) => (spec.col === 2 ? 200 : 160),
+  groupCellRenderer: ({ label, level }) => {
+    if (level === 0) return '🌐 <strong>' + label + '</strong>';
+    return (
+      '<span style="padding:1px 10px;border-radius:10px;font-size:12px;' +
+      'background:var(--zg-accent,#2563eb);color:#fff">' + label + '</span>'
+    );
+  },
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'A column per level',
+    hint: 'The default multiple-columns layout: Region and Status each get their own leading column (Group 1, Group 2). The Revenue aggregate renders in the real Revenue column. Collapse a Region and watch its Status column blank out.',
+    code: basic,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'named-sized',
+    label: 'Name & size',
+    hint: 'groupColumnLabel(index, spec) titles each column after its source column; groupColumnWidth as a function makes the Region column (220px) wider than Status (140px). Change the widths and re-run.',
+    code: namedSized,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'per-level',
+    label: 'Per-level cell',
+    hint: 'groupCellRenderer branches on params.level: a globe + bold label for Region, a coloured pill for Status. suppressCount hides the (N). The chevron and toggle stay wired in both columns.',
+    code: perLevel,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **One column per level.** `getGroupColumns()` returns exactly as many columns as
+  you have `groupBy` levels. Each header lands in the column matching its nesting
+  depth; deeper columns blank out for shallower rows. For the one-column,
+  indent-by-depth layout use [Single Column](/features/row-grouping/single-column/).
+- **Per-column, not per-level indent.** `indentPerLevel` is a single-column concern
+  and is ignored here — the hierarchy is expressed by *which column* holds the
+  header, not by indentation.
+- **Aggregates render in their column.** With no full-width header to host them,
+  each configured aggregate lands in its real data column, formatted by that
+  column's own `renderer` (here, `currency`).
+- **`groupCellRenderer` runs for every group column.** Branch on `params.level` to
+  style each level differently; it only replaces the label + count, so the chevron
+  and click-to-toggle stay wired around your content.
+- **Keep data columns contiguous.** With positional array rows the group columns
+  take the leading slots; your data columns must follow in source order so each
+  cell lands under the right column.
+
+## Next
+
+- [Group Rows](/features/row-grouping/group-rows/) — the full-width header layout.
+- [Grouping Toolbar](/features/row-grouping/grouping-toolbar/) — drag columns to
+  group interactively.

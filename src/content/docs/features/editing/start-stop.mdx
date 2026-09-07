@@ -1,0 +1,205 @@
+---
+title: Start / Stop Editing
+description: Every way a cell edit begins and ends — double-click, Enter, single-click, type-to-edit — and how to commit, cancel, or keep the editor open, live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+An edit has a lifecycle: it **starts** (an editor opens on a cell), then **stops**
+— either **committing** the new value or **cancelling** back to the original.
+`@zengrid/core` wires the common triggers out of the box and lets you reshape
+them through the `editing` option on `GridOptions`:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns,
+  editing: {
+    singleClick: true,                    // open on one click, not two
+    typeToEdit: true,                     // start typing to edit
+    enterStartsEditing: false,            // reserve Enter for navigation
+    stopEditingWhenCellsLoseFocus: false, // clicking away keeps the editor open
+  },
+});
+```
+
+Only `editable` columns with an `editor` ever open — everything below applies to
+those cells; read-only columns ignore all of it.
+
+## Starting an edit
+
+By default an edit starts when the user:
+
+| Trigger | Default |
+|---------|---------|
+| **Double-clicks** an editable cell | Always on |
+| Selects a cell and presses **Enter** | `enterStartsEditing: true` |
+| **Single-clicks** an editable cell | `singleClick: false` — opt in |
+| Starts **typing** on the active cell | `typeToEdit: false` — opt in |
+| Calls `grid.editing.startEdit(cell)` | Programmatic |
+
+`typeToEdit` seeds the editor with the character typed and puts the caret at the
+end, so typing `Ac` then continuing gives `Acme` — spreadsheet-style
+type-to-replace. Set `enterStartsEditing: false` when you want Enter to move the
+selection instead of opening an editor.
+
+## Stopping an edit
+
+While an editor is open:
+
+| Action | Result |
+|--------|--------|
+| **Enter** / **Tab** | Commit the value and close. |
+| **Escape** | Cancel — restore the original value. |
+| Click another cell / outside | Commit, when `stopEditingWhenCellsLoseFocus` (default). |
+| Scroll the cell out of view | Cancel (the editor can't float over nothing). |
+| `grid.editing.commitEdit()` / `cancelEdit()` | Commit / cancel from code. |
+
+Set `stopEditingWhenCellsLoseFocus: false` to keep the editor open when focus
+moves elsewhere — only Enter, Tab, or Escape will then close it. If a commit
+fails validation, `editing.invalidEditMode` decides what happens — see
+[Validation](/features/editing/validation/).
+
+## Try it live
+
+Each tab is a different start/stop setup. Edit the code and watch the grid react.
+
+export const variants = [
+  {
+    id: 'single',
+    label: 'Single-click to edit',
+    hint: 'singleClick:true opens the editor on one click instead of two — click any Name/Role/Revenue/MRR cell. Double-click and Enter still work. Region has no editor, so it never opens.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// singleClick opens the editor on the first click. Double-click and Enter
+// keep working; read-only columns (Region) ignore it.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  editing: {
+    singleClick: true,
+  },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'type',
+    label: 'Type to edit',
+    hint: 'typeToEdit:true starts an edit the moment you type on a selected cell — the character seeds the editor and the caret sits at the end, so keep typing to append. enterStartsEditing:false frees Enter for navigation. Click a Name cell once to select it, then just start typing.',
+    code: `// typeToEdit: select a cell, then start typing — the first character
+// seeds the editor. enterStartsEditing:false keeps Enter for navigation.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  editing: {
+    typeToEdit: true,
+    enterStartsEditing: false,
+  },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'stop',
+    label: 'Keep the editor open',
+    hint: 'stopEditingWhenCellsLoseFocus:false keeps the editor open when you click another cell — only Enter, Tab, or Escape close it. Double-click Name, then click elsewhere: the editor stays. Set it back to true (the default) for spreadsheet-style click-away save.',
+    code: `// Reshape the STOP behaviour. With focus-loss commit turned off, the
+// editor persists until an explicit Enter / Tab / Escape.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  editing: {
+    stopEditingWhenCellsLoseFocus: false,
+  },
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'api',
+    label: 'Start / stop from code',
+    hint: 'grid.editing.startEdit opens an editor; pass a second argument to seed it (type-to-edit from code). commitEdit / cancelEdit close it. The readout shows the edit lifecycle events. Run the buttons in order.',
+    code: `// grid.editing is the programmatic handle for start/stop.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 190, editable: true, editor: 'text' },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, editable: true, editor: 'number', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, editable: true, editor: 'number', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+
+// A small readout so you can watch the edit lifecycle fire.
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-api-readout');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-api-readout';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft);white-space:pre-wrap';
+  mount.parentElement.insertBefore(out, mount);
+}
+grid.say = (m) => { if (out) out.textContent = m; };
+grid.say('Ready — start an edit, then commit or cancel it.');
+
+grid.on('edit:start',  (e) => grid.say('edit:start — cell (' + e.cell.row + ',' + e.cell.col + ')'));
+grid.on('edit:commit', (e) => grid.say('edit:commit — (' + e.cell.row + ',' + e.cell.col + ')  ' + JSON.stringify(e.oldValue) + ' → ' + JSON.stringify(e.newValue)));
+grid.on('edit:cancel', (e) => grid.say('edit:cancel — (' + e.cell.row + ',' + e.cell.col + ')  kept ' + JSON.stringify(e.value)));
+`,
+    controls: [
+      { label: "startEdit Name (row 0)", action: `grid.editing.startEdit({ row: 0, col: 0 })` },
+      { label: "startEdit + seed 'Acme' (row 0)", action: `grid.editing.startEdit({ row: 0, col: 0 }, 'Acme')` },
+      { label: 'commitEdit()', action: `grid.editing.commitEdit()` },
+      { label: 'start + cancel (row 1)', action: `const before = grid.rows.getSourceValue(1, 0); grid.editing.startEdit({ row: 1, col: 0 }, 'Discarded'); grid.editing.cancelEdit(); grid.say('start + cancelEdit — value kept ' + JSON.stringify(grid.rows.getSourceValue(1, 0)) + ' (unchanged: ' + (before === grid.rows.getSourceValue(1, 0)) + ')')` },
+      { label: 'isEditing() / getActive()', action: `grid.say('isEditing() → ' + grid.editing.isEditing() + '   getActive() → ' + JSON.stringify(grid.editing.getActive()))` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Parsing Values](/features/editing/parsing-values/) — turn what the user types
+  into the value your data holds.
+- [Saving Values](/features/editing/saving-values/) — where the committed value
+  goes and how to intercept it.
+- [Provided Cell Editors](/features/editing/provided/text/) — the built-in
+  editors and their options.

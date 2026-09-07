@@ -1,0 +1,11 @@
+/*
+ * Combined grid stylesheet for the demos: core base CSS + enterprise feature CSS.
+ *
+ * Imported statically (as one file) by every live demo shell. Using `@import`
+ * here lets Vite's CSS pipeline inline both sources into a single emitted asset
+ * — the reliable path. Importing the enterprise stylesheet on its own (a plain,
+ * no-@import CSS behind an out-of-root path alias) via a dynamic import() gets
+ * dropped from the production build, so the grid mounts unstyled.
+ */
+@import '@zengrid/core/dist/styles.css';
+@import '@zengrid/enterprise/styles.css';

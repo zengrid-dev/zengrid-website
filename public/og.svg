@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="Manrope, 'Segoe UI', system-ui, sans-serif">
+  <rect width="1200" height="630" fill="#f8f5ef"/>
+  <rect x="1" y="1" width="1198" height="628" fill="none" stroke="#e6e0d5" stroke-width="2"/>
+
+  <!-- logo -->
+  <g transform="translate(80,80)">
+    <rect width="64" height="64" rx="18" fill="#211d1a"/>
+    <rect x="12" y="12" width="17" height="17" rx="4" fill="#f2764e"/>
+    <rect x="35" y="12" width="17" height="17" rx="4" fill="#e9b949"/>
+    <rect x="12" y="35" width="17" height="17" rx="4" fill="#57b6a6"/>
+    <rect x="35" y="35" width="17" height="17" rx="4" fill="#9b7ed6"/>
+    <text x="84" y="44" font-size="38" font-weight="800" letter-spacing="-1" fill="#211d1a">ZenGrid</text>
+  </g>
+
+  <!-- headline -->
+  <text x="80" y="320" font-size="86" font-weight="800" letter-spacing="-3" fill="#211d1a">Your data is huge.</text>
+  <text x="80" y="420" font-size="86" font-weight="800" letter-spacing="-3" fill="#f2764e">Your DOM isn't.</text>
+
+  <!-- subtitle -->
+  <text x="80" y="500" font-size="30" font-weight="500" fill="#6b6258">Performance-first virtual grid for the web · TypeScript-first · zero jank</text>
+
+  <!-- install pill -->
+  <g transform="translate(80,540)">
+    <rect width="360" height="52" rx="12" fill="#211d1a"/>
+    <text x="24" y="34" font-size="22" font-family="'JetBrains Mono', monospace" fill="#f8f5ef">$ npm i @zengrid/core</text>
+  </g>
+</svg>

@@ -1,0 +1,217 @@
+---
+title: Filter Search
+description: The search box above a List Filter's value list — narrow a long list as you type, match case-sensitively or with a custom rule, debounce the input, and press Enter to isolate the matches. Configured on the enterprise setFilter() miniFilter option, demonstrated live.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The **Filter Search** is the search box that sits above a
+[List Filter](/features/filters/list-filter/)'s value list. As the reader types it
+narrows the checkboxes to the matching values — indispensable once a column has
+more distinct values than fit on screen. It never changes the grid's rows on its
+own; it only filters *which values the reader can see and tick*, and ticking
+still drives the same `in` condition.
+
+It's the `miniFilter` option on the enterprise `setFilter()` helper. Pass `true`
+(or omit it) for the default box, `false` to hide it, or an object to tune how it
+matches and behaves:
+
+```ts
+import { setFilter } from '@zengrid/enterprise';
+
+setFilter({
+  field: 'region', header: 'Region',
+  miniFilter: {
+    placeholder: 'Find a region…',   // empty-box hint
+    caseSensitive: false,            // fold case (default)
+    debounceMs: 0,                   // filter on every keystroke
+    selectVisibleOnEnter: true,      // Enter checks the matches, unchecks the rest
+  },
+});
+```
+
+## Searching
+
+By default the box does a **case-insensitive substring** match against each
+value's displayed label. Typing `eu` keeps every region containing those letters;
+clearing the box restores the full list. The **(Select all)** row always spans
+the *currently visible* rows, so you can search, tick select-all, and check just
+the matches.
+
+Set `placeholder` to change the empty-box hint, and `caseSensitive: true` when
+case matters — a code column where `AB` and `ab` are different values.
+
+## Enter to isolate
+
+With `selectVisibleOnEnter` (on by default), pressing **Enter** in the box checks
+exactly the values that currently match and unchecks the rest — type a few
+letters, hit Enter, and only those values are selected, ready to Apply. Turn it
+off (`selectVisibleOnEnter: false`) when you'd rather Enter did nothing and the
+reader ticks boxes by hand.
+
+## Custom matching
+
+`matcher: ({ value, label, query }) => boolean` replaces the substring test
+entirely. Return `true` to keep a value visible. You get the raw `value`, its
+`label`, and the trimmed `query`, so you can match on a different field, do a
+prefix/word-start test, score fuzzily, or search a synonym table:
+
+```ts
+setFilter({
+  field: 'role', header: 'Role',
+  // Match at the start of the label instead of anywhere inside it.
+  miniFilter: { matcher: ({ label, query }) =>
+    label.toLowerCase().startsWith(query.toLowerCase()) },
+});
+```
+
+When you supply a `matcher`, `caseSensitive` no longer applies — casing is
+whatever your predicate does.
+
+## Debouncing
+
+For a very long value list, `debounceMs` waits that many milliseconds after the
+last keystroke before re-filtering, so a fast typist doesn't trigger a rebuild on
+every character. Default `0` filters immediately. (Enter still isolates right
+away, flushing any pending debounce.)
+
+## Try it live
+
+Open a column's funnel and type in its search box. Watch the list narrow, press
+**Enter** to isolate the matches, then Apply. Each variant configures the box
+differently — compare how they match.
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'Search & isolate',
+    hint: 'Open the Region funnel and type "EU" — the list narrows to the EU-* regions. Press Enter to check just those and Apply, or tick (Select all) to grab every visible match. The placeholder is customised via miniFilter.placeholder.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, setFilter, currency, chips
+// The default mini filter with just a custom placeholder — case-insensitive
+// substring match, and Enter checks the matches (selectVisibleOnEnter default).
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'role', header: 'Role', width: 180 },
+    setFilter({
+      field: 'region', header: 'Region', width: 200, showCount: true,
+      miniFilter: { placeholder: 'Find a region…' },
+    }),
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'EU regions', action: `grid.filter.set(2, 'in', ['EU-West', 'EU-North', 'EU-South'])` },
+      { label: 'US regions', action: `grid.filter.set(2, 'in', ['US-East', 'US-West'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'matching',
+    label: 'Case & custom match',
+    hint: 'Region is case-sensitive: type "eu" (nothing) then "EU" (matches). Role uses a custom matcher that matches the START of the label: type "S" to see only Staff SWE / SRE / Solutions Eng — a mid-word "ng" matches nothing.',
+    code: `// Region matches case-sensitively; Role swaps the substring test for a
+// start-of-label matcher (matcher wins over caseSensitive).
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    setFilter({
+      field: 'role', header: 'Role', width: 200, showCount: true,
+      miniFilter: {
+        placeholder: 'Starts with…',
+        matcher: ({ label, query }) =>
+          label.toLowerCase().startsWith(query.toLowerCase()),
+      },
+    }),
+    setFilter({
+      field: 'region', header: 'Region', width: 200,
+      miniFilter: { placeholder: 'Case-sensitive…', caseSensitive: true },
+    }),
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Eng roles (starts "S")', action: `grid.filter.set(1, 'in', ['Staff SWE', 'SRE', 'Solutions Eng'])` },
+      { label: 'APAC only', action: `grid.filter.set(2, 'in', ['APAC'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'behaviour',
+    label: 'Debounce & off',
+    hint: 'Role debounces input by 250ms and disables Enter-to-isolate (selectVisibleOnEnter: false) — pressing Enter does nothing, tick boxes by hand. Region hides the search box entirely (miniFilter: false) since its list is short.',
+    code: `// Role: debounce the keystrokes and turn OFF Enter-to-isolate.
+// Region: no search box at all (miniFilter: false) — the list is short.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    setFilter({
+      field: 'role', header: 'Role', width: 200, showCount: true,
+      miniFilter: {
+        placeholder: 'Type to filter (debounced)…',
+        debounceMs: 250,
+        selectVisibleOnEnter: false,
+      },
+    }),
+    setFilter({
+      field: 'region', header: 'Region', width: 200,
+      miniFilter: false, // short list, no search box
+    }),
+    { field: 'status', header: 'Status', width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Analysts', action: `grid.filter.set(1, 'in', ['Analyst'])` },
+      { label: 'MEA + LATAM', action: `grid.filter.set(2, 'in', ['MEA', 'LATAM'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Options reference
+
+| Option | What it does |
+|--------|--------------|
+| `miniFilter` | `true`/omit for the default box, `false` to hide it, or a config object. |
+| `miniFilter.placeholder` | Empty-box hint text. Default `'Search…'`. |
+| `miniFilter.caseSensitive` | Match the reader's text case-sensitively. Default `false`. Ignored when `matcher` is set. |
+| `miniFilter.matcher` | `({ value, label, query }) => boolean` — replace the substring test with your own rule. |
+| `miniFilter.debounceMs` | Wait this long after the last keystroke before re-filtering. Default `0`. |
+| `miniFilter.selectVisibleOnEnter` | Pressing Enter checks the matches and unchecks the rest. Default `true`. |
+
+Every other [List Filter](/features/filters/list-filter/) option (`values`,
+`valueFormatter`, `comparator`, `selectAll`, `showCount`,
+`defaultToNothingSelected`, `treeList`) applies alongside the mini filter.
+
+## Next
+
+- [List Filter](/features/filters/list-filter/) — the checkbox filter this search
+  box narrows, and how a selection maps to an `in` condition.
+- [Value List](/features/filters/value-list/) — supplying, sorting and
+  formatting the values the box searches.
+- [Hierarchical Values](/features/filters/hierarchical-values/) — render the searched values as a
+  collapsible hierarchy; the box auto-opens matching groups.

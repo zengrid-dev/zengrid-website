@@ -1,0 +1,343 @@
+---
+title: Styling Cells
+description: Style individual cells with classes and inline styles — per-column and value-driven, from static rules to grid-wide conditional formatting. Live, editable examples in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Cell styling paints a **single cell** — a red figure for a loss, a teal wash on a
+standout number, a monospace column of IDs. It comes in two layers:
+
+- **Per column (Community).** Set `cellClass` and `cellStyle` right on a
+  `ColumnDef`. Each is a **static value** applied to every cell in that column, or
+  a **callback** evaluated per cell against its own value and row. No license
+  needed.
+- **Grid-wide (Enterprise).** For value-driven rules that span all columns —
+  classic *conditional formatting*, heatmaps, cross-column highlights — use
+  `cellStyling()` and hand it to the grid as `cellStyleProvider`. It sees every
+  cell, so you describe the rules once instead of wiring each column.
+
+Both feed the same renderer, so they compose: a column's own styling and any
+grid-wide provider are merged onto the cell (the provider wins on conflicts).
+
+`cellClass` hooks into *your* stylesheet, so the styling lives in CSS and composes
+with hover, selection and your design tokens. `cellStyle` is inline — self-contained
+and highest precedence, so it always wins.
+
+## Per column (Community)
+
+Declare styling on the column itself:
+
+```ts
+const grid = new Zengrid(el, {
+  columns: [
+    {
+      field: 'revenue',
+      header: 'Revenue',
+      // Static applies to every cell; a callback is evaluated per cell.
+      cellStyle: ({ value }) =>
+        (value as number) > 200000 ? { color: '#2d9c8f', fontWeight: 700 } : null,
+      cellClass: ({ value }) => ((value as number) < 60000 ? 'cool' : null),
+    },
+  ],
+});
+```
+
+Each callback receives `{ row, col, field, value, data }` — the cell's value plus
+its row index and record. Return the class/style, or `null`/`undefined` for none.
+Style keys may be camelCase (`backgroundColor`) or kebab-case (`background-color`);
+custom properties (`--accent`) pass through untouched. `cellClass` accepts a single
+class, an array, or a space-separated string — they're merged and de-duplicated.
+
+export const perColStyle = `// In scope: Zengrid, mount, rows, currency, chips
+// cellStyle on a column: a static object styles every cell; a callback is
+// evaluated per cell. Inline styles need no stylesheet and always win.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 220 },
+    { field: 'role',   header: 'Role',   width: 190 },
+    { field: 'region', header: 'Region', width: 150 },
+    {
+      field: 'revenue', header: 'Revenue', width: 150, renderer: currency,
+      // Emphasise standout accounts. Lower the threshold to light up more.
+      cellStyle: ({ value }) =>
+        value > 200000 ? { color: 'var(--teal-ink)', fontWeight: 700 } : null,
+    },
+    {
+      field: 'mrr', header: 'MRR', width: 130, renderer: currency,
+      // Static object: applies to every cell in the column.
+      cellStyle: { fontVariantNumeric: 'tabular-nums', color: 'var(--muted)' },
+    },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const perColClass = `// cellClass adds YOUR class names to a column's cells — the styling lives in CSS,
+// so it composes with hover, selection and your tokens. Define the classes once
+// (injected here so the demo is self-contained):
+if (!document.getElementById('demo-cell-css')) {
+  const style = document.createElement('style');
+  style.id = 'demo-cell-css';
+  style.textContent = \`
+    .zg-cell.cell-hot  { color: var(--teal-ink); font-weight: 700;
+                         background: rgba(45, 156, 143, 0.10); }
+    .zg-cell.cell-cool { color: var(--muted); font-style: italic; }
+  \`;
+  document.head.appendChild(style);
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 220 },
+    { field: 'role',   header: 'Role',   width: 190 },
+    { field: 'region', header: 'Region', width: 150 },
+    {
+      field: 'revenue', header: 'Revenue', width: 150, renderer: currency,
+      cellClass: ({ value }) => {
+        if (value > 200000) return 'cell-hot';
+        if (value < 60000)  return 'cell-cool';
+        return null;
+      },
+    },
+    { field: 'mrr',    header: 'MRR',    width: 130, renderer: currency },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const perColMixed = `// A column can carry a static class AND a per-cell callback on a sibling — mix
+// freely. Here the ID-like MRR column gets a static tabular class, while Region
+// tags each cell by value.
+if (!document.getElementById('demo-cell-css2')) {
+  const style = document.createElement('style');
+  style.id = 'demo-cell-css2';
+  style.textContent = \`
+    .zg-cell.tabular { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+    .zg-cell.apac    { box-shadow: inset 3px 0 0 var(--coral); }
+  \`;
+  document.head.appendChild(style);
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 220 },
+    { field: 'role',   header: 'Role',   width: 190 },
+    {
+      field: 'region', header: 'Region', width: 150,
+      // A space-separated string / array of classes is merged + de-duped.
+      cellClass: ({ value }) => (value === 'APAC' ? 'apac' : null),
+    },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    {
+      field: 'mrr', header: 'MRR', width: 130, renderer: currency,
+      cellClass: 'tabular', // static: whole column
+    },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const communityVariants = [
+  { id: 'style', label: 'Inline per column', hint: 'cellStyle takes a static object (MRR) or a per-cell callback (Revenue). Change the 200000 threshold or the colours and the grid re-renders.', code: perColStyle },
+  { id: 'class', label: 'Class hooks', hint: 'cellClass returns class names that hook into your stylesheet (injected at the top). Edit the .cell-hot / .cell-cool CSS or the thresholds.', code: perColClass },
+  { id: 'mixed', label: 'Static + callback', hint: 'A static class on the whole MRR column plus a per-cell callback on Region. Static and callback are independent — use either per option.', code: perColMixed },
+];
+
+<DemoPlayground variants={communityVariants} />
+
+## Grid-wide conditional formatting (Enterprise)
+
+<FeatureMeta tier="enterprise" />
+
+When a rule spans columns — *any negative number red*, *a revenue heatmap*, *dim
+churned rows' names* — reach for `cellStyling()`. Build it once and pass it as
+`cellStyleProvider`; it's evaluated for every visible cell:
+
+```ts
+import { cellStyling } from '@zengrid/enterprise/grid';
+
+const grid = new Zengrid(el, {
+  cellStyleProvider: cellStyling({
+    // Class ↔ predicate: the class is added whenever the predicate matches.
+    cellClassRules: {
+      negative: ({ value }) => typeof value === 'number' && value < 0,
+    },
+    // Or a grid-wide cellStyle callback, evaluated per cell.
+    cellStyle: ({ value }) =>
+      typeof value === 'number' && value > 1000 ? { fontWeight: 700 } : null,
+  }),
+});
+```
+
+`cellStyling()` is license-gated (asserts the `cell-styling` feature). Its callbacks
+receive the same `{ row, col, field, value, data }` as the per-column ones, but for
+*every* cell — use `col`/`field` to scope a rule to a column and `data` to read the
+whole row.
+
+export const rules = `// In scope: Zengrid, mount, rows, currency, chips, cellStyling
+// cellClassRules: a class is added to any cell whose predicate matches. Scope a
+// rule to a column with col/field. Styling lives in CSS (injected below).
+if (!document.getElementById('demo-cf-css')) {
+  const style = document.createElement('style');
+  style.id = 'demo-cf-css';
+  style.textContent = \`
+    .zg-cell.cell-hot  { color: var(--teal-ink); font-weight: 700;
+                         background: rgba(45, 156, 143, 0.12); }
+    .zg-cell.cell-cool { color: var(--muted); font-style: italic; }
+    .zg-cell.mrr-low   { color: var(--coral-sh); }
+  \`;
+  document.head.appendChild(style);
+}
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  cellStyleProvider: cellStyling({
+    cellClassRules: {
+      // Revenue is column 3, MRR is column 4 (rows are positional).
+      'cell-hot':  ({ col, value }) => col === 3 && value > 220000,
+      'cell-cool': ({ col, value }) => col === 3 && value < 60000,
+      'mrr-low':   ({ col, value }) => col === 4 && value < 4000,
+    },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const heatmap = `// A value heatmap: the grid-wide cellStyle callback maps each Revenue cell's
+// value to a background tint. One rule colours the whole column by magnitude.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  cellStyleProvider: cellStyling({
+    cellStyle: ({ col, value }) => {
+      if (col !== 3 || typeof value !== 'number') return null; // Revenue only
+      const t = Math.min(1, Math.max(0, (value - 18000) / 244000));
+      const alpha = (0.05 + t * 0.38).toFixed(3);
+      return { backgroundColor: 'rgba(45, 156, 143, ' + alpha + ')' };
+    },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const crossCol = `// Cross-column: the callback reads the whole row via 'data', so one cell's style
+// can depend on another column. Here the Status cell is tinted by its value and a
+// churned row's Name is dimmed. Rows are positional: [name, role, region, revenue, mrr, status].
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  cellStyleProvider: cellStyling({
+    cellStyle: ({ col, value, data }) => {
+      if (col === 5) { // Status
+        if (value === 'Churned') return { color: 'var(--coral-sh)', fontWeight: 700 };
+        if (value === 'Trial')   return { color: 'var(--pill-trial-ink)' };
+      }
+      if (col === 0 && data[5] === 'Churned') { // Name, when the row churned
+        return { opacity: 0.55, fontStyle: 'italic' };
+      }
+      return null;
+    },
+  }),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+export const enterpriseVariants = [
+  { id: 'rules', label: 'cellClassRules', hint: 'Each class ↔ predicate rule adds its class to matching cells. Scroll to spot the hot/cool Revenue and low MRR. Edit the thresholds or the injected CSS.', code: rules },
+  { id: 'heatmap', label: 'Value heatmap', hint: 'A single grid-wide cellStyle callback tints each Revenue cell by magnitude. Change the alpha range or the column to remap the scale.', code: heatmap },
+  { id: 'cross', label: 'Cross-column', hint: 'The callback reads the whole row via data, so a Name cell can react to the Status of its row. Scroll to find the churned rows.', code: crossCol },
+];
+
+<DemoPlayground variants={enterpriseVariants} enterprise />
+
+## Types
+
+```ts
+interface CellStyleParams {
+  row: number;      // display-order row index
+  col: number;      // display-order column index
+  field: string;    // the column's field
+  value: unknown;   // the cell's displayed value
+  data: unknown;    // the full row record
+}
+
+// On a ColumnDef (Community):
+cellClass?: CellClassValue | ((p: CellStyleParams) => CellClassValue);
+cellStyle?: CellStyleValue | ((p: CellStyleParams) => CellStyleValue);
+
+// cellStyling() options (Enterprise):
+interface CellStylingOptions {
+  cellClass?: CellClassValue | ((p: CellStyleParams) => CellClassValue);
+  cellStyle?: CellStyleValue | ((p: CellStyleParams) => CellStyleValue);
+  cellClassRules?: Record<string, (p: CellStyleParams) => boolean>;
+}
+
+type CellClassValue = string | string[] | null | undefined;
+type CellStyleValue = Record<string, string | number> | null | undefined;
+```
+
+## Notes
+
+- **Styling lands on the cell.** Classes/styles are applied to the single cell
+  element, so target `.zg-cell.your-class` in CSS.
+- **Precedence.** Inline `cellStyle` wins over everything, including the theme;
+  the grid-wide provider is applied after (and so wins over) a column's own
+  styling on conflicting keys. `cellClass` composes by CSS specificity.
+- **Both layers compose.** A column's `cellClass`/`cellStyle` and a
+  `cellStyleProvider` are merged onto the cell — use the column for column-local
+  rules and the provider for anything grid-wide.
+- **Keep callbacks cheap and pure.** They run during rendering for each visible
+  cell. Read a flag off the value/row here; do heavy work up front.
+
+## Next
+
+- [Styling Rows](/features/rows/styling-rows/) — paint whole rows the same way.
+- [Cell Components](/features/cells/cell-components/) — render richer cell content.
+- [Highlighting Changes](/features/cells/highlighting-changes/) — flash cells as data updates.

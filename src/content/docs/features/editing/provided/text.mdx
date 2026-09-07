@@ -1,0 +1,147 @@
+---
+title: Text Editor
+description: The built-in single-line text editor — enable it with editor 'text' and configure placeholder, maxLength, input type, patterns and validation through editorOptions.
+tier: community
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+The **Text Editor** is ZenGrid's default cell editor: a single-line `<input>`
+that opens on double-click (or Enter), commits on Enter / Tab / click-away and
+cancels on Escape. Any editable column falls back to it, and you can select it
+explicitly with `editor: 'text'`:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'name', header: 'Name', editable: true, editor: 'text',
+      editorOptions: { placeholder: 'Enter a name…', maxLength: 24 } },
+  ],
+});
+```
+
+Everything about the editor is configured declaratively through the column's
+**`editorOptions`** — you never construct the editor yourself.
+
+### `editorOptions`
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `type` | `'text' \| 'number' \| 'email' \| 'url' \| 'tel' \| 'password'` | Underlying `<input>` type — swaps the native control/keyboard. Default `'text'`. |
+| `placeholder` | `string` | Placeholder shown when the input is empty. |
+| `maxLength` | `number` | Hard character cap enforced by the browser. |
+| `min` / `max` | `number` | Numeric bounds (with `type: 'number'`), checked on commit. |
+| `pattern` | `string` | Regex the value must match on commit. |
+| `required` | `boolean` | Reject an empty value on commit. |
+| `validator` | `(value) => boolean \| string` | Custom check; return a string to supply the error message. |
+| `selectAllOnFocus` | `boolean` | Select the existing text when the editor opens (default `true`). |
+| `className` | `string` | Class on the input element for custom styling. |
+| `stopOnBlur` | `boolean` | Commit when the input loses focus (default `true`). |
+
+### Validation
+
+`pattern`, `required`, `min`/`max` and `validator` all feed the editor's
+`isValid()` check. What happens to a failing commit is governed by the
+grid-level [`editing.invalidEditMode`](/features/editing/validation/):
+`'block'` (default) keeps the editor open and flags the cell, `'revert'`
+restores the old value, `'commit'` accepts it but marks the cell.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'basics',
+    label: 'Enable & configure',
+    hint: "Name uses editor:'text' with a placeholder and a 24-char maxLength. Double-click Name, clear it to see the placeholder, and try typing past 24 characters — the browser caps it. Region sets selectAllOnFocus:false, so opening it drops the caret instead of selecting the text. Change maxLength to 8 and re-run.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// The built-in text editor, configured entirely through editorOptions.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 240, editable: true, editor: 'text',
+      editorOptions: { placeholder: 'Enter a name…', maxLength: 24 } },
+    { field: 'role', header: 'Role', width: 180 },
+    { field: 'region', header: 'Region', width: 150, editable: true, editor: 'text',
+      editorOptions: { selectAllOnFocus: false } },
+    { field: 'revenue', header: 'Revenue', width: 140, renderer: currency },
+    { field: 'mrr', header: 'MRR', width: 120, renderer: currency },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'types',
+    label: 'Input type',
+    hint: "editorOptions.type swaps the underlying <input>. MRR uses type:'number' with min:0 / max:50000, so it opens a numeric spinner and rejects out-of-range values on commit (invalidEditMode:'block' keeps the editor open). Double-click MRR, try 999999 and press Enter — it's blocked; a value in range commits. Name stays a plain text input.",
+    code: `// type turns the built-in editor into the right native control.
+// With type:'number', min/max are validated on commit.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'name', header: 'Name', width: 220, editable: true, editor: 'text',
+      editorOptions: { type: 'text', placeholder: 'Full name' } },
+    { field: 'role', header: 'Role', width: 180 },
+    { field: 'region', header: 'Region', width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 140, renderer: currency },
+    { field: 'mrr', header: 'MRR', width: 160, editable: true, editor: 'text',
+      editorOptions: { type: 'number', min: 0, max: 50000 }, renderer: currency },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'validation',
+    label: 'Pattern, required & validator',
+    hint: "Three ways to reject a bad value, all under invalidEditMode:'block'. Name only accepts letters and spaces via pattern (type '99' → blocked). Region is required (clear it + Enter → blocked). MRR runs a custom validator that demands ≥ 1000 and supplies the error message. A failing commit keeps the editor open and flags the cell; fix the value and Enter commits.",
+    code: `// pattern / required / validator all feed isValid(); invalidEditMode
+// decides what a failing commit does ('block' keeps the editor open).
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'name', header: 'Name', width: 220, editable: true, editor: 'text',
+      editorOptions: { pattern: '^[A-Za-z ]+$', placeholder: 'Letters only' } },
+    { field: 'role', header: 'Role', width: 160 },
+    { field: 'region', header: 'Region', width: 160, editable: true, editor: 'text',
+      editorOptions: { required: true, placeholder: 'Required' } },
+    { field: 'revenue', header: 'Revenue', width: 140, renderer: currency },
+    { field: 'mrr', header: 'MRR', width: 170, editable: true, editor: 'text',
+      editorOptions: {
+        type: 'number',
+        validator: (v) => (v != null && v >= 1000) || 'Must be at least $1,000',
+      }, renderer: currency },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Number Editor](/features/editing/provided/number/) — a dedicated numeric
+  editor with `step` and `precision`.
+- [Select Editor](/features/editing/provided/select/) — pick from a fixed list.
+- [Edit Components](/features/editing/edit-components/) — build your own editor
+  when the built-ins aren't enough.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

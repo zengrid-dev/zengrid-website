@@ -1,0 +1,109 @@
+---
+title: Column Definitions
+description: Define each column with a column definition object, and update them at runtime.
+tier: community
+sidebar:
+  order: 2
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import GridDemo from '../../../../components/docs/GridDemo.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+A column definition (`ColumnDef`) describes one column: which field it reads, how
+its header looks, how wide it is, how it renders and edits, and which interactions
+are allowed. You pass an array of them as the `columns` option.
+
+## Types
+
+```ts
+interface ColumnDef {
+  /** Unique id. Auto-generated as `col-{index}` if omitted. */
+  id?: string;
+  /** Data key this column reads from each row. */
+  field: string;
+  /** Header text, or a full HeaderConfig object. */
+  header: string | HeaderConfig;
+
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+
+  /** Header + cell alignment. @default 'left' */
+  align?: 'left' | 'center' | 'right';
+
+  /** Registered renderer name (e.g. 'text') or a CellRenderer instance. */
+  renderer?: string | CellRenderer;
+
+  sortable?: boolean;
+  filterable?: boolean;
+  editable?: boolean;
+  /** Registered editor name (e.g. 'text', 'number') or a CellEditor instance. */
+  editor?: string | CellEditor;
+  editorOptions?: any;
+
+  /** Allow resizing this column. @default true */
+  resizable?: boolean;
+  /** Allow drag-to-reorder this column. @default true */
+  reorderable?: boolean;
+
+  /** Per-column overflow (overrides the grid-level cellOverflow). */
+  overflow?: CellOverflowConfig;
+  /** Expand row height to fit this column's content (hybrid/auto row height). */
+  autoHeight?: boolean;
+}
+```
+
+:::note
+`affectsRowHeight` still exists but is **deprecated** — use `autoHeight` instead.
+There is no `pin`, `hidden`, or `valueGetter` field on `ColumnDef` today; see
+[Pinning](/features/columns/column-pinning/), [State](/features/columns/column-state/),
+and [Calculated Columns](/features/columns/calculated-columns/) for the current status.
+:::
+
+## Code
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount,
+  colCount: 4,
+  rowHeight: 36,
+  colWidth: 160,
+  columns: [
+    { field: 'name', header: 'Name', width: 240, sortable: true },
+    { field: 'salary', header: 'Salary', width: 140, align: 'right', editable: true, editor: 'number' },
+    { field: 'region', header: 'Region', width: 160, filterable: true },
+    { field: 'status', header: 'Status', width: 140, resizable: false },
+  ],
+});
+```
+
+## Updating definitions at runtime
+
+Column definitions are supplied at construction, but you can replace them later
+with `grid.updateOptions()`. Passing a new `columns` array re-reads the
+definitions and refreshes rendering.
+
+```ts
+// Swap in a new set of columns (e.g. after a user changes a layout preset)
+grid.updateOptions({
+  columns: [
+    { field: 'name', header: 'Full name', width: 260 },
+    { field: 'status', header: 'Status', width: 160 },
+  ],
+});
+```
+
+For header-only changes you can re-render headers without rebuilding columns:
+
+```ts
+grid.updateHeader(0);   // refresh a single header
+grid.updateAllHeaders(); // refresh every header
+```
+
+## Live demo
+
+<GridDemo label="Column definitions" />

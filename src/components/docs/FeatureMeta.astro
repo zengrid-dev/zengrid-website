@@ -1,0 +1,20 @@
+---
+// Renders the version-control + tier badges at the top of a feature page.
+// Usage in MDX:  <FeatureMeta since="1.4.0" tier="enterprise" deprecated="2.0.0" />
+import { Badge } from '@astrojs/starlight/components';
+
+interface Props {
+  since?: string;
+  deprecated?: string;
+  tier?: 'community' | 'enterprise';
+}
+
+const { since, deprecated, tier } = Astro.props;
+---
+
+<div class="zg-feature-meta not-content">
+  {since && <Badge text={`Since v${since}`} variant="note" size="medium" />}
+  {tier === 'enterprise' && <Badge text="Enterprise" variant="caution" size="medium" />}
+  {tier === 'community' && <Badge text="Community" variant="success" size="medium" />}
+  {deprecated && <Badge text={`Deprecated in v${deprecated}`} variant="danger" size="medium" />}
+</div>

@@ -1,0 +1,181 @@
+---
+title: Filter Templates
+description: Save the current filter as a named template, apply it in one click, and show an applied / not-applied indicator per template. Pluggable storage, localStorage by default. Live, editable example in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Filter templates let a user snapshot a whole filter — every column's conditions plus
+the quick filter — under a name, then re-apply it later in a single click. Each saved
+template shows an **applied / not-applied** indicator so it's obvious which one (if any)
+matches the grid's current filter.
+
+```ts
+import { filterTemplates } from '@zengrid/enterprise/grid';
+
+const templates = filterTemplates(grid, {
+  storage: 'local',           // persist to localStorage (default)
+  storageKey: 'orders-grid',  // give each grid a distinct key
+  ui: { mount: toolbarEl },   // optional built-in bar
+});
+
+templates.save('High value, unshipped');   // snapshot the current filter
+templates.apply(id);                        // restore it later
+templates.getActiveId();                    // which template matches right now?
+```
+
+`filterTemplates()` is license-gated (it asserts the `filter-templates` feature). It
+builds entirely on core's `grid.filter` snapshot/restore API — no special grid setup is
+needed beyond having filterable columns.
+
+## Storage is pluggable
+
+- **`'local'`** *(default)* — persists to `localStorage`, keyed by `storageKey`. Give
+  each grid on a page its own key.
+- **`'memory'`** — session-only; nothing is written to disk.
+- **`{ load, save }`** — supply your own backend. `load()` returns the saved templates,
+  `save(templates)` persists them — point it at your API to sync per-user.
+
+## The applied indicator
+
+`getActiveId()` normalizes the current filter and compares it, order-independently,
+against each saved template — returning the matching template's id, or `null`. The
+built-in `FilterTemplateBar` uses it to mark the active chip; subscribe to the manager
+(and, if you render your own UI, to the grid's `filter:change`) to keep it live as the
+user edits filters.
+
+export const bar = `// In scope: Zengrid, mount, rows, chips, filterTemplates
+// A toolbar above the grid holds the template bar; the grid owns 'mount'.
+const host = mount.parentElement;
+host.querySelectorAll('.zg-filter-template-bar').forEach((el) => el.remove());
+const barEl = document.createElement('div');
+barEl.style.marginBottom = '10px';
+host.insertBefore(barEl, mount);
+
+const data = rows.slice(0, 120).map((r) => r.slice());
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 220, filterable: true },
+    { field: 'role',   header: 'Role',   width: 190, filterable: true },
+    { field: 'region', header: 'Region', width: 150, filterable: true },
+    { field: 'status', header: 'Status', width: 130, renderer: chips, filterable: true },
+  ],
+});
+grid.setData(data);
+
+// Session-only storage for the demo; use 'local' (or { load, save }) in real apps.
+const templates = filterTemplates(grid, {
+  storage: 'memory',
+  ui: { mount: barEl },        // the built-in bar: chips + "save current filter"
+});
+
+// Seed two templates so the applied indicator is visible immediately.
+grid.filter.setColumn(1, [{ operator: 'contains', value: 'Eng' }], 'AND');   // role
+templates.save('Engineers');
+
+grid.filter.clear();
+grid.filter.setColumn(3, [{ operator: 'contains', value: 'Active' }], 'AND'); // status
+templates.save('Active accounts');
+
+grid.filter.clear();   // start clean — neither chip is active yet.
+// Click a chip to apply it (its dot lights up); edit filters and the active
+// indicator follows. "Save current filter" snapshots whatever is applied now.
+`;
+
+export const api = `// Headless: drive templates from your own UI via the manager API.
+const data = rows.slice(0, 120).map((r) => r.slice());
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'name',   header: 'Name',   width: 220, filterable: true },
+    { field: 'role',   header: 'Role',   width: 190, filterable: true },
+    { field: 'region', header: 'Region', width: 150, filterable: true },
+    { field: 'status', header: 'Status', width: 130, renderer: chips, filterable: true },
+  ],
+});
+grid.setData(data);
+
+const templates = filterTemplates(grid, { storage: 'memory' });
+
+grid.filter.setColumn(1, [{ operator: 'contains', value: 'Manager' }], 'AND');
+const t = templates.save('Managers');
+
+grid.filter.clear();
+console.log('active after clear:', templates.getActiveId());  // null
+
+templates.apply(t.id);
+console.log('active after apply:', templates.getActiveId());  // t.id
+console.log('is active:', templates.isActive(t.id));          // true
+// Open the browser console to see the applied-indicator logic in action.
+`;
+
+export const variants = [
+  { id: 'bar', label: 'Built-in bar', hint: 'The FilterTemplateBar renders a chip per template with an applied indicator. Click a chip to apply; use "Save current filter" to snapshot the current filter.', code: bar },
+  { id: 'api', label: 'Headless API', hint: 'Drive save / apply / getActiveId yourself. Open the console to watch getActiveId flip as filters change.', code: api },
+];
+
+<DemoPlayground variants={variants} enterprise height={480} />
+
+## Types
+
+```ts
+interface FilterTemplate {
+  id: string;
+  name: string;
+  model: FilterSnapshot;   // { state: FilterModel[]; quick: { query; columns } }
+}
+
+interface FilterTemplatesInit {
+  storage?: 'local' | 'memory' | { load(): FilterTemplate[]; save(t: FilterTemplate[]): void };
+  storageKey?: string;                 // localStorage key for storage: 'local'
+  templates?: FilterTemplate[];        // seed when storage is empty
+  ui?: FilterTemplateBarOptions;       // mount the built-in bar
+}
+
+function filterTemplates(grid, options?): FilterTemplateManager;
+
+interface FilterTemplateManager {
+  save(name: string): FilterTemplate;
+  apply(id: string): void;
+  remove(id: string): void;
+  rename(id: string, name: string): void;
+  list(): FilterTemplate[];
+  getActiveId(): string | null;        // the applied indicator
+  isActive(id: string): boolean;
+  snapshot(): FilterSnapshot;
+  setTemplates(templates: FilterTemplate[]): void;
+  subscribe(cb: () => void): () => void;
+  destroy(): void;                     // also tears down an attached bar
+}
+```
+
+## Notes
+
+- **No core change needed.** Templates snapshot `grid.filter.getState()` +
+  `getQuick()` and restore via `setState()` / `setQuick()` — the public
+  [Filter API](/features/filters/applying-filters/).
+- **Distinct `storageKey` per grid.** With `storage: 'local'`, two grids sharing a key
+  would share templates — key them apart.
+- **The bar is optional.** `filterTemplates()` returns a headless manager; the
+  `FilterTemplateBar` (via `ui`) is one presentation. Build your own from the manager
+  API if you prefer.
+- **Active detection is order-independent.** Column order and condition order don't
+  affect whether a template matches — only the effective filter does.
+
+## Next
+
+- [Filter Styling](/features/filters/filter-styling/) — theme the filter popup, down to the part.
+- [Applying Filters](/features/filters/applying-filters/) — the `grid.filter.*` API templates build on.
+- [Quick Filter](/features/filters/quick-filter/) — the grid-wide search captured in a template.
+```

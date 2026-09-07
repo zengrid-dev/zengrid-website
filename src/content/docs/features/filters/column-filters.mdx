@@ -1,0 +1,159 @@
+---
+title: Column Filters
+description: Turn a column into a filter, pick its type-aware popup, stack conditions with AND/OR, and tailor which operators the popup offers with filterParams — all live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+A **column filter** is the funnel that appears in a column's header. Click it and
+ZenGrid opens a small popup where a reader picks an operator, types a value, and
+narrows the grid to the rows that match — without touching your source data.
+Column filters are **core**: mark a column `filterable` and the header grows the
+funnel; everything below configures how that popup behaves.
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  columns: [
+    { field: 'name',    header: 'Name',    filterable: true },                        // text popup
+    { field: 'revenue', header: 'Revenue', filterable: true, filterType: 'number' },  // number popup
+    { field: 'mrr',     header: 'MRR' },                                              // no funnel
+  ],
+});
+```
+
+Only columns with `filterable: true` get a funnel. Everything else renders a plain
+header, so you decide exactly which columns a reader can filter.
+
+## Pick the popup type
+
+`filterType` picks the operator set the popup offers and how it parses typed
+input. It only shapes the built-in UI — the filter engine matches any operator
+against any value.
+
+| `filterType` | Input | Operators |
+|--------------|-------|-----------|
+| `'text'` (default) | text | Contains, Equals, Starts with, Ends with, Not contains, Not equals, Is blank, Is not blank |
+| `'number'` | numeric | Equals, Not equals, Greater than, Less than, ≥, ≤, **Between**, Is blank, Is not blank |
+| `'date'` | date picker | Equals, After, Before, **Between**, Is blank, Is not blank |
+
+## Stack conditions
+
+Inside a popup, **Add condition** stacks a second rule on the same column. Once
+there are two, a **match** control appears so the reader chooses **AND** (rows
+must satisfy both) or **OR** (either is enough). The `blank` / `notBlank`
+operators take no value — handy for finding empty cells. Stacked conditions live
+in a single `FilterModel` for that column.
+
+## Tailor the operators
+
+`filterParams` refines the popup per column without leaving core:
+
+- **`filterOptions`** restricts and **reorders** the operators the dropdown shows.
+  Entries are matched against the column's type set; unknown operators are
+  dropped, and if nothing matches the full set is kept (a typo can never produce
+  an operator-less popup).
+- **`defaultOption`** is the operator the popup pre-selects for a fresh condition.
+  It must be one of the offered operators.
+
+```ts
+{
+  field: 'name', header: 'Name', filterable: true,
+  filterParams: {
+    filterOptions: ['equals', 'contains'], // only these two, in this order
+    defaultOption: 'equals',               // popup opens on "Equals"
+  },
+}
+```
+
+## Try it live
+
+Each tab configures the same grid a different way. Click a header's funnel to open
+its popup, or edit the code and re-run.
+
+export const columns = (extras = {}) => `  columns: [
+    { field: 'name',    header: 'Name',    width: 220, filterable: true${extras.name ?? ''} },
+    { field: 'role',    header: 'Role',    width: 190, filterable: true${extras.role ?? ''} },
+    { field: 'region',  header: 'Region',  width: 150, filterable: true },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency, filterable: true, filterType: 'number'${extras.revenue ?? ''} },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips,    filterable: true },
+  ],`;
+
+export const variants = [
+  {
+    id: 'setup',
+    label: 'Enable & type',
+    hint: 'Only filterable columns grow a funnel — MRR has none. Text columns (Name, Role, Region, Status) open text operators; Revenue is a number filter, so its popup offers Greater than / Between with a numeric input.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips
+// filterable: true adds the header funnel. filterType picks
+// the popup's operators + input. MRR omits filterable → no funnel.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${columns()}
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'stack',
+    label: 'Stack conditions',
+    hint: 'Open Name and click "Add condition" — a match control appears. Choose OR and add a second "Contains" to widen the net, or AND to narrow it. Try the "Is not blank" operator, which needs no value.',
+    code: `// Every column filter can stack multiple conditions with
+// AND / OR logic, all in one popup. Open Name → Add condition.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${columns()}
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'tailor',
+    label: 'Tailor operators',
+    hint: 'Open Name: its dropdown is trimmed to Equals / Contains and opens on Equals. Open Revenue: only Between and Greater than, opening on Between. filterParams.filterOptions reorders + restricts; defaultOption pre-selects.',
+    code: `// filterParams tailors each popup: filterOptions restricts and
+// reorders the operators; defaultOption picks which one is preselected.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+${columns({
+  name: `,
+      filterParams: { filterOptions: ['equals', 'contains'], defaultOption: 'equals' }`,
+  revenue: `,
+      filterParams: { filterOptions: ['between', 'greaterThan'], defaultOption: 'between' }`,
+})}
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Driving filters from code
+
+Everything the popup does has an imperative twin on `grid.filter.*` (with grid
+shorthands) — set a single condition, stack several with a logic mode, read the
+active `FilterModel[]`, restore a saved set, or clear one column. See the
+[Filtering Overview](/features/filters/overview/#the-filter-api) for the full
+table, and [Applying Filters](/features/filters/applying-filters/) for controlling
+*when* filters run.
+
+## Next
+
+- [Text Filter](/features/filters/text-filter/), [Number Filter](/features/filters/number-filter/),
+  [Date Filter](/features/filters/date-filter/) — each built-in type in depth.
+- [List Filter](/features/filters/list-filter/) — Excel-style checklists of distinct values.
+- [Filter Conditions](/features/filters/filter-conditions/) — the AND / OR condition model.

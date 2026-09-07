@@ -1,0 +1,177 @@
+---
+title: Column Groups
+description: Group related columns under a shared banner header — single level or nested, drawn above the columns and scroll-synced, live in the page.
+tier: enterprise
+sidebar:
+  order: 9
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Column groups organize related columns under a shared banner — for example an
+**Identity** banner over `name` and `role`, or an **Address** banner over `city`,
+`state`, and `zip`. Groups can nest several levels deep, and the banners scroll
+horizontally in lockstep with the columns beneath them.
+
+It's an **enterprise** feature. Set the grid's `colGroupProvider` to
+`columnGroups(defs)`, where each def names a header and its children — a child is
+either a leaf column `field` or another group:
+
+```ts
+import { columnGroups } from '@zengrid/enterprise';
+
+const grid = new Zengrid(el, {
+  colGroupProvider: columnGroups([
+    { header: 'Identity', children: ['name', 'role'] },
+    { header: 'Metrics',  children: ['revenue', 'mrr'] },
+  ]),
+  columns,
+});
+```
+
+Each banner spans the columns its leaf fields occupy, so **list the grouped columns
+next to each other** in your `columns` array. The header grows by one row per group
+level to make room for the banners; the body drops down to match.
+
+## Nesting
+
+Wrap a group inside another group's `children` to stack banners. The outer group
+sits on the top row and spans everything below it:
+
+```ts
+colGroupProvider: columnGroups([
+  {
+    header: 'Location',
+    children: [
+      { header: 'Address', children: ['city', 'zip'] },
+      'country',
+    ],
+  },
+]),
+```
+
+## Collapse & expand
+
+Every group with two or more columns draws a small **toggle** in its banner. Click
+it to collapse the group down to its first column — the rest hide — and click again
+to bring them back. It needs no extra wiring: set `colGroupProvider` and the toggles
+appear.
+
+Collapse is on by default. Opt a group out with `collapsible: false`:
+
+```ts
+colGroupProvider: columnGroups([
+  { header: 'Identity',   children: ['name', 'role', 'region'] },
+  { header: 'Financials', children: ['revenue', 'mrr'], collapsible: false },
+]),
+```
+
+A collapsed group keeps its first column visible as a stand-in, so the banner — and
+its toggle — never disappears. Nested groups collapse independently; collapsing an
+outer group folds everything beneath it down to a single column.
+
+## Try it live
+
+Scroll the grid sideways — the banners track the columns they head. Click a banner's
+toggle to collapse or expand that group. Each tab is a different grouping.
+
+export const variants = [
+  {
+    id: 'single',
+    label: 'Single level',
+    hint: 'Two banners over the columns beneath them. Click a banner toggle to collapse a group to its first column, or edit the columnGroups(...) headers and which fields each spans.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, columnGroups
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colGroupProvider: columnGroups([
+    { header: 'Identity', children: ['name', 'role', 'region'] },
+    { header: 'Financials', children: ['revenue', 'mrr'] },
+  ]),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'nested',
+    label: 'Nested',
+    hint: 'A group inside a group stacks banners: the outer row spans everything below it. Collapse the inner Person group, or the whole Team — each toggles on its own.',
+    code: `// Nest a group inside another group's children to stack banners.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colGroupProvider: columnGroups([
+    {
+      header: 'Team',
+      children: [
+        { header: 'Person', children: ['name', 'role'] },
+        'region',
+      ],
+    },
+    {
+      header: 'Revenue',
+      children: [
+        { header: 'Recurring', children: ['revenue', 'mrr'] },
+      ],
+    },
+  ]),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'partial',
+    label: 'Some columns ungrouped',
+    hint: 'Not every column needs a banner. Status here has none — its leaf header simply reaches up through the empty banner row, and it stays put when you collapse Contact.',
+    code: `// Only some columns belong to a group; the rest stand alone.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colGroupProvider: columnGroups([
+    { header: 'Contact', children: ['name', 'role', 'region'] },
+  ]),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 160 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} height={460} enterprise />
+
+## Next
+
+- [Column Pinning](/features/columns/column-pinning/) — freeze columns at the edges.
+- [Headers](/features/columns/column-headers/) — the leaf header cells under the banners.
+- [Column State](/features/columns/column-state/) — capture and restore the layout.

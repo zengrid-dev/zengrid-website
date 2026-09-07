@@ -1,0 +1,256 @@
+---
+title: Row Pinning
+description: Pin rows to a fixed band at the top or bottom of the viewport — existing dataset rows by identity, or standalone summary rows supplied by data.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Row pinning holds chosen rows in a fixed band above or below the scrolling body,
+so they stay in view no matter where you scroll. Two things can be pinned:
+
+- **Existing dataset rows**, pinned by a stable identity — the pin follows the row
+  through sorting, filtering and pagination rather than sticking to a screen
+  position.
+- **Standalone rows supplied by data** — a header, a caption, or a computed
+  grand-total row that is *not* part of the dataset. This is the equivalent of AG
+  Grid's `pinnedTopRowData` / `pinnedBottomRowData`.
+
+Both render in the same top/bottom bands, with the standalone rows sitting
+outermost: data rows above the pinned dataset rows on top, and below them on the
+bottom.
+
+## How it works
+
+Row pinning ships in `@zengrid/enterprise`. A `RowPinManager` is the headless
+source of truth for what's pinned; you hand it to the grid through the
+`pinProvider` option via `rowPinning()`:
+
+```ts
+import { RowPinManager, rowPinning } from '@zengrid/enterprise/grid';
+
+const pins = new RowPinManager();
+pins.pin(0, 'top');          // pin a dataset row (by id) to the top band
+pins.pin(42, 'bottom');      // …and one to the bottom
+
+const grid = new Zengrid(el, {
+  rowCount,
+  pinProvider: rowPinning(pins), // Enterprise: turn on row pinning
+  columns: [/* … */],
+});
+```
+
+Pins are keyed by a stable **row id**, not a render index, so they survive sort,
+filter and pagination — the provider resolves each pinned id back to the row it
+currently occupies every render pass, and re-renders the bands automatically
+whenever you pin, unpin, or replace the standalone rows.
+
+### Standalone summary rows
+
+To pin rows that aren't in the dataset — a header or a computed total — give the
+manager `topRowData` / `bottomRowData`, or set them later with `setPinnedData`.
+Each is a plain object whose cells resolve by the column's `field`:
+
+```ts
+const pins = new RowPinManager({
+  bottomRowData: [{ data: { name: 'Grand total', revenue: 1_240_000 } }],
+});
+// …later, recompute and swap the band in place:
+pins.setPinnedData('bottom', [{ data: { name: 'Grand total', revenue: next } }]);
+```
+
+## Types
+
+```ts
+type RowId = string | number;
+type RowPinPosition = 'top' | 'bottom';
+
+interface RowPinManagerConfig {
+  /** Directions manual pinning may target. true = both. @default true */
+  enabled?: boolean | RowPinPosition;
+  /** Guard consulted before a row is pinned — return false to forbid it. */
+  isRowPinnable?: (id: RowId) => boolean;
+  /** Seed initial pins: called for each id in `rows`. */
+  isRowPinned?: (id: RowId) => RowPinPosition | null | undefined;
+  rows?: readonly RowId[];
+  /** Standalone (non-dataset) rows pinned to each band. */
+  topRowData?: readonly PinnedDataRow[];
+  bottomRowData?: readonly PinnedDataRow[];
+}
+
+interface PinnedDataRow {
+  /** Row object; each cell reads `data[column.field]`. */
+  data: unknown;
+  /** Explicit row height in px; falls back to the grid's default. */
+  height?: number;
+}
+```
+
+Key manager methods: `pin(id, position)`, `unpin(id)`, `toggle(id, position)`,
+`pinnedAt(id)`, `getPinned(position)`, `setPinnedData(position, rows)`,
+`clear()`, plus `onChange` (dataset-row pins) and `onDataChange` (standalone
+rows).
+
+## Try it live
+
+Each tab pins a different way. Edit the snippet — change which rows are pinned,
+flip a band, or recompute a total — and the grid re-renders its bands.
+
+export const pinRows = `// In scope: Zengrid, mount, currency, chips, rowPinning, RowPinManager
+const names = ['Marcus Webb','Ingrid Larsson','Lucia Moreno','Kenji Tanaka',
+  'Idris Okafor','Sofia Rossi','Mei Chen','Aria Vaskov','Yuki Sato','Priya Nair',
+  'Otto Bergman','Noor Haddad','Lin Wei','Ravi Menon','Hana Kim','Sofia Diaz'];
+const roles = ['Staff SWE','Eng Manager','Product Lead','Platform Eng','SRE',
+  'Researcher','Analyst','Designer'];
+const statuses = ['Active','Trial','Churned'];
+
+// 60 rows so the body scrolls under the pinned bands. [name, role, revenue, status]
+const people = Array.from({ length: 60 }, (_, i) => [
+  names[i % names.length],
+  roles[i % roles.length],
+  70000 + ((i * 3300) % 60000),
+  statuses[i % statuses.length],
+]);
+
+// The manager is the source of truth for what's pinned. Ids are row ids —
+// here the row's position — so a pin survives sorting and filtering.
+const pins = new RowPinManager();
+pins.pin(0, 'top');                    // first row sticks to the top
+pins.pin(people.length - 1, 'bottom'); // last row sticks to the bottom
+
+const grid = new Zengrid(mount, {
+  rowCount: people.length,
+  rowHeight: 44,
+  pinProvider: rowPinning(pins),       // Enterprise: turn on row pinning
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 170 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(people);
+`;
+
+export const seedRule = `// Seed pins declaratively from your data with isRowPinned, and restrict
+// manual pinning to a single band with enabled. Every row whose revenue clears
+// 95k is pinned to the top; nothing else can be pinned to the bottom.
+const names = ['Lucia Moreno','Kenji Tanaka','Idris Okafor','Sofia Rossi',
+  'Mei Chen','Aria Vaskov','Yuki Sato','Priya Nair','Otto Bergman','Noor Haddad',
+  'Lin Wei','Ravi Menon','Hana Kim','Sofia Diaz'];
+const roles = ['Product Lead','Platform Eng','SRE','Researcher','Analyst','Designer'];
+const statuses = ['Active','Trial','Churned'];
+
+// 60 everyday rows, all under 95k. [name, role, revenue, status]
+const people = Array.from({ length: 60 }, (_, i) => [
+  names[i % names.length],
+  roles[i % roles.length],
+  60000 + ((i * 2100) % 30000),
+  statuses[i % statuses.length],
+]);
+// …plus two standouts that the rule below will pin to the top.
+people.unshift(
+  ['Marcus Webb',    'Staff SWE',   128000, 'Active'],
+  ['Ingrid Larsson', 'Eng Manager',  99000, 'Active'],
+);
+
+const pins = new RowPinManager({
+  enabled: 'top',                          // only the top band is allowed
+  rows: people.map((_, i) => i),           // ids to consider for seeding
+  isRowPinned: (id) => (people[id][2] >= 95000 ? 'top' : null),
+});
+
+const grid = new Zengrid(mount, {
+  rowCount: people.length,
+  rowHeight: 44,
+  pinProvider: rowPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 170 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(people);
+`;
+
+export const summary = `// Standalone summary rows (pinnedTop/BottomRowData): rows that are NOT in the
+// dataset. Cells resolve by the column field, so keys match the columns. Here a
+// caption on top and a computed grand-total row on the bottom.
+const names = ['Marcus Webb','Ingrid Larsson','Lucia Moreno','Kenji Tanaka',
+  'Idris Okafor','Sofia Rossi','Mei Chen','Aria Vaskov','Yuki Sato','Priya Nair',
+  'Otto Bergman','Noor Haddad','Lin Wei','Ravi Menon'];
+const roles = ['Staff SWE','Eng Manager','Product Lead','Platform Eng','SRE',
+  'Researcher','Analyst','Designer'];
+const statuses = ['Active','Trial','Churned'];
+
+// 60 rows so the body scrolls between the fixed summary bands.
+const people = Array.from({ length: 60 }, (_, i) => [
+  names[i % names.length],
+  roles[i % roles.length],
+  70000 + ((i * 3300) % 60000),
+  statuses[i % statuses.length],
+]);
+
+const total = people.reduce((sum, r) => sum + r[2], 0);
+const avg = Math.round(total / people.length);
+
+const pins = new RowPinManager({
+  topRowData: [
+    { data: { name: 'Team average', role: 'all teams', revenue: avg, status: 'avg' } },
+  ],
+  bottomRowData: [
+    { data: { name: 'Grand total', role: 'all teams', revenue: total, status: 'sum' } },
+  ],
+});
+
+const grid = new Zengrid(mount, {
+  rowCount: people.length,
+  rowHeight: 44,
+  pinProvider: rowPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 170 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(people);
+`;
+
+export const variants = [
+  { id: 'pin', label: 'Pin dataset rows', hint: 'pins.pin(id, band) fixes rows by id. Scroll the body — the first and last rows stay in their bands. Add pins.pin(2, "top") to pin another.', code: pinRows },
+  { id: 'seed', label: 'Seed from a rule', hint: 'isRowPinned seeds pins from your data; enabled: "top" limits pinning to the top band. Scroll to see the two 95k+ rows stay pinned. Lower the 95000 threshold to pin more.', code: seedRule },
+  { id: 'summary', label: 'Summary rows', hint: 'topRowData / bottomRowData pin standalone rows that are not in the dataset. Scroll the body — the average and grand-total bands stay fixed. Edit the formula and the band re-renders.', code: summary },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **Pins are identity-based.** `pins.pin(3, 'top')` pins the row whose id is `3`,
+  not the fourth row on screen. When you sort or filter, the provider re-resolves
+  each pinned id to its new position, so the pin follows the row.
+- **Pinned rows also remain in the body.** The bands are opaque overlays fixed to
+  the top and bottom of the scroll area — a pinned row is drawn in its band and
+  scrolls past underneath. This matches the familiar pinned-row behaviour.
+- **Standalone rows aren't dataset rows.** They ignore the enable mode and the
+  `isRowPinnable` guard, are unaffected by sort/filter, and resolve each cell from
+  their own object by the column's `field`. Give one an explicit `height` to make
+  a taller summary row.
+- **Bands re-render on change.** Pinning, unpinning, or `setPinnedData` all notify
+  the grid — no manual refresh needed.
+
+## Next
+
+- [Row Data](/features/rows/row-data/) — supply the rows to pin.
+- [Row Sorting](/features/rows/row-sorting/) — pins follow the row through a sort.
+- [Row Spanning](/features/row-spanning/) — merge repeated values into groups.

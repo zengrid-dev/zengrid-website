@@ -1,0 +1,211 @@
+---
+title: Grouping Data
+description: Choose which columns to group by, change the grouping at runtime, and derive group keys from the row.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The [Overview](/features/row-grouping/overview/) showed a grid grouped by a fixed
+column. This page is about **the grouping itself**: which columns you bucket by,
+how to **change that at runtime**, and how to group by a value you **derive** from
+the row rather than a raw column.
+
+Grouping is configured through the `rowGrouping()` manager. `groupBy` is the one
+required option — an ordered list of the columns to bucket by, outermost first.
+
+## Choosing what to group by
+
+`groupBy` takes **source column indices** (for positional array data, the index
+into each row array) — outermost group first. Pass several to nest them:
+
+```ts
+rowGrouping({ groupBy: [2] });        // group by Region
+rowGrouping({ groupBy: [2, 5] });     // Region → Status (nested)
+```
+
+Rows whose grouping value is `null`/`undefined` collect under a single
+**`(Blanks)`** header, so unbalanced data still buckets cleanly.
+
+## Changing the grouping at runtime
+
+The manager can be **re-grouped live** without rebuilding the grid — ideal for a
+"group by" menu or drag-to-group panel:
+
+- **`setGroupBy(cols)`** — replace the grouping columns wholesale. Pass `[]` to
+  flatten back to the ungrouped rows.
+- **`addGroup(col)`** — append a nesting level (no-op if already grouped).
+- **`removeGroup(col)`** — drop a level.
+- **`getGroupBy()`** — read the current grouping (indices, or a `{ col, … }` spec
+  for levels with a comparator/key getter).
+
+Each call re-buckets the current data and re-renders; expand/collapse state resets
+to the `expandedByDefault` policy for the new tree.
+
+## Deriving the group key
+
+By default a group's key is the raw cell value. Supply a **`keyGetter`** on a
+`{ col, keyGetter }` spec to bucket by something computed from the whole row —
+a numeric band, a date's month, a name's first letter:
+
+```ts
+rowGrouping({
+  groupBy: [{ col: 3, keyGetter: (row) => (row[3] >= 150_000 ? 'Enterprise' : 'SMB') }],
+});
+```
+
+The `comparator` on a spec orders the sibling groups; without one they sort
+numeric-then-locale.
+
+## Try it live
+
+export const choose = `// In scope: Zengrid, mount, currency, rowGrouping
+// groupBy takes source COLUMN INDICES, outermost first. The buttons below call
+// setGroupBy(...) to re-group the SAME grid live — no rebuild.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({ groupBy: [2] }); // 2 = Region
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping; // let the buttons reach the manager
+`;
+
+export const runtime = `// Add and remove grouping LEVELS at runtime. Start grouped by Region, then
+// nest Status inside it, then drop a level — all without rebuilding the grid.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2],                  // Region
+  aggregations: { 3: 'sum' },    // 3 = Revenue
+  aggLabel: (col, v) => 'Revenue $' + Math.round(v).toLocaleString('en-US'),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const derived = `// keyGetter derives the group key from the whole row. Here Revenue (col 3) is
+// bucketed into bands instead of grouping on every distinct number.
+const data = rows.slice(0, 200);
+
+const band = (n) =>
+  n >= 200000 ? 'Enterprise ($200k+)'
+  : n >= 100000 ? 'Mid-market ($100k-200k)'
+  : 'SMB (under $100k)';
+
+const order = ['SMB (under $100k)', 'Mid-market ($100k-200k)', 'Enterprise ($200k+)'];
+
+const grouping = rowGrouping({
+  groupBy: [
+    { col: 3, keyGetter: (row) => band(row[3]),
+      comparator: (a, b) => order.indexOf(a) - order.indexOf(b) },
+  ],
+  aggregations: { 3: 'sum' },
+  aggLabel: (col, v) => 'Total $' + Math.round(v).toLocaleString('en-US'),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'choose',
+    label: 'Choose columns',
+    hint: 'groupBy is a list of source column indices. The buttons call setGroupBy(...) to re-group live — try editing the initial groupBy too.',
+    code: choose,
+    controls: [
+      { label: 'By Role', action: 'grid.__grouping.setGroupBy([1])' },
+      { label: 'By Region', action: 'grid.__grouping.setGroupBy([2])' },
+      { label: 'By Status', action: 'grid.__grouping.setGroupBy([5])' },
+      { label: 'Ungroup', action: 'grid.__grouping.setGroupBy([])' },
+    ],
+  },
+  {
+    id: 'runtime',
+    label: 'Add / remove levels',
+    hint: 'addGroup / removeGroup change nesting one level at a time. Nest Status under Region, then drop Region — the grid re-buckets in place.',
+    code: runtime,
+    controls: [
+      { label: '+ Status', action: 'grid.__grouping.addGroup(5)' },
+      { label: '- Status', action: 'grid.__grouping.removeGroup(5)' },
+      { label: '- Region', action: 'grid.__grouping.removeGroup(2)' },
+      { label: 'Reset to Region', action: 'grid.__grouping.setGroupBy([2])' },
+    ],
+  },
+  {
+    id: 'derived',
+    label: 'Derived keys',
+    hint: 'A { col, keyGetter } spec buckets by a computed value — here revenue bands. comparator orders the bands SMB to Enterprise.',
+    code: derived,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **Grouping keys are positional.** With array-backed rows, `groupBy` and
+  `aggregations` index into the row array — the same indices your `columns` map to.
+- **Runtime re-grouping resets expansion.** `setGroupBy` / `addGroup` /
+  `removeGroup` rebuild the tree, so groups return to the `expandedByDefault`
+  state. Read the live configuration back with `getGroupBy()`.
+- **`keyGetter` doesn't change the column.** Aggregates and the header's `col`
+  still reference the source column you named; only the *bucket key* is derived.
+- **Blanks bucket together.** Missing grouping values collect under one
+  `(Blanks)` header rather than scattering.
+
+## Next
+
+- [Group Display Types](/features/row-grouping/group-display-types/) — group rows
+  vs. a single group column.
+- [Expanding Groups](/features/row-grouping/expanding-groups/) — control which
+  groups open, and react to expand/collapse.

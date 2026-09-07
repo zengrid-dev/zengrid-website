@@ -1,0 +1,127 @@
+---
+title: Single Row Selection
+description: Restrict selection to exactly one row at a time — the default when enableMultiSelection is off — with click-to-toggle and a live onSelectionChange, all in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Single-row selection is the simplest, most common model: one highlighted row at a
+time, like picking a record from a master list to open in a detail pane. It is the
+**default** — `selectionType: 'row'` with `enableMultiSelection` left off (or
+`false`):
+
+```ts
+const grid = new Zengrid(mount, {
+  columns,
+  selectionType: 'row',
+  // enableMultiSelection: false — the default
+  onSelectionChange: (ranges) => {
+    const row = ranges[0]?.startRow ?? null;   // the one selected source row
+  },
+});
+```
+
+Selecting a new row **replaces** the previous one — you never accumulate a set.
+Ctrl/⌘-click and shift-click do nothing extra in single mode. Clicking the
+already-selected row clears it.
+
+:::tip[Reading the one row]
+In single mode `getRanges()` has at most one entry. The selected source row is
+`grid.selection.getRanges()[0]?.startRow`. Pair it with
+[`grid.rows.getSourceRow`](/features/rows/accessing-rows/) to pull the record.
+:::
+
+## Try it live
+
+export const cols = `  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'click',
+    label: 'Click to select',
+    hint: 'One row at a time. Selecting a new row replaces the old one; clicking the selected row clears it. Ctrl/⌘-click does nothing extra in single mode.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// Default single-row selection — no enableMultiSelection.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'row',
+  onSelectionChange: (ranges) =>
+    console.log('row:', ranges[0]?.startRow ?? 'none'),
+${cols}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Selected row', action: "alert('selected source row: ' + (grid.selection.getRanges()[0]?.startRow ?? 'none'))" },
+      { label: 'Read the record', action: "alert(JSON.stringify(grid.rows.getSourceRow(grid.selection.getRanges()[0]?.startRow ?? 0)))" },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'programmatic',
+    label: 'Drive it from code',
+    hint: 'selectRows(n, n) selects exactly one row. Because the mode is single, selecting another row replaces it rather than adding — try both controls.',
+    code: `// selectRows(n, n) selects one row from code. In single mode a second
+// selectRows call replaces the first — no accumulation.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'row',
+${cols}
+});
+
+grid.setData(rows);
+grid.selection.selectRows(2, 2);   // start on row 2
+`,
+    controls: [
+      { label: 'Select row 5', action: 'grid.selection.selectRows(5, 5)' },
+      { label: 'Select row 9', action: 'grid.selection.selectRows(9, 9)' },
+      { label: 'How many ranges?', action: "alert(grid.selection.getRanges().length + ' (single mode never exceeds 1)')" },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'single-cell',
+    label: 'Single cell',
+    hint: 'The same single-select rule applies to cells: selectionType "cell" with no multi flag keeps exactly one cell highlighted.',
+    code: `// Single selection also applies to cells — one highlighted cell.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'cell',
+${cols}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Active cell', action: "alert('active: ' + JSON.stringify(grid.selection.getActive()))" },
+      { label: 'Select (3, Region)', action: 'grid.selection.selectCell(3, 2)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where to go next
+
+- [Multi-Row Selection](/features/selection/multi-row/) — allow several rows with
+  ctrl/shift.
+- [Row Selection](/features/selection/row-selection/) — the row-selection overview.
+- [Selection API](/features/selection/row-api/) — read and drive selection from
+  code.

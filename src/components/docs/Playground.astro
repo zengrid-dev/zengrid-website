@@ -1,0 +1,458 @@
+---
+// An in-page, editable ZenGrid playground for the Getting Started page. A
+// segmented Code / Demo / Split toggle switches between the CodeMirror editor,
+// the live grid, and a side-by-side view — Demo (the rendered grid) is the
+// default. On every edit (debounced) or on Run / Cmd+Enter the snippet is
+// re-executed against the @zengrid/enterprise bundle already loaded in the page and
+// the live grid re-mounts. No iframe, no external service, no bundler — the
+// reader edits the same imperative API the docs describe and sees it run.
+//
+// The engine + CodeMirror are dynamic-imported and the whole thing mounts
+// lazily when scrolled near, so it never taxes initial page load.
+interface Props {
+  /** Height of the editor/grid body in px. */
+  height?: number;
+  /** Initial view: 'demo' | 'code' | 'split'. */
+  view?: 'demo' | 'code' | 'split';
+  /**
+   * The initial, editable snippet. Pass a per-page example to demo that page's
+   * feature. Defaults to the Getting Started example. In scope inside the
+   * snippet: `Zengrid`, `mount`, `rows`, `currency`, `chips`, and `zg` (the
+   * whole `@zengrid/enterprise` module — e.g. `new zg.NumberRenderer({ ... })`).
+   */
+  code?: string;
+}
+
+// The default, editable snippet. Kept in sync with the positional data the
+// harness injects: rows are arrays, so the columns below read the data
+// left-to-right (name, role, region, revenue, mrr, status).
+const defaultCode = `// In scope: Zengrid, mount, rows, currency, chips, zg
+// rows are arrays — columns read the data left-to-right.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, sortable: true },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+// setData auto-renders in v1.4 — no grid.render() needed.
+grid.setData(rows);
+`;
+
+const { height = 400, view = 'demo', code } = Astro.props;
+const initialCode = code ?? defaultCode;
+---
+
+<div class="zg-play not-content" data-zg-play data-view={view} data-initial={initialCode}>
+  <div class="zg-play__bar">
+    <div class="zg-seg" role="group" aria-label="Playground view">
+      <button type="button" data-view-btn="code">Code</button>
+      <button type="button" data-view-btn="demo">Demo</button>
+      <button type="button" data-view-btn="split">Split</button>
+    </div>
+
+    <div class="zg-play__right">
+      <span class="zg-play__status" data-zg-status hidden></span>
+      <button type="button" class="zg-play__btn" data-zg-reset>Reset</button>
+      <button type="button" class="zg-play__btn zg-play__btn--run" data-zg-run>
+        Run <kbd>⌘⏎</kbd>
+      </button>
+    </div>
+  </div>
+
+  <div class="zg-play__body" style={`height:${height}px;`}>
+    <div class="zg-play__editor" data-zg-editor aria-label="Editable ZenGrid config"></div>
+    <div class="zg-play__preview">
+      <div data-zg-grid style="height:100%;" aria-label="Live ZenGrid demo"></div>
+    </div>
+  </div>
+
+  <noscript>
+    <pre class="zg-play__noscript"><code>{initialCode}</code></pre>
+    <p style="padding:0 1rem 1rem;margin:0;color:var(--faint)">
+      Enable JavaScript to edit this snippet and run the live grid.
+    </p>
+  </noscript>
+</div>
+
+<style>
+  .zg-play {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    margin: 1.5rem 0;
+  }
+  .zg-play__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--surface-2);
+  }
+  /* Segmented Code / Demo / Split control. */
+  .zg-seg {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+  }
+  .zg-seg button {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--faint);
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .zg-seg button:hover { color: var(--ink); }
+  .zg-seg button[aria-pressed="true"] {
+    color: #fff;
+    background: var(--coral);
+  }
+
+  .zg-play__right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .zg-play__status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .zg-play__status[data-state="ok"] { color: var(--teal); }
+  .zg-play__status[data-state="err"] { color: var(--coral); }
+  .zg-play__btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.28rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .zg-play__btn:hover { border-color: var(--coral); color: var(--ink); }
+  .zg-play__btn--run {
+    color: #fff;
+    background: var(--coral);
+    border-color: var(--coral);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .zg-play__btn--run:hover { color: #fff; background: var(--coral-sh); border-color: var(--coral-sh); }
+  .zg-play__btn kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: #ffffff2e;
+    border-radius: 4px;
+    padding: 0.05em 0.3em;
+  }
+
+  .zg-play__body {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .zg-play__editor {
+    overflow: hidden;
+    border-right: 1px solid var(--border-soft);
+  }
+  .zg-play__editor :global(.cm-editor) { height: 100%; }
+  .zg-play__preview { overflow: hidden; background: var(--surface); }
+
+  /* View modes. Demo = grid only (default); Code = editor only; Split = both.
+     For demo/code we stack both layers in one cell and hide the inactive one
+     with visibility — never display:none — so the grid's ResizeObserver never
+     sees a 0×0 box (which throws "Viewport dimensions must be positive"). */
+  .zg-play[data-view="demo"] .zg-play__editor,
+  .zg-play[data-view="demo"] .zg-play__preview,
+  .zg-play[data-view="code"] .zg-play__editor,
+  .zg-play[data-view="code"] .zg-play__preview {
+    grid-area: 1 / 1;
+  }
+  .zg-play[data-view="demo"] .zg-play__editor { visibility: hidden; }
+  .zg-play[data-view="code"] .zg-play__preview { visibility: hidden; }
+  .zg-play[data-view="code"] .zg-play__editor { border-right: none; }
+  .zg-play[data-view="split"] .zg-play__body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .zg-play__noscript {
+    margin: 0;
+    padding: 1rem;
+    overflow: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  @media (max-width: 860px) {
+    .zg-play[data-view="split"] .zg-play__body {
+      grid-template-columns: 1fr;
+      height: auto !important;
+    }
+    .zg-play[data-view="split"] .zg-play__editor {
+      border-right: none;
+      border-bottom: 1px solid var(--border-soft);
+      height: 320px;
+    }
+    .zg-play[data-view="split"] .zg-play__preview { height: 360px; }
+  }
+</style>
+
+<!-- Thin the grid's own scroll surface — the .zg-viewport is created by the
+     engine at runtime, so this must be global; scoped under [data-zg-play] so
+     it only affects the playground grid, not other grids on the site. -->
+<style is:global>
+  [data-zg-play] .zg-viewport { scrollbar-width: thin; }
+  [data-zg-play] .zg-viewport::-webkit-scrollbar { width: 8px; height: 8px; }
+</style>
+
+<script>
+  import {
+    generateRows,
+    zenGridTheme,
+  } from '../../config/demo-grid';
+  // Core + enterprise grid CSS as one statically-emitted asset (see the file
+  // header for why the separate dynamic imports get dropped in the build).
+  import '../../styles/zengrid.css';
+
+  // Smaller than the marketing demo so each re-run rebuilds instantly while
+  // still being far more rows than could ever sit in the DOM.
+  const PLAY_ROW_COUNT = 50_000;
+
+  const currentTheme = () =>
+    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+
+  async function mount(host: HTMLElement) {
+    if (host.dataset.mounted) return;
+    host.dataset.mounted = '1';
+
+    const editorEl = host.querySelector<HTMLElement>('[data-zg-editor]')!;
+    const gridEl = host.querySelector<HTMLElement>('[data-zg-grid]')!;
+    const statusEl = host.querySelector<HTMLElement>('[data-zg-status]')!;
+    const runBtn = host.querySelector<HTMLButtonElement>('[data-zg-run]')!;
+    const resetBtn = host.querySelector<HTMLButtonElement>('[data-zg-reset]')!;
+    const viewBtns = host.querySelectorAll<HTMLButtonElement>('[data-view-btn]');
+    const initialCode = host.dataset.initial ?? '';
+
+    // Everything below — the CodeMirror editor and the grid engine — is fetched
+    // only when the playground scrolls into view, so it never weighs on initial
+    // page load.
+    const [
+      { EditorView, basicSetup },
+      { keymap },
+      { javascript },
+      { HighlightStyle, syntaxHighlighting },
+      { tags: t },
+      zg,
+    ] = await Promise.all([
+      import('codemirror'),
+      import('@codemirror/view'),
+      import('@codemirror/lang-javascript'),
+      import('@codemirror/language'),
+      import('@lezer/highlight'),
+      import('@zengrid/enterprise'),
+    ]);
+    const { Zengrid, NumberRenderer, ChipRenderer } = zg;
+
+    // Editor chrome — matches the site's always-dark warm-ink code slab and the
+    // exact syntax triplet used by the Expressive Code theme (violet keywords,
+    // teal strings, salmon class/function names, amber numbers).
+    const zenHighlight = HighlightStyle.define([
+      { tag: t.comment, color: '#8c8272', fontStyle: 'italic' },
+      { tag: [t.keyword, t.operatorKeyword, t.modifier, t.definitionKeyword, t.controlKeyword], color: '#c9a0e8' },
+      { tag: [t.string, t.special(t.string)], color: '#8fd6c8' },
+      { tag: [t.function(t.variableName), t.className, t.typeName, t.namespace], color: '#f2a583' },
+      { tag: [t.number, t.bool, t.null, t.atom], color: '#e3b354' },
+      { tag: [t.propertyName, t.definition(t.propertyName)], color: '#cfc7b8' },
+      { tag: [t.punctuation, t.bracket, t.brace], color: '#b3a998' },
+      { tag: t.variableName, color: '#f1ece1' },
+    ]);
+
+    const zenTheme = EditorView.theme(
+      {
+        '&': { color: '#f1ece1', backgroundColor: '#1e1a15', fontSize: '0.82rem' },
+        '.cm-scroller': {
+          fontFamily: '"JetBrains Mono Variable", ui-monospace, monospace',
+          lineHeight: '1.7',
+        },
+        '.cm-content': { caretColor: '#f2764e' },
+        '.cm-gutters': { backgroundColor: '#171410', color: '#5f584c', border: 'none' },
+        '.cm-activeLine': { backgroundColor: '#ffffff08' },
+        '.cm-activeLineGutter': { backgroundColor: '#ffffff0f', color: '#8c8272' },
+        '&.cm-focused': { outline: 'none' },
+        '.cm-cursor': { borderLeftColor: '#f2764e' },
+        '.cm-selectionBackground, .cm-content ::selection': { backgroundColor: '#f2764e40' },
+        '&.cm-focused .cm-selectionBackground': { backgroundColor: '#f2764e40' },
+      },
+      { dark: true }
+    );
+
+    // Status chips read the site's pill CSS variables, so they re-colour with
+    // the theme on every render — identical to the marketing demo.
+    const chips = new ChipRenderer({
+      size: 'small',
+      chips: (params: { value: unknown }) => {
+        const key = String(params.value).toLowerCase();
+        const cs = getComputedStyle(document.documentElement);
+        return [
+          {
+            label: String(params.value),
+            color: cs.getPropertyValue(`--pill-${key}-bg`).trim() || '#eee',
+            textColor: cs.getPropertyValue(`--pill-${key}-ink`).trim() || '#333',
+          },
+        ];
+      },
+    });
+    const currency = new NumberRenderer({
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    });
+
+    // Generated once — only the grid is rebuilt on each run.
+    const rows = generateRows(PLAY_ROW_COUNT);
+
+    let grid: any = null;
+
+    const setStatus = (state: 'ok' | 'err', msg: string) => {
+      statusEl.textContent = msg;
+      statusEl.dataset.state = state;
+      statusEl.hidden = false;
+    };
+
+    const run = () => {
+      if (grid) {
+        try { grid.destroy(); } catch { /* already gone */ }
+        grid = null;
+      }
+      gridEl.replaceChildren();
+      const code = view.state.doc.toString();
+      try {
+        // The reader's own code, run in the reader's own browser against the
+        // real library. `grid` is declared in the snippet; we hand it back so
+        // we can theme it and dispose it before the next run.
+        const factory = new Function(
+          'Zengrid', 'mount', 'rows', 'currency', 'chips', 'zg',
+          `${code}\n;return typeof grid !== 'undefined' ? grid : null;`
+        );
+        grid = factory(Zengrid, gridEl, rows, currency, chips, zg);
+        if (!grid || typeof grid.setTheme !== 'function') {
+          throw new Error('Assign your grid to a `grid` variable.');
+        }
+        grid.setTheme(zenGridTheme(currentTheme()));
+        grid.refresh();
+        setStatus('ok', `${PLAY_ROW_COUNT.toLocaleString('en-US')} rows · running`);
+      } catch (err) {
+        setStatus('err', err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    let debounce: number | undefined;
+    const scheduleRun = () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(run, 550);
+    };
+
+    const view = new EditorView({
+      doc: initialCode,
+      parent: editorEl,
+      extensions: [
+        basicSetup,
+        javascript(),
+        syntaxHighlighting(zenHighlight),
+        zenTheme,
+        EditorView.lineWrapping,
+        keymap.of([
+          { key: 'Mod-Enter', run: () => { run(); return true; } },
+        ]),
+        EditorView.updateListener.of((u) => {
+          if (u.docChanged) scheduleRun();
+        }),
+      ],
+    });
+
+    // Code / Demo / Split toggle. When the editor becomes visible CodeMirror
+    // needs a re-measure; when the grid becomes visible its ResizeObserver
+    // refits it, and an explicit refresh covers the first frame.
+    const setView = (mode: string) => {
+      host.dataset.view = mode;
+      viewBtns.forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.dataset.viewBtn === mode))
+      );
+      if (mode === 'code' || mode === 'split') {
+        view.requestMeasure();
+      }
+      if (mode === 'demo' || mode === 'split') {
+        requestAnimationFrame(() => grid?.refresh());
+      }
+    };
+    viewBtns.forEach((b) =>
+      b.addEventListener('click', () => setView(b.dataset.viewBtn!))
+    );
+    setView(host.dataset.view || 'demo');
+
+    runBtn.addEventListener('click', run);
+    resetBtn.addEventListener('click', () => {
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: initialCode },
+      });
+      run();
+    });
+
+    // Keep the live grid's theme in sync with the site toggle.
+    new MutationObserver(() => {
+      if (grid) {
+        grid.setTheme(zenGridTheme(currentTheme()));
+        grid.refresh();
+      }
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    run();
+  }
+
+  for (const host of document.querySelectorAll<HTMLElement>('[data-zg-play]')) {
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(
+        (entries, obs) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              obs.disconnect();
+              mount(host);
+            }
+          }
+        },
+        { rootMargin: '250px' }
+      );
+      io.observe(host);
+    } else {
+      mount(host);
+    }
+  }
+</script>

@@ -1,0 +1,111 @@
+---
+title: View Refresh
+description: Repaint cells, rows, and headers on demand after the data behind them changes.
+---
+
+import Playground from '../../../../components/docs/Playground.astro';
+
+## Introduction
+
+ZenGrid renders only the cells in view and reuses their DOM as you scroll. When
+the data behind a cell changes, the grid doesn't watch your objects — you tell it
+what to repaint. Which method you call depends on *how much* changed, from a
+single cell up to the whole viewport.
+
+## The refresh API
+
+Every method below lives on the grid instance.
+
+| Method | Repaints | Use when |
+|--------|----------|----------|
+| `updateCells(cells)` | Just the listed cells | A few known cells changed. |
+| `refresh()` | All visible cells | Many values changed; you don't want to track which. |
+| `clearCache()` | Drops cached render output, then repaints | A renderer's *output* logic changed, not just the value. |
+| `render()` | Full (re)paint | First mount, or after a structural change. Idempotent. |
+| `updateOptions(opts)` | Applies option changes, then refreshes | You changed grid options at runtime. |
+
+```ts
+interface CellRef { row: number; col: number }
+
+grid.updateCells([{ row: 0, col: 3 }, { row: 2, col: 3 }]); // two cells
+grid.refresh();       // every visible cell
+grid.clearCache();    // forget cached output, then repaint
+```
+
+### Targeted vs. full
+
+`updateCells` is the cheapest — it repaints only the cells you name, so live tickers
+and inline edits stay smooth even over huge datasets. Reach for `refresh()` only
+when you genuinely don't know which cells moved.
+
+```ts
+// A value changed at row 4, column 3 — repaint just that cell.
+rows[4][3] = 91_500;
+grid.updateCells([{ row: 4, col: 3 }]);
+```
+
+## Setting new data
+
+Replacing the whole dataset is a different call: `setData` swaps the rows and
+auto-renders (unless you set `autoRender: false`), so you don't call `refresh`
+after it.
+
+```ts
+grid.setData(nextRows); // repaints on its own
+```
+
+## Refreshing headers
+
+Header cells repaint separately from body cells:
+
+```ts
+grid.updateHeader(2);     // one column's header
+grid.updateAllHeaders();  // every header cell
+grid.refreshHeaders();    // re-run header renderers
+```
+
+## Live demo
+
+This grid mutates the revenue of the top rows every 700ms and repaints just those
+cells with `updateCells` — the rest of the grid is never touched. Open **Code**
+or **Split** and try it: widen the loop to more rows, swap `updateCells` for a
+blanket `grid.refresh()`, or change the interval.
+
+export const code = `// In scope: Zengrid, mount, rows, currency, chips, zg.
+// rows are arrays: [name, role, region, revenue, mrr, status]
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+
+// Live-update the top 6 rows' revenue, then repaint ONLY those cells.
+// (The guard clears any timer left by a previous run of this snippet.)
+if (mount.__ticker) clearInterval(mount.__ticker);
+mount.__ticker = setInterval(() => {
+  const changed = [];
+  for (let row = 0; row < 6; row++) {
+    rows[row][3] += Math.round((Math.random() - 0.4) * 4000);
+    changed.push({ row, col: 3 });
+  }
+  grid.updateCells(changed);   // targeted — try grid.refresh() instead
+}, 700);
+`;
+
+<Playground code={code} view="split" height={440} />
+
+## Next
+
+- [Cell Components](/features/cells/cell-components/) — the renderers that produce the cell DOM being refreshed.
+- [Highlighting Changes](/features/cells/highlighting-changes/) — draw attention to cells that just updated.
+- [Row Data](/features/rows/row-data/) — replacing and updating the underlying rows.

@@ -1,0 +1,52 @@
+---
+import type { LegalDoc } from "../config/legal";
+
+interface Props {
+  doc: LegalDoc;
+}
+
+const { doc } = Astro.props;
+---
+
+<article class="pt-16 pb-24 max-w-[720px]">
+  <div
+    class="font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-faint mb-3"
+  >
+    Legal
+  </div>
+  <h1
+    class="font-display text-[clamp(30px,4.5vw,44px)] leading-[1.1] font-extrabold tracking-[-0.03em] m-0 mb-2.5"
+  >
+    {doc.title}
+  </h1>
+  <p class="font-mono text-xs text-faint m-0 mb-8">
+    Last updated: {doc.updated}
+  </p>
+
+  <p class="text-[16px] leading-[1.7] text-muted m-0 mb-10">{doc.intro}</p>
+
+  {
+    doc.sections.map((section) => (
+      <section class="mb-8">
+        <h2 class="font-display text-[19px] font-semibold tracking-[-0.01em] m-0 mb-3">
+          {section.heading}
+        </h2>
+        {section.paragraphs.map((p) => (
+          <p class="text-[15px] leading-[1.7] text-muted m-0 mb-3">{p}</p>
+        ))}
+        {section.bullets && (
+          <ul class="list-none p-0 m-0 flex flex-col gap-2">
+            {section.bullets.map((b) => (
+              <li class="flex items-start gap-2.5 text-[15px] leading-[1.6] text-muted">
+                <span class="text-ink-teal mt-1 text-xs" aria-hidden="true">
+                  ●
+                </span>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    ))
+  }
+</article>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; transition: background-color .3s ease, color .3s ease, border-color .3s ease, box-shadow .2s ease, transform .18s ease; }
+  body { margin: 0; }
+  a { color: var(--coral); text-decoration: none; }
+  a:hover { color: var(--coral-sh); }
+  input { font-family: inherit; }
+  ::selection { background: var(--coral); color: #fff; }
+  @keyframes zg-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-9px) rotate(var(--r, 0deg)); } }
+  @keyframes zg-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
+  @keyframes zg-pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .zg-scroll::-webkit-scrollbar { width: 6px; }
+  .zg-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+</style>
+</helmet>
+
+<div style="{{ themeStyle }} background:var(--bg); color:var(--ink); font-family:'Instrument Sans',sans-serif; min-height:100vh;">
+  <div style="max-width:1180px; margin:0 auto;">
+
+    <!-- nav -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 40px;">
+      <a href="ZenGrid Home v4.dc.html" style="display:flex; align-items:center; gap:11px; color:var(--ink);">
+        <div style="width:28px; height:28px; border-radius:9px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2.5px; padding:4px;">
+          <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+        </div>
+        <span style="font-family:'Manrope',sans-serif; font-weight:800; font-size:20px; letter-spacing:-0.02em;">ZenGrid</span>
+      </a>
+      <div style="display:flex; gap:24px; align-items:center; font-size:15px; font-weight:600; color:var(--muted);">
+        <a href="ZenGrid Features.dc.html" style="color:var(--ink); font-weight:600;">Features</a><a href="ZenGrid Examples.dc.html" style="color:var(--muted);">Examples</a><a href="ZenGrid Pricing.dc.html" style="color:var(--muted);">Pricing</a><a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a><a href="ZenGrid API.dc.html" style="color:var(--muted);">API</a>
+        <button onClick="{{ toggleTheme }}" style="display:inline-flex; align-items:center; gap:6px; background:var(--chip-bg); border:1px solid var(--border); color:var(--ink); padding:8px 14px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ themeIcon }}</button>
+        <span style="background:var(--ink); color:var(--bg); padding:9px 18px; border-radius:999px; font-weight:700; cursor:pointer;">Get started</span>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div style="padding:56px 40px 24px; text-align:center; position:relative;">
+      <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--coral); margin-bottom:16px;">
+        <span style="width:7px; height:7px; background:var(--coral); border-radius:50%; animation:zg-pulse 1.6s ease-in-out infinite;"></span>Poke at every feature
+      </div>
+      <h1 style="font-family:'Manrope',sans-serif; font-size:58px; line-height:1.06; font-weight:800; letter-spacing:-0.035em; margin:0 auto 18px; max-width:760px; text-wrap:balance;">
+        Don't read the features. <span style="color:var(--coral);">Play</span> with them.
+      </h1>
+      <p style="font-size:18px; line-height:1.55; max-width:560px; margin:0 auto; color:var(--muted); font-weight:500;">
+        Every tile below is a real, working slice of ZenGrid. Type, click, sort, select, edit — the whole grid is live.
+      </p>
+    </div>
+
+    <!-- BENTO -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:174px; gap:16px; padding:28px 40px 8px; grid-auto-flow:dense;">
+
+      <!-- Filtering (big, live) -->
+      <div style="grid-column:span 2; grid-row:span 2; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:24px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+          <div style="width:42px; height:42px; border-radius:12px; background:{{ aCoral.bg }}; color:{{ aCoral.ink }}; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700;">∇</div>
+          <div><div style="font-size:20px; font-weight:800; letter-spacing:-0.01em;">Filtering</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint);">grid.setQuickFilter()</div></div>
+        </div>
+        <input value="{{ q }}" onInput="{{ setQ }}" placeholder="Type to filter rows…" style="width:100%; padding:11px 14px; border-radius:11px; border:1.5px solid var(--border); background:var(--surface-2); color:var(--ink); font-size:14px; font-weight:600; outline:none; margin-bottom:12px;" />
+        <div class="zg-scroll" style="flex:1; overflow:auto; border:1px solid var(--border-soft); border-radius:12px;">
+          <sc-for list="{{ filtered }}" as="r" hint-placeholder-count="5">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:9px 13px; border-bottom:1px solid var(--row-line);">
+              <span style="font-size:13.5px; font-weight:600;">{{ r.name }}</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);">{{ r.region }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 13px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint);">no rows match "{{ q }}"</div>
+          </sc-if>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-top:10px;">{{ filterCount }} of 6 rows · filtered client-side in &lt;1ms</div>
+      </div>
+
+      <!-- Sorting (live) -->
+      <div style="grid-column:span 2; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:22px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:11px; background:{{ aTeal.bg }}; color:{{ aTeal.ink }}; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:700;">↕</div>
+            <div style="font-size:19px; font-weight:800; letter-spacing:-0.01em;">Sorting</div>
+          </div>
+          <button onClick="{{ toggleSort }}" style="background:{{ aTeal.bg }}; color:{{ aTeal.ink }}; border:none; padding:8px 14px; border-radius:9px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; cursor:pointer;">revenue {{ sortArrow }}</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:stretch;">
+          <sc-for list="{{ sortedNums }}" as="n" hint-placeholder-count="4">
+            <div style="flex:1; background:var(--surface-2); border:1px solid var(--border-soft); border-radius:11px; padding:14px 8px; text-align:center;">
+              <div style="font-size:20px; font-weight:800; font-family:'JetBrains Mono',monospace; color:var(--teal-ink);">{{ n.val }}</div>
+              <div style="font-size:11px; color:var(--faint); font-weight:600; margin-top:4px;">{{ n.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Selection (live) -->
+      <div style="grid-column:span 1; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:20px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:{{ aViolet.bg }}; color:{{ aViolet.ink }}; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700;">⊞</div>
+          <div style="font-size:16px; font-weight:800;">Selection</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px; flex:1;">
+          <sc-for list="{{ cells }}" as="c" hint-placeholder-count="9">
+            <div onClick="{{ c.onClick }}" style="border-radius:7px; cursor:pointer; background:{{ c.bg }}; border:1.5px solid {{ c.border }};"></div>
+          </sc-for>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-top:10px;">{{ selCount }} cells selected</div>
+      </div>
+
+      <!-- Editing (live) -->
+      <div style="grid-column:span 1; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:20px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:{{ aAmber.bg }}; color:{{ aAmber.ink }}; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700;">✎</div>
+          <div style="font-size:16px; font-weight:800;">Editing</div>
+        </div>
+        <div style="font-size:11px; color:var(--faint); font-weight:600; margin-bottom:6px;">Cost basis</div>
+        <input value="{{ edit }}" onInput="{{ setEdit }}" style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid {{ aAmber.ink }}; background:var(--surface-2); color:var(--ink); font-size:15px; font-weight:700; font-family:'JetBrains Mono',monospace; outline:none;" />
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:{{ aTeal.ink }}; margin-top:auto; font-weight:700;">✓ committed &amp; validated</div>
+      </div>
+
+      <!-- Columns (live reorder) -->
+      <div style="grid-column:span 1; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:20px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:{{ aCoral.bg }}; color:{{ aCoral.ink }}; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700;">▥</div>
+          <div style="font-size:16px; font-weight:800;">Columns</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <sc-for list="{{ cols }}" as="col" hint-placeholder-count="4">
+            <div onClick="{{ col.onClick }}" style="display:flex; align-items:center; gap:8px; background:var(--surface-2); border:1px solid var(--border-soft); border-radius:8px; padding:8px 11px; cursor:pointer; font-size:13px; font-weight:600;">
+              <span style="color:var(--faint); font-family:'JetBrains Mono',monospace;">⋮⋮</span>{{ col.name }}
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--faint); margin-top:auto;">click to pin left</div>
+      </div>
+
+      <!-- Infinite scroll (live scroll) -->
+      <div style="grid-column:span 2; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:22px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:11px; background:{{ aTeal.bg }}; color:{{ aTeal.ink }}; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700;">∞</div>
+            <div><div style="font-size:19px; font-weight:800; letter-spacing:-0.01em;">Infinite scroll</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint);">virtualized — scroll it</div></div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:{{ aTeal.ink }}; font-weight:700;">1,000,000 rows</div>
+        </div>
+        <div class="zg-scroll" style="flex:1; overflow:auto; border:1px solid var(--border-soft); border-radius:12px;">
+          <sc-for list="{{ scrollRows }}" as="s" hint-placeholder-count="12">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 13px; border-bottom:1px solid var(--row-line); font-family:'JetBrains Mono',monospace; font-size:12px;">
+              <span style="color:var(--faint);">{{ s.id }}</span><span style="font-weight:600;">{{ s.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Export (live toast) -->
+      <div style="grid-column:span 1; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:20px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:{{ aAmber.bg }}; color:{{ aAmber.ink }}; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:700;">↧</div>
+          <div style="font-size:16px; font-weight:800;">Export</div>
+        </div>
+        <button onClick="{{ doExport }}" style="background:var(--ink); color:var(--bg); border:none; padding:11px 14px; border-radius:11px; font-size:13px; font-weight:700; cursor:pointer; margin-top:auto;">Export CSV ↧</button>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:{{ aTeal.ink }}; margin-top:10px; min-height:14px; font-weight:700;">{{ exportMsg }}</div>
+      </div>
+
+      <!-- Pagination (live) -->
+      <div style="grid-column:span 1; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:20px; display:flex; flex-direction:column; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:{{ aViolet.bg }}; color:{{ aViolet.ink }}; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700;">‹›</div>
+          <div style="font-size:16px; font-weight:800;">Pagination</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:auto;">rows {{ pageRange }}</div>
+        <div style="display:flex; align-items:center; gap:8px; justify-content:space-between;">
+          <button onClick="{{ prevPage }}" style="background:var(--surface-2); border:1px solid var(--border); color:var(--ink); width:34px; height:34px; border-radius:9px; font-size:15px; font-weight:700; cursor:pointer;">‹</button>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;">{{ page }} / 3</span>
+          <button onClick="{{ nextPage }}" style="background:var(--surface-2); border:1px solid var(--border); color:var(--ink); width:34px; height:34px; border-radius:9px; font-size:15px; font-weight:700; cursor:pointer;">›</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- closing CTA -->
+    <div style="margin:44px 40px 64px; display:flex; align-items:center; justify-content:space-between; gap:24px; background:var(--ink); color:var(--bg); border-radius:24px; padding:40px 44px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-bottom:6px;">Wire it up in five minutes.</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; opacity:0.7;">npm i @zengrid/core</div>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <span style="background:var(--coral); color:#fff; font-weight:700; font-size:15px; padding:13px 22px; border-radius:13px; box-shadow:0 5px 0 var(--coral-sh); cursor:pointer;">Start coding →</span>
+        <span style="background:transparent; border:1px solid #ffffff33; color:var(--bg); font-weight:700; font-size:15px; padding:12px 22px; border-radius:13px; cursor:pointer;">Read the docs</span>
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div style="border-top:1px solid var(--border-soft); padding:44px 40px 40px;">
+      <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:40px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:11px; margin-bottom:14px;">
+            <div style="width:26px; height:26px; border-radius:8px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:3.5px;">
+              <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+            </div>
+            <span style="font-weight:800; font-size:18px;">ZenGrid</span>
+          </div>
+          <p style="font-size:14px; color:var(--muted); font-weight:500; max-width:260px; margin:0;">Performance-first virtual grid for the web.</p>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--faint); margin-bottom:14px;">Product</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; font-weight:600; color:var(--muted);"><span style="cursor:pointer;">Features</span><span style="cursor:pointer;">Examples</span><span style="cursor:pointer;">Performance</span><span style="cursor:pointer;">Plugins</span></div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--faint); margin-bottom:14px;">Developers</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; font-weight:600; color:var(--muted);"><span style="cursor:pointer;">Documentation</span><span style="cursor:pointer;">API Reference</span><span style="cursor:pointer;">Getting Started</span><span style="cursor:pointer;">GitHub</span></div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--faint); margin-bottom:14px;">Community</div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; font-weight:600; color:var(--muted);"><span style="cursor:pointer;">About</span><span style="cursor:pointer;">X / Twitter</span><span style="cursor:pointer;">Contact</span></div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:36px; padding-top:22px; border-top:1px solid var(--border-soft); font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint);">
+        <span>© 2026 ZenGrid. Open source under MIT.</span>
+        <span style="display:flex; gap:20px;"><span style="cursor:pointer;">MIT License</span><span style="cursor:pointer;">Contact</span></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: 'light', q: '', asc: false, sel: [0, 4], edit: '128.00', page: 1, cols: ['Name', 'Role', 'Revenue', 'Status'], exported: false };
+
+  themes = {
+    light: "--bg:#f8f5ef;--surface:#ffffff;--surface-2:#faf8f3;--border:#e6e0d5;--border-soft:#f0ece3;--row-line:#f5f1e9;--ink:#211d1a;--muted:#6b6258;--faint:#8a8175;--coral:#f2764e;--coral-sh:#d85a34;--teal:#57b6a6;--teal-sh:#3f9284;--teal-ink:#3f9284;--chip-bg:#ffffff;--logo-ink:#211d1a;--card-shadow:0 10px 34px -16px #21201c26;",
+    dark: "--bg:#1a1714;--surface:#232019;--surface-2:#2a261e;--border:#34302a;--border-soft:#2f2b24;--row-line:#2a261f;--ink:#f6f1e7;--muted:#b3a998;--faint:#8c8272;--coral:#f2764e;--coral-sh:#a34d2f;--teal:#57b6a6;--teal-sh:#2f6b60;--teal-ink:#6fd0bf;--chip-bg:#2a261e;--logo-ink:#f6f1e7;--card-shadow:0 12px 40px -16px #00000070;",
+  };
+
+  accents = {
+    light: { coral: { bg: '#fdeee7', ink: '#e0603a' }, teal: { bg: '#e6f3f0', ink: '#3f9284' }, amber: { bg: '#fbf1dc', ink: '#c9962a' }, violet: { bg: '#efe9f9', ink: '#7b5fc4' } },
+    dark:  { coral: { bg: '#331f18', ink: '#f7906b' }, teal: { bg: '#1f302c', ink: '#6fd0bf' }, amber: { bg: '#322a16', ink: '#e3b354' }, violet: { bg: '#2a2338', ink: '#ad93e0' } },
+  };
+
+  rowData = [
+    { name: 'Aria Vaskov', region: 'EU-West', revenue: 184200 },
+    { name: 'Kenji Tanaka', region: 'APAC', revenue: 92750 },
+    { name: 'Lucia Moreno', region: 'LATAM', revenue: 231400 },
+    { name: 'Otto Bergman', region: 'EU-North', revenue: 57300 },
+    { name: 'Priya Nair', region: 'APAC', revenue: 168900 },
+    { name: 'Sofia Rossi', region: 'EU-South', revenue: 205100 },
+  ];
+
+  toggleTheme() { this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' })); }
+  setQ(e) { const v = e.target.value; this.setState({ q: v }); }
+  toggleSort() { this.setState(s => ({ asc: !s.asc })); }
+  toggleCell(i) { this.setState(s => ({ sel: s.sel.includes(i) ? s.sel.filter(x => x !== i) : [...s.sel, i] })); }
+  setEdit(e) { const v = e.target.value; this.setState({ edit: v }); }
+  pinCol(name) { this.setState(s => ({ cols: [name, ...s.cols.filter(c => c !== name)] })); }
+  prevPage() { this.setState(s => ({ page: Math.max(1, s.page - 1) })); }
+  nextPage() { this.setState(s => ({ page: Math.min(3, s.page + 1) })); }
+  doExport() {
+    this.setState({ exported: true });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ exported: false }), 2200);
+  }
+
+  renderVals() {
+    const { theme, q, asc, sel, edit, page, cols, exported } = this.state;
+    const a = this.accents[theme];
+
+    const ql = q.trim().toLowerCase();
+    const filtered = this.rowData.filter(r => !ql || r.name.toLowerCase().includes(ql) || r.region.toLowerCase().includes(ql));
+
+    const nums = [
+      { val: 231, label: 'Lucia' }, { val: 205, label: 'Sofia' },
+      { val: 184, label: 'Aria' }, { val: 92, label: 'Kenji' },
+    ];
+    const sortedNums = [...nums].sort((x, y) => asc ? x.val - y.val : y.val - x.val);
+
+    const cells = Array.from({ length: 9 }, (_, i) => {
+      const on = sel.includes(i);
+      return {
+        i,
+        bg: on ? a.violet.bg : 'var(--surface-2)',
+        border: on ? a.violet.ink : 'var(--border-soft)',
+        onClick: () => this.toggleCell(i),
+      };
+    });
+
+    const colObjs = cols.map(name => ({ name, onClick: () => this.pinCol(name) }));
+
+    const scrollRows = Array.from({ length: 40 }, (_, i) => ({
+      id: '#' + String(i + 1).padStart(6, '0'),
+      label: this.rowData[i % this.rowData.length].name,
+    }));
+
+    const start = (page - 1) * 25 + 1;
+    const pageRange = start + '–' + (start + 24);
+
+    return {
+      themeStyle: this.themes[theme],
+      themeIcon: theme === 'light' ? '☾ Dark' : '☀ Light',
+      toggleTheme: () => this.toggleTheme(),
+      aCoral: a.coral, aTeal: a.teal, aAmber: a.amber, aViolet: a.violet,
+      q, setQ: (e) => this.setQ(e),
+      filtered, noMatch: filtered.length === 0, filterCount: filtered.length,
+      sortArrow: asc ? '↑' : '↓', toggleSort: () => this.toggleSort(), sortedNums,
+      cells, selCount: sel.length,
+      edit, setEdit: (e) => this.setEdit(e),
+      cols: colObjs,
+      scrollRows,
+      doExport: () => this.doExport(), exportMsg: exported ? '✓ saved customers.csv' : '',
+      page, prevPage: () => this.prevPage(), nextPage: () => this.nextPage(), pageRange,
+    };
+  }
+}
+</script>
+</body>
+</html>

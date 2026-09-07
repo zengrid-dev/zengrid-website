@@ -1,0 +1,240 @@
+---
+title: Async Values
+description: Populate a cell editor's choices from an asynchronous source — return a Promise, or take a (params, success) callback — with a Loading… placeholder and automatic caching. Built on the premium richSelectEditor(). Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Most editors offer a fixed list of choices. **Async values** let the premium
+[`richSelectEditor()`](/features/editing/provided/search-select/) fetch that list
+**when the editor opens** — from a server, a cache, or any promise — instead of
+hardcoding it. While the fetch is in flight the dropdown shows a **`Loading…`**
+placeholder; when it resolves, the list populates in place and the popup
+re-measures itself.
+
+Point the column's `options` at a getter instead of an array:
+
+```ts
+import { richSelectEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    richSelectEditor({
+      field: 'owner', header: 'Assigned To',
+      // Return a Promise of the choices — the dropdown loads them on open.
+      options: () => fetch('/api/teammates').then((r) => r.json()),
+      // Optional: map committed values to labels/colors for the cell display.
+      displayOptions: teammates,
+    }),
+  ],
+});
+```
+
+### The three getter forms
+
+`options` accepts a static array **or** a getter, and the getter can hand its
+list back in whichever way suits your data layer:
+
+| Form | Signature | Use when |
+|------|-----------|----------|
+| **Array** | `options: [...]` | The choices are known up front (no async). |
+| **Promise** | `options: (params) => Promise<list>` | You already have a promise-based API (`fetch`, a client SDK). |
+| **Callback** | `options: (params, success) => { …; success(list); }` | The values arrive through a callback / event, or you want to call `success` later. |
+
+The getter receives a `params` object — `{ value, rowData, column }` — so the
+list can depend on the row being edited (e.g. members of *that* row's team).
+
+### Options
+
+Everything on [`richSelectEditor()`](/features/editing/provided/search-select/)
+(searchable, `display`, `allowEmpty`, …) **plus**:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `options` | `array \| (params, success) => list \| Promise<list> \| void` | Static choices or an async getter (see above). |
+| `displayOptions` | `RichSelectOptionInput[]` | Static options used **only** to render committed values in the cell (labels / colors / badges) when `options` is async. Omit to show the raw value. |
+| `loadingLabel` | `string` | Text shown while the getter is pending (default `Loading…`). |
+| `cacheValues` | `boolean` | Cache the first resolved list and reuse it on every reopen — no refetch, no `Loading…` flash (default `true`). The cache is **per column**, so set `false` for a **row-dependent** getter (otherwise the first row's list is reused for every row) or to always reload. |
+
+export const variants = [
+  {
+    id: 'promise',
+    label: 'Promise values',
+    hint: "The Assigned To column loads its teammate list from a Promise when you open the editor. Double-click a cell: the dropdown shows Loading… for ~600ms, then the searchable list appears. Pick a person — the cell shows their name + glyph via displayOptions.",
+    code: `// In scope (enterprise): richSelectEditor
+// Simulate a server call that returns the assignable teammates.
+function fetchTeammates() {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve([
+      { value: 'ada', label: 'Ada Lovelace', icon: '👩‍💻', description: 'Engineering' },
+      { value: 'alan', label: 'Alan Turing', icon: '🧮', description: 'Research' },
+      { value: 'grace', label: 'Grace Hopper', icon: '⚓', description: 'Compilers' },
+      { value: 'linus', label: 'Linus Pauling', icon: '🧪', description: 'Chemistry' },
+      { value: 'katherine', label: 'Katherine Johnson', icon: '🚀', description: 'Orbital math' },
+    ]), 600);
+  });
+}
+
+// Static labels so committed codes render nicely (the list isn't known up front).
+const people = [
+  { value: 'ada', label: 'Ada Lovelace', icon: '👩‍💻' },
+  { value: 'alan', label: 'Alan Turing', icon: '🧮' },
+  { value: 'grace', label: 'Grace Hopper', icon: '⚓' },
+  { value: 'linus', label: 'Linus Pauling', icon: '🧪' },
+  { value: 'katherine', label: 'Katherine Johnson', icon: '🚀' },
+];
+
+// Row shape: [task, owner]
+const data = [
+  ['Fix onboarding flow', 'ada'],
+  ['Migrate billing', 'grace'],
+  ['Ship dark mode', null],
+  ['Audit dependencies', 'alan'],
+  ['Draft Q3 roadmap', null],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'task', header: 'Task', width: 240 },
+    richSelectEditor({
+      field: 'owner', header: 'Assigned To', width: 260,
+      // Async: return a Promise. Try 'return fetchTeammates();' vs a static array.
+      options: () => fetchTeammates(),
+      displayOptions: people,
+    }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'dependent',
+    label: 'Callback + row-dependent',
+    hint: "The Owner list is loaded with the (params, success) callback form and depends on each row's Team — Platform rows offer Platform members, Growth rows offer Growth members, etc. Double-click Owner on rows with different Teams to see different lists load.",
+    code: `// The callback form: read params.rowData, then hand back the list via success().
+const TEAMS = {
+  Platform: [
+    { value: 'ada', label: 'Ada Lovelace', icon: '👩‍💻' },
+    { value: 'linus', label: 'Linus Pauling', icon: '🧪' },
+  ],
+  Growth: [
+    { value: 'grace', label: 'Grace Hopper', icon: '⚓' },
+    { value: 'katherine', label: 'Katherine Johnson', icon: '🚀' },
+  ],
+  Research: [
+    { value: 'alan', label: 'Alan Turing', icon: '🧮' },
+    { value: 'marie', label: 'Marie Curie', icon: '☢️' },
+  ],
+};
+
+// Flatten every member so committed values render regardless of team.
+const everyone = [...TEAMS.Platform, ...TEAMS.Growth, ...TEAMS.Research];
+
+// Row shape: [project, team, owner]
+const data = [
+  ['Realtime sync', 'Platform', 'ada'],
+  ['Referral program', 'Growth', 'grace'],
+  ['New index format', 'Research', null],
+  ['Edge caching', 'Platform', null],
+  ['Onboarding funnel', 'Growth', 'katherine'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'project', header: 'Project', width: 200 },
+    { field: 'team', header: 'Team', width: 130 },
+    richSelectEditor({
+      field: 'owner', header: 'Owner', width: 220,
+      // params.rowData is this row — pick the members for its team, async.
+      options: (params, success) => {
+        const team = params.rowData && params.rowData[1];
+        setTimeout(() => success(TEAMS[team] || []), 500);
+      },
+      displayOptions: everyone,
+      // Row-dependent lists must opt out of caching — the cache is per-column,
+      // so without this the first row's list would be reused for every row.
+      cacheValues: false,
+    }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'caching',
+    label: 'Caching',
+    hint: "Both Status columns fetch from the same async source. The first caches by default — reopen it and it's instant. The second sets cacheValues:false, so Loading… reappears on every open (watch 'fetch #' climb in the console). Double-click cells in each column to compare.",
+    code: `// Values are cached by default; cacheValues:false reloads on every open.
+let fetchCount = 0;
+function fetchStatuses() {
+  fetchCount += 1;
+  console.log('fetch #' + fetchCount);
+  return new Promise((resolve) => {
+    setTimeout(() => resolve([
+      { value: 'todo', label: 'To do', color: '#94a3b8' },
+      { value: 'doing', label: 'In progress', color: '#3b82f6' },
+      { value: 'review', label: 'In review', color: '#f59e0b' },
+      { value: 'done', label: 'Done', color: '#22c55e' },
+    ]), 500);
+  });
+}
+
+const statuses = [
+  { value: 'todo', label: 'To do', color: '#94a3b8' },
+  { value: 'doing', label: 'In progress', color: '#3b82f6' },
+  { value: 'review', label: 'In review', color: '#f59e0b' },
+  { value: 'done', label: 'Done', color: '#22c55e' },
+];
+
+// Row shape: [task, cachedStatus, liveStatus]
+const data = [
+  ['Design review', 'doing', 'doing'],
+  ['API contract', 'review', 'review'],
+  ['Load testing', 'todo', 'todo'],
+  ['Release notes', 'done', 'done'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'task', header: 'Task', width: 220 },
+    // Cached (default): fetches once, then every reopen is instant.
+    richSelectEditor({
+      field: 'cached', header: 'Status (cached)', width: 200, display: 'badge',
+      options: () => fetchStatuses(), displayOptions: statuses,
+    }),
+    // Uncached: Loading… on every open; 'fetch #' climbs in the console.
+    richSelectEditor({
+      field: 'live', header: 'Status (cacheValues:false)', width: 240, display: 'badge',
+      options: () => fetchStatuses(), displayOptions: statuses,
+      cacheValues: false,
+    }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Undo / Redo Edits](/features/editing/undo-redo/) — step edits backward and
+  forward.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

@@ -1,0 +1,143 @@
+---
+title: Cell Selection
+description: Select individual cells or rectangular ranges — one cell, a swept rectangle, or several rectangles at once — with click, shift-click, and ctrl-click, live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Cell selection points at individual cells rather than whole rows — the model a
+spreadsheet uses. ZenGrid offers two flavours through `selectionType`:
+
+- `'cell'` — select **one cell** at a time; shift-click extends to a rectangle.
+- `'range'` — every interaction works on **rectangles**; the anchor plus a
+  shift-click defines a block.
+
+```ts
+const grid = new Zengrid(mount, {
+  columns,
+  selectionType: 'range',        // or 'cell'
+  enableMultiSelection: true,    // allow several rectangles
+});
+```
+
+With `enableMultiSelection: true`, **ctrl/⌘-click** starts an additional rectangle,
+so `grid.selection.getRanges()` can hold several disjoint blocks — exactly what you
+want before a multi-range copy.
+
+## Cells, ranges, and the active cell
+
+A **range** is a rectangle: `{ startRow, startCol, endRow, endCol }` in source
+coordinates. The **active cell** is the single last-focused cell (the anchor of the
+next shift-extend) — read it with `grid.selection.getActive()`. A one-cell
+selection is just a range where start equals end.
+
+```ts
+grid.selection.selectCell(2, 3);              // one cell
+grid.selection.selectRange(0, 0, 4, 2);       // a 5×3 rectangle
+grid.selection.selectRange(6, 3, 8, 5, true); // + another rectangle (additive)
+grid.selection.isSelected(2, 3);              // true / false
+```
+
+:::note[Coordinates are source indices]
+`selectCell(row, col)` and `selectRange(...)` take **source** row indices and
+**data-column** indices — a column's position in your `columns` array, unaffected
+by column reordering. See [Accessing Rows](/features/rows/accessing-rows/) for the
+source-vs-displayed distinction.
+:::
+
+## Try it live
+
+export const cols = `  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'single-cell',
+    label: 'Single cell',
+    hint: 'selectionType "cell" highlights one cell. Click to select, click again to clear, shift-click to extend to a rectangle. getActive() reports the anchor.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// One cell at a time; shift-click extends to a rectangle.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'cell',
+${cols}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Active cell', action: "alert('active: ' + JSON.stringify(grid.selection.getActive()))" },
+      { label: 'Select (4, MRR)', action: 'grid.selection.selectCell(4, 4)' },
+      { label: 'Is (4,4) selected?', action: 'alert(grid.selection.isSelected(4, 4))' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'range',
+    label: 'Rectangular range',
+    hint: 'selectionType "range" works on rectangles. Click an anchor, shift-click a far cell to sweep the block. selectRange(sr, sc, er, ec) does it from code.',
+    code: `// Rectangles: click an anchor then shift-click to sweep the block.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+${cols}
+});
+
+grid.setData(rows);
+grid.selection.selectRange(0, 0, 3, 2);   // a starter 4×3 block
+`,
+    controls: [
+      { label: 'Selected range', action: "alert(JSON.stringify(grid.selection.getRanges()[0] ?? 'none'))" },
+      { label: 'Select rows 2–6 × cols 1–3', action: 'grid.selection.selectRange(2, 1, 6, 3)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'multi-range',
+    label: 'Several ranges',
+    hint: 'enableMultiSelection: true — ctrl/⌘-click starts another rectangle. getRanges() returns each block; perfect before a multi-range copy.',
+    code: `// enableMultiSelection lets ctrl/⌘-click start additional rectangles.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+  enableMultiSelection: true,
+${cols}
+});
+
+grid.setData(rows);
+grid.selection.selectRange(0, 0, 2, 1);           // block A
+grid.selection.selectRange(5, 3, 7, 5, true);     // + block B (additive)
+`,
+    controls: [
+      { label: 'Count ranges', action: "alert(grid.selection.getRanges().length + ' rectangle(s)')" },
+      { label: 'Add another block', action: 'grid.selection.selectRange(9, 0, 11, 2, true)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where to go next
+
+- [Range Selection](/features/selection/range-handle/) — resize a range by dragging
+  its handle.
+- [Fill Handle](/features/selection/fill-handle/) — drag to fill values across a
+  range.
+- [Selection API](/features/selection/row-api/) — the full `grid.selection`
+  surface.

@@ -1,0 +1,288 @@
+---
+title: Checkbox Editor
+description: Edit boolean cells with the built-in checkbox editor (label, tri-state, validation) or the premium checkboxEditor() — a matching cell display (checkbox, label, or icon) and arbitrary value encodings (store 0/1, 'Yes'/'No') in one call. Live, editable examples in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+ZenGrid edits boolean cells in two layers:
+
+- **Built-in checkbox editor (Community).** Set `editor: 'checkbox'` on an
+  editable column for a toggle editor. Configure it declaratively through
+  `editorOptions` — `label`, `allowIndeterminate` (tri-state), `disabled`, and a
+  custom `validator`. `Space` toggles; `Enter` commits; `Escape` cancels. No
+  license needed.
+- **Checkbox column (Enterprise).** `checkboxEditor()` returns a ready-made
+  column that wires the same editor **and** renders the committed value to match
+  it — a centered read-only checkbox, a text label, or an icon — while letting
+  the column store **any encoding** (`0`/`1`, `'Yes'`/`'No'`, …) and keep that
+  shape on commit. One call, no hand-wired renderer.
+
+The built-in editor reads and writes plain booleans. It coerces common truthy
+encodings on the way *in* (`1`/`0`, `'yes'`/`'no'`, `'on'`/`'off'`,
+`'true'`/`'false'`) but always commits a boolean — use the Enterprise
+`checkboxEditor()` when the column must **keep** a non-boolean encoding.
+
+## Built-in checkbox editor (Community)
+
+Select it on any editable column:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'active', header: 'Active', editable: true, editor: 'checkbox',
+      editorOptions: { label: 'Enabled' },
+      renderer: new zg.CheckboxRenderer({ disabled: true }) },
+  ],
+});
+```
+
+### `editorOptions`
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `label` | `string` | Text shown next to the editor's checkbox. |
+| `allowIndeterminate` | `boolean` | Enable a third indeterminate (`null`) state; `Space` cycles checked → unchecked → indeterminate. |
+| `disabled` | `boolean` | Render the editor's checkbox disabled. |
+| `validator` | `(value: boolean \| null) => boolean \| string` | Custom check on commit; return a string to supply the error message. |
+| `checkedText` / `uncheckedText` / `indeterminateText` | `string` | Accessible state text for screen readers. |
+
+A failing `validator` commit is governed by the grid-level
+[`editing.invalidEditMode`](/features/editing/validation/): `'block'` (default)
+keeps the editor open and flags the cell.
+
+export const communityVariants = [
+  {
+    id: 'toggle',
+    label: 'Enable & toggle',
+    hint: "Active uses editor:'checkbox' with a label. Double-click a cell to open the editor, press Space to toggle, Enter to commit. The cell shows a read-only zg.CheckboxRenderer. Change the label and re-run.",
+    code: `// In scope: Zengrid, mount, zg (for zg.CheckboxRenderer)
+const data = [
+  ['Aria Vaskov', true],
+  ['Kenji Tanaka', false],
+  ['Lucia Moreno', true],
+  ['Otto Bergman', false],
+  ['Priya Nair', true],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'active', header: 'Active', width: 160, align: 'center',
+      editable: true, editor: 'checkbox',
+      editorOptions: { label: 'Enabled' },
+      renderer: new zg.CheckboxRenderer({ disabled: true }) },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'tristate',
+    label: 'Tri-state',
+    hint: "allowIndeterminate:true adds a third state. Rows starting as null render as an indeterminate (mixed) box. Double-click and press Space to cycle checked → unchecked → indeterminate, then Enter to commit.",
+    code: `// allowIndeterminate turns the editor tri-state (true / false / null).
+const data = [
+  ['Migrate billing', true],
+  ['Ship v2 API', null],
+  ['Security audit', false],
+  ['Q3 planning', null],
+  ['Data backfill', true],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'task', header: 'Task', width: 200 },
+    { field: 'done', header: 'Done', width: 160, align: 'center',
+      editable: true, editor: 'checkbox',
+      editorOptions: { allowIndeterminate: true },
+      renderer: new zg.CheckboxRenderer({ indeterminate: true, disabled: true }) },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'validation',
+    label: 'Required & validation',
+    hint: "Under invalidEditMode:'block', Accepted must be checked (validator returns a message otherwise). Double-click a cell, leave it unchecked, press Enter → the commit is blocked and the editor stays open; check it → it commits.",
+    code: `// A validator that requires the box to be checked; invalidEditMode:'block'
+// keeps the editor open on a failing commit.
+const data = [
+  ['Terms of Service', false],
+  ['Privacy Policy', true],
+  ['Data Processing', false],
+  ['Cookie Consent', true],
+  ['Marketing Opt-in', false],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'doc', header: 'Agreement', width: 220 },
+    { field: 'accepted', header: 'Accepted', width: 160, align: 'center',
+      editable: true, editor: 'checkbox',
+      editorOptions: {
+        validator: (v) => v === true || 'You must accept this to continue',
+      },
+      renderer: new zg.CheckboxRenderer({ disabled: true }) },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={communityVariants} />
+
+## Checkbox column (Enterprise)
+
+<FeatureMeta tier="enterprise" />
+
+`checkboxEditor()` returns a `ColumnDef` — drop it straight into `columns`. It
+wires the checkbox editor and, by default, renders the committed value to match
+it, so you don't hand-wire a `renderer`:
+
+```ts
+import { checkboxEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    checkboxEditor({ field: 'active', header: 'Active',
+      checkedValue: 'Yes', uncheckedValue: 'No' }),
+  ],
+});
+```
+
+The column **keeps its encoding**: the editor toggles a boolean, and a generated
+`valueParser` writes `checkedValue` / `uncheckedValue` back on commit — so a
+column of `'Yes'`/`'No'` (or `1`/`0`) stays that way in your data.
+
+### Options
+
+Everything from the built-in editor (`label`/`disabled`/`validator`) **plus**:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `checkedValue` / `uncheckedValue` | `unknown` | The values stored for a checked / unchecked box (default `true` / `false`). |
+| `tristate` | `boolean` | Enable the indeterminate state (stored as `indeterminateValue`, default `null`). |
+| `indeterminateValue` | `unknown` | The value stored for the indeterminate state. |
+| `display` | `'checkbox' \| 'label' \| 'icon'` | How the cell renders (default `'checkbox'`). |
+| `trueLabel` / `falseLabel` / `indeterminateLabel` | `string` | Cell text in `'label'` mode. |
+| `checkedIcon` / `uncheckedIcon` / `indeterminateIcon` | `string` | Cell glyph in `'icon'` mode. |
+| `formatDisplay` | `boolean` | Render the matching display (default `true`; `false` keeps your own `renderer`). |
+
+export const enterpriseVariants = [
+  {
+    id: 'encoding',
+    label: 'Matching display & encoding',
+    hint: "checkboxEditor() renders a centered read-only checkbox matching the editor — no separate renderer. 'Active' stores 'Yes'/'No' strings; 'Beta' stores 1/0. Double-click a cell and toggle: the column keeps its encoding (open the console or inspect data to confirm 'Yes'/'No' and 1/0 are preserved).",
+    code: `// In scope (enterprise): checkboxEditor
+const data = [
+  ['Aria Vaskov', 'Yes', 1],
+  ['Kenji Tanaka', 'No', 0],
+  ['Lucia Moreno', 'Yes', 0],
+  ['Otto Bergman', 'No', 1],
+  ['Priya Nair', 'Yes', 1],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    checkboxEditor({ field: 'active', header: 'Active', width: 140,
+      checkedValue: 'Yes', uncheckedValue: 'No' }),
+    checkboxEditor({ field: 'beta', header: 'Beta', width: 140,
+      checkedValue: 1, uncheckedValue: 0 }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'display',
+    label: 'Label & icon display',
+    hint: "display:'label' renders text (Active/Inactive) and display:'icon' renders a glyph (✔/✘) — both still edited with the checkbox editor. Double-click either cell to toggle; the label/icon updates to match.",
+    code: `// display: 'label' and display: 'icon' render the committed value as text/glyph.
+const data = [
+  ['api.zengrid.io', true, true],
+  ['cdn.zengrid.io', false, true],
+  ['db.zengrid.io', true, false],
+  ['edge.zengrid.io', false, false],
+  ['queue.zengrid.io', true, true],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'service', header: 'Service', width: 200 },
+    checkboxEditor({ field: 'live', header: 'Status', width: 150,
+      display: 'label', trueLabel: 'Active', falseLabel: 'Inactive' }),
+    checkboxEditor({ field: 'healthy', header: 'Healthy', width: 130,
+      display: 'icon', checkedIcon: '✔', uncheckedIcon: '✘' }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'tristate',
+    label: 'Tri-state & validation',
+    hint: "tristate:true adds a third state, stored as 'yes'/'no'/null via checkedValue/uncheckedValue/indeterminateValue and rendered as icons. Under invalidEditMode:'block' the validator forbids leaving a row pending (indeterminate) on commit. Double-click a cell, cycle with Space, and press Enter.",
+    code: `// tristate with a 'yes'/'no'/null encoding + a validator that blocks pending.
+const data = [
+  ['Migrate billing', 'yes'],
+  ['Ship v2 API', null],
+  ['Security audit', 'no'],
+  ['Q3 planning', null],
+  ['Data backfill', 'yes'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'task', header: 'Task', width: 220 },
+    checkboxEditor({ field: 'review', header: 'Review', width: 150,
+      display: 'icon',
+      tristate: true,
+      checkedValue: 'yes', uncheckedValue: 'no', indeterminateValue: null,
+      checkedIcon: '✔', uncheckedIcon: '✘', indeterminateIcon: '•',
+      validator: (v) => v !== null || 'Resolve approved or rejected before saving' }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={enterpriseVariants} enterprise />
+
+## Next
+
+- [Select Editor](/features/editing/provided/select/) — pick from a fixed list.
+- [Search Select Editor](/features/editing/provided/search-select/) — searchable,
+  richly rendered options.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

@@ -1,0 +1,262 @@
+---
+title: External DropZone
+description: Drag a row out of the grid and drop it onto an external target — a trash bin, a shortlist panel, another widget. The grid runs the gesture; your zone owns the outcome.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Rows don't only move *within* the grid. An **external drop zone** lets the user
+drag a row **out** and drop it onto any DOM element you nominate — a trash bin, a
+"shortlist" panel, a kanban lane, another component entirely. `RowDragManager`
+runs the same pointer gesture and ghost it uses for reordering, but when the
+pointer is over a registered zone it suppresses the in-grid drop line and hands
+the drop to **your** callback. The grid is never mutated for an external drop —
+in managed *or* unmanaged mode — so the zone decides what happens: append to a
+list, remove the source row, POST to a server.
+
+Register a zone with `drag.addRowDropZone(zone)`:
+
+```ts
+import { RowDragManager, rowDragColumn } from '@zengrid/enterprise/grid';
+
+const drag = new RowDragManager({ handle: true });
+const grid = new Zengrid(mount, { columns: [rowDragColumn(), /* … */ ] });
+grid.setData(rows);
+drag.attach(grid);
+
+const remove = drag.addRowDropZone({
+  getContainer: () => document.querySelector('#trash'),
+  onDragEnter: ({ container }) => container.classList.add('is-hot'),
+  onDragLeave: ({ container }) => container.classList.remove('is-hot'),
+  onDrop: ({ rowData }) => deleteRecord(rowData),
+});
+// remove()  → unregister the zone later
+```
+
+## The zone contract
+
+A zone is a plain object. Only `getContainer` is required — the four hooks are
+optional, fire in order across a drag, and each receives a
+`RowDropZoneParams` describing what's being carried:
+
+| Member | When it fires | Use it to |
+|--------|---------------|-----------|
+| `getContainer()` | Every hit-test | Return the target element (or `null` to skip). May return a live ref. |
+| `onDragEnter` | Pointer enters the zone | Highlight the target. |
+| `onDragging` | Every move inside the zone | Live feedback (position, preview). |
+| `onDragLeave` | Pointer leaves without dropping | Undo the highlight. |
+| `onDrop` | Released over the zone | Apply the outcome. |
+
+Every hook is handed the same shape:
+
+| `RowDropZoneParams` | Meaning |
+|---------------------|---------|
+| `fromRow` / `fromSource` | The dragged row's on-screen and dataset indices. |
+| `rowData` | A **copy** of the dragged row's source cells — read it freely. |
+| `container` | The zone element (what `getContainer()` returned). |
+| `event` | The underlying `PointerEvent`. |
+
+While the pointer is over a zone the manager also toggles a
+`zg-row-drop-zone-active` class on the container, so you get a default dashed
+highlight with zero code — restyle or replace it via the `onDragEnter` /
+`onDragLeave` hooks.
+
+## Managed and unmanaged both defer
+
+An external drop **never** reorders the grid — that's the whole point, the row is
+leaving. This holds whether the manager is `managed` (in-grid drops reorder) or
+`managed: false` (in-grid drops do nothing). So a single manager can support
+*both* at once: drop inside the grid to reorder, drop on a zone to send the row
+elsewhere.
+
+## Try it live
+
+Grab a row's **⠿** handle and drag it down onto the panel below the grid. Switch
+tabs to remove rows, collect a shortlist while in-grid reordering still works,
+and route rows to one of two zones with live hover feedback.
+
+export const variants = [
+  {
+    id: 'trash',
+    label: 'Drop to remove',
+    hint: 'Drag the ⠿ handle onto the red bin. onDrop removes that row from the grid; onDragEnter/onDragLeave recolour the bin.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, RowDragManager, rowDragColumn.
+// A drop zone is any element you own. Here: a bin below the grid.
+const panel = mount.parentElement;
+panel.querySelectorAll('[data-demo-dropzone]').forEach((n) => n.remove());
+
+const bin = document.createElement('div');
+bin.dataset.demoDropzone = '';
+bin.textContent = '🗑  Drag a row here to remove it';
+Object.assign(bin.style, {
+  flex: '0 0 auto', margin: '8px', padding: '16px', textAlign: 'center',
+  fontSize: '13px', fontWeight: '600', borderRadius: '10px',
+  border: '2px dashed #cbd5e1', color: '#64748b', transition: 'all .12s',
+});
+panel.appendChild(bin);
+
+// managed: false → dropping inside the grid does nothing; only the zone acts.
+const drag = new RowDragManager({ handle: true, managed: false });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    rowDragColumn(),
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'revenue', header: 'Revenue', width: 140, renderer: currency },
+  ],
+});
+grid.setData(rows.slice(0, 8));
+drag.attach(grid);
+
+drag.addRowDropZone({
+  getContainer: () => bin,
+  onDragEnter: () => { bin.style.borderColor = '#ef4444'; bin.style.color = '#ef4444'; },
+  onDragLeave: () => { bin.style.borderColor = '#cbd5e1'; bin.style.color = '#64748b'; },
+  onDrop: ({ fromSource, rowData }) => {
+    const kept = [];
+    for (let i = 0; i < grid.rows.getSourceRowCount(); i++) {
+      if (i !== fromSource) kept.push(grid.rows.getSourceRow(i));
+    }
+    grid.setData(kept);
+    grid.refresh();
+    bin.style.borderColor = '#cbd5e1';
+    bin.style.color = '#64748b';
+    bin.textContent = 'Removed ' + rowData[0] + ' — drag another';
+  },
+});
+`,
+  },
+  {
+    id: 'shortlist',
+    label: 'Shortlist (+ reorder)',
+    hint: 'managed: true keeps in-grid reordering working. Drop a row on the panel to add its name to the shortlist — the grid keeps the row.',
+    code: `// managed: true → in-grid drops still reorder; an external drop just collects.
+const panel = mount.parentElement;
+panel.querySelectorAll('[data-demo-dropzone]').forEach((n) => n.remove());
+
+const shelf = document.createElement('div');
+shelf.dataset.demoDropzone = '';
+const items = [];
+const paint = () => { shelf.textContent = '⭐ Shortlist: ' + (items.join(', ') || 'drop rows here'); };
+Object.assign(shelf.style, {
+  flex: '0 0 auto', margin: '8px', padding: '16px', textAlign: 'center',
+  fontSize: '13px', fontWeight: '600', borderRadius: '10px',
+  border: '2px dashed #cbd5e1', color: '#64748b', transition: 'all .12s',
+});
+paint();
+panel.appendChild(shelf);
+
+const drag = new RowDragManager({ handle: true, managed: true });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    rowDragColumn(),
+    { field: 'name',    header: 'Name',    width: 200 },
+    { field: 'role',    header: 'Role',    width: 180 },
+    { field: 'region',  header: 'Region',  width: 140 },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+grid.setData(rows.slice(0, 8));
+drag.attach(grid);
+
+drag.addRowDropZone({
+  getContainer: () => shelf,
+  onDragEnter: () => { shelf.style.borderColor = '#2d9c8f'; shelf.style.color = '#2d9c8f'; },
+  onDragLeave: () => { shelf.style.borderColor = '#cbd5e1'; shelf.style.color = '#64748b'; },
+  onDrop: ({ rowData }) => {
+    if (!items.includes(rowData[0])) items.push(rowData[0]);
+    shelf.style.borderColor = '#cbd5e1';
+    shelf.style.color = '#64748b';
+    paint();
+  },
+});
+`,
+  },
+  {
+    id: 'two-zones',
+    label: 'Two zones + status',
+    hint: 'Register more than one zone. onDragging drives the live status line; drop on Approve or Reject to route the row.',
+    code: `// Multiple zones + all four hooks. onDragging feeds a live status readout.
+const panel = mount.parentElement;
+panel.querySelectorAll('[data-demo-dropzone]').forEach((n) => n.remove());
+
+const bar = document.createElement('div');
+bar.dataset.demoDropzone = '';
+Object.assign(bar.style, { flex: '0 0 auto', display: 'flex', gap: '8px', margin: '8px' });
+
+const status = document.createElement('div');
+Object.assign(status.style, {
+  flex: '0 0 auto', margin: '0 8px 8px', fontSize: '12px', color: '#64748b', textAlign: 'center',
+});
+status.textContent = 'Drag a row onto a zone…';
+
+const makeZone = (label, color) => {
+  const el = document.createElement('div');
+  Object.assign(el.style, {
+    flex: '1 1 0', padding: '16px', textAlign: 'center', fontSize: '13px',
+    fontWeight: '600', borderRadius: '10px', border: '2px dashed #cbd5e1',
+    color: '#64748b', transition: 'all .12s',
+  });
+  el.textContent = label;
+  return {
+    getContainer: () => el,
+    onDragEnter: () => { el.style.borderColor = color; el.style.color = color; },
+    onDragging: ({ rowData }) => { status.textContent = 'Drop ' + rowData[0] + ' → ' + label; },
+    onDragLeave: () => {
+      el.style.borderColor = '#cbd5e1'; el.style.color = '#64748b';
+      status.textContent = 'Drag a row onto a zone…';
+    },
+    onDrop: ({ rowData }) => {
+      el.style.borderColor = '#cbd5e1'; el.style.color = '#64748b';
+      status.textContent = label + ': ' + rowData[0];
+    },
+  };
+};
+
+const approve = makeZone('✓ Approve', '#2d9c8f');
+const reject = makeZone('✕ Reject', '#ef4444');
+bar.append(approve.getContainer(), reject.getContainer());
+panel.append(bar, status);
+
+const drag = new RowDragManager({ handle: true, managed: false });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    rowDragColumn(),
+    { field: 'name',   header: 'Name',   width: 200 },
+    { field: 'role',   header: 'Role',   width: 190 },
+    { field: 'region', header: 'Region', width: 150 },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+grid.setData(rows.slice(0, 8));
+drag.attach(grid);
+
+drag.addRowDropZone(approve);
+drag.addRowDropZone(reject);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Grid to Grid](/features/rows/row-dragging/grid-to-grid/) — a drop zone whose
+  target is *another* grid.
+- [Unmanaged Row Dragging](/features/rows/row-dragging/unmanaged/) — own every
+  in-grid drop the same way a zone owns an external one.
+- [Managed Row Dragging](/features/rows/row-dragging/managed/) — the in-grid
+  reorder that runs alongside your zones.

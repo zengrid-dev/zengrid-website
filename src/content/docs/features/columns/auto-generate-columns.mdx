@@ -1,0 +1,139 @@
+---
+title: Auto-Generate Columns
+description: Infer a column definition for each field in your row data — no hand-written columns array — with options to exclude, reorder, and override, live in the page.
+tier: enterprise
+sidebar:
+  order: 10
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Auto-generate columns infers a column definition for each field in your row data,
+so you can render a grid without hand-writing a `columns` array — useful for ad-hoc
+data, admin tools, and unknown schemas.
+
+It's an **enterprise** feature. Give `autoGenerateColumns` your data as objects; it
+returns a `columns` array (one per field, with a humanized header and numeric
+columns right-aligned). Feed the grid array rows in the same field order:
+
+```ts
+import { autoGenerateColumns } from '@zengrid/enterprise';
+
+const columns = autoGenerateColumns(data);          // infer from the data shape
+const rows = data.map((o) => columns.map((c) => o[c.field]));
+
+const grid = new Zengrid(el, { rowCount: rows.length, columns });
+grid.setData(rows);
+```
+
+## Shaping the output
+
+Everything about the generated columns is adjustable through the options:
+
+| Option | Effect |
+|--------|--------|
+| `exclude` | Drop these fields. |
+| `include` | Keep only these fields, in this order. |
+| `header` | Turn a field name into a header label (default: humanize). |
+| `defaultWidth` | Width for every generated column. |
+| `overrides` | Per-field patches — a `renderer`, a `width`, anything on `ColumnDef`. |
+
+## Try it live
+
+Each tab generates the columns from the same data with different options — edit the
+call and the grid rebuilds from the new column set.
+
+export const variants = [
+  {
+    id: 'infer',
+    label: 'Infer from data',
+    hint: 'No columns array — autoGenerateColumns reads the object keys. Numbers (Revenue, MRR) come out right-aligned; headers are humanized from the field names.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, autoGenerateColumns
+// Objects in → columns out. (Here we build objects from the demo rows.)
+const data = rows.slice(0, 500).map((r) => ({
+  name: r[0], role: r[1], region: r[2], revenue: r[3], mrr: r[4], status: r[5],
+}));
+
+const columns = autoGenerateColumns(data);
+const gridRows = data.map((o) => columns.map((c) => o[c.field]));
+
+const grid = new Zengrid(mount, {
+  rowCount: gridRows.length,
+  rowHeight: 40,
+  columns,
+});
+
+grid.setData(gridRows);
+`,
+  },
+  {
+    id: 'overrides',
+    label: 'Exclude & override',
+    hint: "Drop a field with exclude, and patch generated columns via overrides — here Revenue gets the currency renderer and Status the chips renderer.",
+    code: `const data = rows.slice(0, 500).map((r) => ({
+  name: r[0], role: r[1], region: r[2], revenue: r[3], mrr: r[4], status: r[5],
+}));
+
+const columns = autoGenerateColumns(data, {
+  exclude: ['mrr'],
+  overrides: {
+    revenue: { renderer: currency, width: 160 },
+    status:  { renderer: chips },
+  },
+});
+const gridRows = data.map((o) => columns.map((c) => o[c.field]));
+
+const grid = new Zengrid(mount, {
+  rowCount: gridRows.length,
+  rowHeight: 40,
+  columns,
+});
+
+grid.setData(gridRows);
+`,
+  },
+  {
+    id: 'reorder',
+    label: 'Pick & rename',
+    hint: 'include keeps only some fields in a chosen order; header rewrites the labels (here uppercased). defaultWidth sets the base width.',
+    code: `const data = rows.slice(0, 500).map((r) => ({
+  name: r[0], role: r[1], region: r[2], revenue: r[3], mrr: r[4], status: r[5],
+}));
+
+const columns = autoGenerateColumns(data, {
+  include: ['status', 'name', 'revenue'],
+  header: (f) => f.toUpperCase(),
+  defaultWidth: 200,
+  overrides: {
+    revenue: { renderer: currency },
+    status:  { renderer: chips },
+  },
+});
+const gridRows = data.map((o) => columns.map((c) => o[c.field]));
+
+const grid = new Zengrid(mount, {
+  rowCount: gridRows.length,
+  rowHeight: 40,
+  columns,
+});
+
+grid.setData(gridRows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} height={440} enterprise />
+
+## Next
+
+- [Column Definitions](/features/columns/column-definitions/) — the shape each
+  generated column takes.
+- [Custom Cell Components](/features/columns/custom-components/) — renderers to drop
+  into `overrides`.
+- [Calculated Columns](/features/columns/calculated-columns/) — add derived columns
+  on top.

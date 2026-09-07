@@ -1,0 +1,110 @@
+---
+title: Headers
+description: Header text, icons, tooltips, height, and styling for column headers.
+tier: community
+sidebar:
+  order: 3
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import GridDemo from '../../../../components/docs/GridDemo.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+A column's `header` can be a simple string or a full `HeaderConfig` object. The
+config form unlocks header types, leading/trailing icons, tooltips, a context
+menu, custom classes and inline styles, and sort/filter indicators.
+
+## Simple headers
+
+```ts
+columns: [
+  { field: 'name', header: 'Name' },
+  { field: 'status', header: 'Status' },
+]
+```
+
+## Header configuration
+
+```ts
+type HeaderType =
+  | 'text' | 'checkbox' | 'icon' | 'sortable' | 'filterable' | 'custom';
+
+interface HeaderConfig {
+  text: string;
+  type?: HeaderType;
+  leadingIcon?: HeaderIcon;
+  trailingIcon?: HeaderIcon;
+  tooltip?: HeaderTooltip;
+  className?: string;
+  style?: Partial<CSSStyleDeclaration>;
+  onClick?: (event: MouseEvent, columnIndex: number) => void;
+  onDoubleClick?: (event: MouseEvent, columnIndex: number) => void;
+  contextMenu?: HeaderContextMenuItem[];
+  sortIndicator?: SortIndicatorConfig;
+  filterIndicator?: FilterIndicatorConfig;
+}
+
+interface HeaderIcon {
+  content: string;                 // HTML/SVG/emoji
+  position: 'leading' | 'trailing';
+  className?: string;
+  onClick?: (event: MouseEvent, columnIndex: number) => void;
+}
+```
+
+```ts
+columns: [
+  {
+    field: 'name',
+    header: {
+      text: 'Name',
+      type: 'sortable',
+      leadingIcon: { content: '👤', position: 'leading' },
+      tooltip: { content: 'Employee full name', position: 'top' },
+      className: 'col-name',
+    },
+  },
+]
+```
+
+## Header height
+
+The header row height is a grid-level option, in pixels:
+
+```ts
+const grid = new Zengrid(el, {
+  rowCount,
+  colCount,
+  rowHeight: 36,
+  colWidth: 160,
+  headerHeight: 48,
+  columns,
+});
+```
+
+## Styling headers
+
+Style an individual header through `className` / `style` on its `HeaderConfig`,
+or target headers globally with the grid's header CSS classes. Per-column styling
+keeps the rest of the header row untouched:
+
+```ts
+{
+  field: 'status',
+  header: {
+    text: 'Status',
+    className: 'header--emphasis',
+    style: { fontWeight: '600', textTransform: 'uppercase' },
+  },
+}
+```
+
+For fully custom rendering, see [Custom Cell Components](/features/columns/custom-components/)
+and register a header renderer with `grid.registerHeaderRenderer(name, renderer)`.
+
+## Live demo
+
+<GridDemo label="Column headers" />

@@ -1,0 +1,51 @@
+---
+import "@fontsource-variable/manrope";
+import "@fontsource-variable/instrument-sans";
+import "@fontsource-variable/jetbrains-mono";
+import "../styles/global.css";
+import SEO from "../components/SEO.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="generator" content={Astro.generator} />
+    <SEO title={title} description={description} />
+    <script is:inline>
+      // Apply the saved theme + mark JS availability before paint, so the
+      // theme never flashes and entrance animations can hide their start state
+      // without hiding content from no-JS visitors. Shares Starlight's storage
+      // key so a theme picked in the docs carries back to the homepage and vice
+      // versa (Starlight owns "starlight-theme"; the docs can't be repointed).
+      const saved = localStorage.getItem("starlight-theme");
+      if (saved === "dark" || saved === "light") {
+        document.documentElement.dataset.theme = saved;
+      }
+      document.documentElement.classList.add("js");
+    </script>
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:bg-surface focus:text-ink focus:border focus:border-border focus:rounded-lg focus:px-4 focus:py-2 focus:font-mono focus:text-sm"
+      >Skip to content</a
+    >
+    <div class="min-h-screen bg-bg text-ink font-sans transition-colors duration-300">
+      <div class="mx-auto max-w-[1200px] px-5 sm:px-10">
+        <slot />
+      </div>
+      <slot name="footer" />
+    </div>
+  </body>
+</html>

@@ -1,0 +1,182 @@
+---
+title: Column Pinning
+description: Freeze columns to the left or right edge so key fields stay in view while the rest scroll — declarative pins, a runtime pin manager, and both bands at once, live in the page.
+tier: enterprise
+sidebar:
+  order: 7
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Column pinning freezes one or more columns against the left or right edge of the
+grid so they stay visible while the remaining columns scroll horizontally. It's
+ideal for keeping an identifier (a name or ID) on the left and a status or actions
+column on the right, no matter how wide the table gets.
+
+Pinning is an **enterprise** feature. Turn it on by setting the grid's
+`colPinProvider` to `columnPinning()` and marking columns with `pinned`:
+
+```ts
+import { columnPinning } from '@zengrid/enterprise';
+
+const grid = new Zengrid(el, {
+  colPinProvider: columnPinning(),
+  columns: [
+    { field: 'name',   header: 'Name',   pinned: 'left' },
+    { field: 'role',   header: 'Role' },
+    { field: 'status', header: 'Status', pinned: 'right' },
+  ],
+});
+```
+
+The provider is what reads `pinned`; without it the marker does nothing. Frozen
+columns are drawn above the scrolling body **and** header — both stay aligned as
+you scroll — with a soft shadow marking each band's edge.
+
+## How it works
+
+Because the grid renders individually pooled, absolutely-positioned cells (that is
+what keeps 100k rows smooth), a frozen column isn't a separate DOM table — each of
+its cells is repositioned to `scrollLeft + band offset` every frame, so it appears
+to stay put while everything else moves. Left-pinned columns stack from the left
+edge; right-pinned columns anchor to the right edge in display order.
+
+## Pinning at runtime
+
+For pins the user can toggle, drive the provider with a `ColumnPinManager` instead
+of (or on top of) the declarative markers. Its pins win over any `pinned` on the
+column, and changes apply instantly:
+
+```ts
+import { columnPinning, ColumnPinManager } from '@zengrid/enterprise';
+
+const pins = new ColumnPinManager();
+const grid = new Zengrid(el, { colPinProvider: columnPinning(pins), columns });
+
+pins.pin('name', 'left');    // freeze
+pins.toggle('name', 'left'); // …and release (same side toggles off)
+pins.unpin('name');
+pins.clear();                // release everything
+```
+
+## Try it live
+
+Each tab freezes different columns. Scroll the grid sideways to see the frozen
+columns hold their place; the last tab pins live from the buttons.
+
+export const variants = [
+  {
+    id: 'left',
+    label: 'Pin left',
+    hint: "pinned:'left' freezes a column against the left edge. Scroll sideways — Name stays while the rest slide under it. Try pinning Role too.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, columnPinning
+// colPinProvider turns pinning on; 'pinned' marks which columns freeze.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, pinned: 'left' },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 160, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'right',
+    label: 'Pin right',
+    hint: "pinned:'right' anchors a column to the right edge — ideal for a status or actions column that must stay reachable.",
+    code: `// Freeze Status to the right edge. It stays put on the right while
+// the rest of the columns scroll beneath it.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 160, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, pinned: 'right', renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'both',
+    label: 'Both edges',
+    hint: 'Pin one column left and another right at once. Name holds the left edge, Status the right, and everything between scrolls.',
+    code: `// Both bands together: Name frozen left, Status frozen right.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, pinned: 'left' },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 160, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, pinned: 'right', renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'live',
+    label: 'Pin at runtime',
+    hint: 'A ColumnPinManager drives the pins. The buttons call pin()/unpin()/clear(); the grid re-freezes instantly — no re-init.',
+    code: `// Runtime pinning: the manager holds the state and notifies the grid
+// on every change. The buttons below drive it.
+const pins = new ColumnPinManager();
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+  colPinProvider: columnPinning(pins),
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 200 },
+    { field: 'region',  header: 'Region',  width: 180 },
+    { field: 'revenue', header: 'Revenue', width: 170, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 160, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 150, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+grid.pins = pins;   // expose the manager to the control buttons
+`,
+    controls: [
+      { label: 'Pin Name left', action: "grid.pins.pin('name', 'left')" },
+      { label: 'Pin Status right', action: "grid.pins.pin('status', 'right')" },
+      { label: 'Unpin Name', action: "grid.pins.unpin('name')" },
+      { label: 'Clear all', action: 'grid.pins.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} height={440} enterprise />
+
+## Next
+
+- [Column Moving](/features/columns/column-moving/) — reorder columns by dragging.
+- [Column Sizing & Resizing](/features/columns/column-sizing/) — set and constrain
+  widths (pinned bands size from these).
+- [Row Pinning](/features/rows/row-pinning/) — the horizontal equivalent for rows.

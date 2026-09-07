@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Host: www.zengrid.dev
+Sitemap: https://www.zengrid.dev/sitemap-index.xml

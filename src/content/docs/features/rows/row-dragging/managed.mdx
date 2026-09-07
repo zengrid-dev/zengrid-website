@@ -1,0 +1,181 @@
+---
+title: Managed Row Dragging
+description: Reorder rows by dragging them — the grid moves the underlying data and re-renders, so the new order sticks. Whole-row or handle-driven, with a drop indicator and a reorder callback.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+**Managed** row dragging lets the user pick up a row, drag it to a new position,
+and drop it — and the grid does the rest: it reorders the underlying data and
+re-renders so the change is permanent. "Managed" is the distinction — you don't
+wire up the reorder yourself (that's [Unmanaged Row Dragging](/features/rows/row-dragging/unmanaged/)),
+the grid manages the order for you.
+
+It ships in `@zengrid/enterprise` as `RowDragManager`. Construct one, attach it to
+the grid, and rows become draggable:
+
+```ts
+import { RowDragManager } from '@zengrid/enterprise/grid';
+
+const drag = new RowDragManager();          // whole-row dragging
+const grid = new Zengrid(mount, { columns, /* … */ });
+grid.setData(rows);
+drag.attach(grid);                          // wire it onto the live grid
+```
+
+As you drag, a **drop indicator** shows exactly where the row will land. Release,
+and `RowDragManager` reorders the grid's data through its own `setData` — the row
+stays where you dropped it.
+
+## Whole-row vs. a drag handle
+
+By default the whole row is draggable — press anywhere on it and go. Pass
+`{ handle: true }` to require an explicit grip instead, and add the
+`rowDragColumn()` helper to render one:
+
+```ts
+import { RowDragManager, rowDragColumn } from '@zengrid/enterprise/grid';
+
+const drag = new RowDragManager({ handle: true });
+const grid = new Zengrid(mount, {
+  columns: [
+    rowDragColumn(),                        // the grip column
+    { field: 'name', header: 'Name' },
+    // …
+  ],
+});
+grid.setData(rows);
+drag.attach(grid);
+```
+
+Handle mode keeps ordinary clicks (selection, editing) on the rest of the row
+free and reserves dragging for the grip.
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `handle` | `false` | `false` drags from anywhere on the row; `true` drags only from a `rowDragColumn()` cell. |
+
+The `rowDragColumn()` helper takes its own presentation options:
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `glyph` | `'⠿'` | The grip character painted into each handle cell. |
+| `width` | `44` | Column width in pixels. |
+| `header` | `''` | Header label for the grip column. |
+| `field` | `'__rowdrag__'` | Column id (carries no data). |
+| `className` | — | Extra CSS class applied to each handle cell. |
+
+## Reacting to a drop
+
+`drag.onChange(fn)` fires once per committed reorder with both the on-screen and
+the source (dataset) indices, so you can persist the new order server-side or
+update a model:
+
+```ts
+drag.onChange(({ fromRow, toRow, fromSource, toSource }) => {
+  // fromRow/toRow: on-screen positions · fromSource/toSource: dataset indices
+  saveOrder(fromSource, toSource);
+});
+```
+
+It returns an unsubscribe function, and `drag.detach()` tears everything down.
+Managed dragging reorders the natural (unsorted) data order, so use it on a grid
+without an active sort.
+
+## Try it live
+
+Drag a row and drop it somewhere new — the grid keeps the order. Switch tabs to
+compare whole-row dragging, a dedicated handle, and a custom grip wired to the
+reorder callback.
+
+export const variants = [
+  {
+    id: 'whole-row',
+    label: 'Whole-row drag',
+    hint: 'Press any cell and drag the row up or down — the line shows where it lands. Drop to commit; the grid keeps the new order.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, RowDragManager
+// Default RowDragManager() makes the whole row draggable.
+const drag = new RowDragManager();
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+`,
+  },
+  {
+    id: 'handle',
+    label: 'Drag handle',
+    hint: 'handle: true reserves dragging for the grip column. Grab the ⠿ handle to move a row; clicks elsewhere stay free for selection.',
+    code: `// Add rowDragColumn() and pass { handle: true } so only the grip drags.
+const drag = new RowDragManager({ handle: true });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    rowDragColumn(),
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+`,
+  },
+  {
+    id: 'callback',
+    label: 'Custom grip + onChange',
+    hint: 'rowDragColumn() takes glyph/width/header. drag.onChange() fires on every drop — open the console to see each move logged.',
+    code: `// Customise the grip and subscribe to reorders.
+const drag = new RowDragManager({ handle: true });
+
+const grid = new Zengrid(mount, {
+  rowHeight: 44,
+  columns: [
+    rowDragColumn({ glyph: '≡', width: 56, header: 'Move' }),
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows.slice(0, 12));
+drag.attach(grid);
+
+drag.onChange(({ fromRow, toRow, fromSource, toSource }) => {
+  console.log('row moved', { fromRow, toRow, fromSource, toSource });
+});
+`,
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Unmanaged Row Dragging](/features/rows/row-dragging/unmanaged/) — fire drag
+  events and manage the order yourself.
+- [Row Data](/features/rows/row-data/) — supply the rows to reorder.
+- [Accessing Rows](/features/rows/accessing-rows/) — read the order back out
+  after a drop.

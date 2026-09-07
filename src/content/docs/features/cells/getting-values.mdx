@@ -1,0 +1,32 @@
+---
+title: Getting Values
+description: How a cell resolves the value it displays.
+---
+
+## Introduction
+
+A cell's value comes from its column's `field` — the key the column reads from
+each row record. Renderers receive that resolved value on their params as
+`value`, which is what they turn into DOM.
+
+```ts
+const columns = [
+  { field: 'name', header: 'Name' },     // reads row.name
+  { field: 'revenue', header: 'Revenue' } // reads row.revenue
+];
+```
+
+A custom renderer sees the value like this:
+
+```ts
+const renderer = {
+  render(params) {
+    params.value; // the cell's resolved value
+  }
+};
+```
+
+## Next
+
+- [Cell Components](/features/cells/cell-components/) — render custom cell content.
+- [Accessing Rows](/features/rows/accessing-rows/) — read whole rows.

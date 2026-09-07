@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes zg-fadeup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes zg-reveal { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+  @keyframes zg-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  @keyframes zg-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes zg-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-8px) rotate(var(--r, 0deg)); } }
+  @keyframes zg-scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(2400%); } }
+  @keyframes zg-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+</style>
+</helmet>
+
+<div style="display:flex; flex-direction:column; gap:80px; padding:56px 40px 120px; background:#1c1c1e; min-height:100vh; font-family:'Space Grotesk',sans-serif;">
+
+  <div style="max-width:1240px; margin:0 auto; width:100%;">
+    <div style="color:#8a8a86; font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">Turn 1 — three landing directions</div>
+    <div style="color:#f4f4f0; font-family:'Space Grotesk',sans-serif; font-size:15px;">Pan around. Reference an option in chat by its id: <b>1a</b> editorial brutalist · <b>1b</b> dark dev console · <b>1c</b> playful light. Each grid is live — click a column header to sort.</div>
+  </div>
+
+  <section style="display:flex; flex-wrap:wrap; gap:64px; align-items:flex-start; justify-content:center;">
+
+    <!-- ============ OPTION 1a — EDITORIAL BRUTALIST ============ -->
+    <div id="1a" style="position:relative; width:1180px; background:#ece7db; border:2px solid #17140d; color:#17140d; overflow:hidden;">
+      <div style="position:absolute; top:18px; right:18px; z-index:20; background:#17140d; color:#ece7db; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:5px 10px; letter-spacing:0.08em;">1a · EDITORIAL</div>
+
+      <!-- nav -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 40px; border-bottom:2px solid #17140d;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:26px; height:26px; background:#17140d; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:3px;">
+            <div style="background:#e5482a;"></div><div style="background:#ece7db;"></div><div style="background:#ece7db;"></div><div style="background:#e5482a;"></div>
+          </div>
+          <span style="font-weight:700; font-size:20px; letter-spacing:-0.01em;">ZenGrid</span>
+        </div>
+        <div style="display:flex; gap:28px; align-items:center; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500;">
+          <span>Features</span><span>Examples</span><span>Docs</span><span>API</span>
+          <span style="background:#17140d; color:#ece7db; padding:8px 16px; font-weight:700;">GET STARTED →</span>
+        </div>
+      </div>
+
+      <!-- hero -->
+      <div style="padding:56px 40px 44px; position:relative;">
+        <div style="display:inline-flex; align-items:center; gap:8px; border:2px solid #17140d; padding:6px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; margin-bottom:32px;">
+          <span style="width:7px; height:7px; background:#e5482a; border-radius:50%; display:inline-block; animation:zg-pulse 1.6s ease-in-out infinite;"></span>
+          CORE v1.3.1 · ANGULAR v1.3.0 · SHIPPED ON NPM
+        </div>
+        <h1 style="font-size:88px; line-height:0.92; font-weight:700; letter-spacing:-0.03em; margin:0 0 24px; max-width:900px; text-wrap:balance;">
+          A MILLION ROWS.<br>
+          <span style="color:#e5482a;">ZERO</span> DROPPED FRAMES.
+        </h1>
+        <p style="font-size:20px; line-height:1.5; max-width:560px; margin:0 0 32px; color:#3a352b;">
+          ZenGrid is a performance-first TypeScript data grid. Virtual scrolling, typed plugin APIs, and spreadsheet muscle — engineered for the heaviest datasets on the web.
+        </p>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+          <span style="background:#e5482a; color:#fff; font-weight:700; font-size:16px; padding:14px 26px; box-shadow:5px 5px 0 #17140d; cursor:pointer;">START CODING →</span>
+          <span style="border:2px solid #17140d; font-weight:700; font-size:16px; padding:12px 24px; cursor:pointer;">VIEW EXAMPLES</span>
+          <code style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:14px; background:#17140d; color:#ece7db; padding:12px 16px;">$ npm i @zengrid/core<span style="color:#e5482a; animation:zg-blink 1s step-end infinite;">▊</span></code>
+        </div>
+      </div>
+
+      <!-- grid demo -->
+      <div style="padding:0 40px 44px;">
+        <div style="border:2px solid #17140d; background:#fff; box-shadow:8px 8px 0 #17140d;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:2px solid #17140d; background:#17140d; color:#ece7db;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;">customers.grid — 1,000,000 rows · virtualized</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#e5b84a;">● 58ms render</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 1.2fr 1fr 1fr 0.9fr;">
+            <div onClick="{{ handlers.name }}" style="cursor:pointer; padding:11px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; border-bottom:2px solid #17140d; background:#efe4c9;">NAME {{ arrows.name }}</div>
+            <div onClick="{{ handlers.role }}" style="cursor:pointer; padding:11px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; border-bottom:2px solid #17140d; background:#efe4c9;">ROLE {{ arrows.role }}</div>
+            <div onClick="{{ handlers.region }}" style="cursor:pointer; padding:11px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; border-bottom:2px solid #17140d; background:#efe4c9;">REGION {{ arrows.region }}</div>
+            <div onClick="{{ handlers.revenue }}" style="cursor:pointer; padding:11px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; border-bottom:2px solid #17140d; background:#efe4c9; text-align:right;">REVENUE {{ arrows.revenue }}</div>
+            <div onClick="{{ handlers.status }}" style="cursor:pointer; padding:11px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; border-bottom:2px solid #17140d; background:#efe4c9;">STATUS {{ arrows.status }}</div>
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="7">
+              <div style="padding:12px 16px; font-size:14px; font-weight:600; border-bottom:1px solid #d8d0bd;">{{ row.name }}</div>
+              <div style="padding:12px 16px; font-size:14px; color:#4a4438; border-bottom:1px solid #d8d0bd;">{{ row.role }}</div>
+              <div style="padding:12px 16px; font-size:14px; color:#4a4438; border-bottom:1px solid #d8d0bd;">{{ row.region }}</div>
+              <div style="padding:12px 16px; font-size:14px; font-family:'JetBrains Mono',monospace; text-align:right; border-bottom:1px solid #d8d0bd;">{{ row.revenueFmt }}</div>
+              <div style="padding:12px 16px; border-bottom:1px solid #d8d0bd;"><span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:3px 8px; border:1.5px solid #17140d; background:{{ row.statusBg }}; color:{{ row.statusInk }};">{{ row.status }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- stats + frameworks -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); border-top:2px solid #17140d;">
+        <div style="padding:24px; border-right:2px solid #17140d;"><div style="font-size:38px; font-weight:700; letter-spacing:-0.02em;">1M+</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; color:#4a4438; text-transform:uppercase;">Rows rendered</div></div>
+        <div style="padding:24px; border-right:2px solid #17140d;"><div style="font-size:38px; font-weight:700; letter-spacing:-0.02em;">&lt;50ms</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; color:#4a4438; text-transform:uppercase;">Initial load</div></div>
+        <div style="padding:24px; border-right:2px solid #17140d;"><div style="font-size:38px; font-weight:700; letter-spacing:-0.02em;">14</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; color:#4a4438; text-transform:uppercase;">Data structures</div></div>
+        <div style="padding:24px;"><div style="font-size:38px; font-weight:700; letter-spacing:-0.02em;">100%</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; color:#4a4438; text-transform:uppercase;">Type safe</div></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; padding:16px 40px; border-top:2px solid #17140d; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500;">
+        <span style="color:#4a4438;">WORKS WITH →</span>
+        <span>React</span><span style="color:#c9bfa8;">/</span><span>Vue</span><span style="color:#c9bfa8;">/</span><span>Angular</span><span style="color:#c9bfa8;">/</span><span>Svelte</span><span style="color:#c9bfa8;">/</span><span>Vanilla TS</span>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 1b — DARK DEV CONSOLE ============ -->
+    <div id="1b" style="position:relative; width:1180px; background:#0b0b0e; border:1px solid #23232a; border-radius:20px; color:#f4f4f0; overflow:hidden; font-family:'Space Grotesk',sans-serif;">
+      <div style="position:absolute; top:18px; right:18px; z-index:20; background:#b6f24a; color:#0b0b0e; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; padding:5px 10px; border-radius:6px;">1b · DARK DEV</div>
+      <div style="position:absolute; top:0; left:0; right:0; bottom:0; background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px); background-size:44px 44px; mask-image:radial-gradient(ellipse 70% 60% at 30% 0%, #000 30%, transparent 75%); pointer-events:none;"></div>
+
+      <div style="position:relative;">
+        <!-- nav -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 40px; border-bottom:1px solid #1a1a20;">
+          <div style="display:flex; align-items:center; gap:11px;">
+            <div style="width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,#b6f24a,#6fd12a); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:4px;">
+              <div style="background:#0b0b0e; border-radius:1px;"></div><div style="background:#0b0b0e33; border-radius:1px;"></div><div style="background:#0b0b0e33; border-radius:1px;"></div><div style="background:#0b0b0e; border-radius:1px;"></div>
+            </div>
+            <span style="font-weight:600; font-size:19px; letter-spacing:-0.01em;">ZenGrid</span>
+          </div>
+          <div style="display:flex; gap:26px; align-items:center; font-size:14px; color:#a0a09a;">
+            <span>Features</span><span>Examples</span><span>Docs</span><span>API</span>
+            <span style="background:#b6f24a; color:#0b0b0e; padding:8px 16px; border-radius:8px; font-weight:600;">Get started</span>
+          </div>
+        </div>
+
+        <!-- hero -->
+        <div style="padding:64px 40px 40px; text-align:center;">
+          <div style="display:inline-flex; align-items:center; gap:8px; border:1px solid #26262c; background:#13131799; padding:6px 14px; border-radius:999px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#b6f24a; margin-bottom:28px;">
+            <span style="width:6px; height:6px; background:#b6f24a; border-radius:50%; box-shadow:0 0 10px #b6f24a; animation:zg-pulse 1.6s ease-in-out infinite;"></span>
+            v1.3.1 shipped · npm i @zengrid/core
+          </div>
+          <h1 style="font-size:82px; line-height:0.95; font-weight:700; letter-spacing:-0.035em; margin:0 auto 22px; max-width:860px; text-wrap:balance;">
+            Scroll a million rows.<br>
+            <span style="background:linear-gradient(120deg,#b6f24a,#e6ff9c); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">Never feel a frame drop.</span>
+          </h1>
+          <p style="font-size:19px; line-height:1.55; max-width:540px; margin:0 auto 30px; color:#9a9a94;">
+            The performance-first TypeScript grid. Virtual rendering, typed plugin APIs, and real spreadsheet interactions — built for high-volume web apps.
+          </p>
+          <div style="display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;">
+            <span style="background:#b6f24a; color:#0b0b0e; font-weight:600; font-size:15px; padding:13px 24px; border-radius:10px; cursor:pointer;">Start coding</span>
+            <span style="border:1px solid #2e2e36; color:#f4f4f0; font-weight:600; font-size:15px; padding:12px 22px; border-radius:10px; cursor:pointer;">View examples</span>
+          </div>
+        </div>
+
+        <!-- code + grid -->
+        <div style="padding:0 40px 40px; display:grid; grid-template-columns:0.85fr 1.15fr; gap:20px; align-items:stretch;">
+          <div style="background:#141418; border:1px solid #23232a; border-radius:14px; overflow:hidden;">
+            <div style="display:flex; align-items:center; gap:7px; padding:12px 16px; border-bottom:1px solid #23232a;">
+              <span style="width:11px; height:11px; border-radius:50%; background:#ff5f56;"></span><span style="width:11px; height:11px; border-radius:50%; background:#ffbd2e;"></span><span style="width:11px; height:11px; border-radius:50%; background:#27c93f;"></span>
+              <span style="margin-left:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#6b6b64;">grid.ts</span>
+            </div>
+            <pre style="margin:0; padding:18px; font-family:'IBM Plex Mono',monospace; font-size:13px; line-height:1.7; color:#d6d6cf; overflow:auto;"><span style="color:#7a7a72;">// mount a million rows</span>
+<span style="color:#c98bdb;">import</span> { ZenGrid } <span style="color:#c98bdb;">from</span> <span style="color:#b6f24a;">'@zengrid/core'</span>
+
+<span style="color:#c98bdb;">const</span> grid = <span style="color:#c98bdb;">new</span> <span style="color:#7cc7ff;">ZenGrid</span>(el, {
+  data: rows, <span style="color:#7a7a72;">// 1_000_000</span>
+  columns,
+  virtual: <span style="color:#e6ff9c;">true</span>,
+  sortable: <span style="color:#e6ff9c;">true</span>,
+})</pre>
+          </div>
+          <div style="background:#141418; border:1px solid #23232a; border-radius:14px; overflow:hidden;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-bottom:1px solid #23232a;">
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#6b6b64;">1,000,000 rows · virtualized</span>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#b6f24a;">58ms</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1.3fr 1fr 0.9fr 0.85fr;">
+              <div onClick="{{ handlers.name }}" style="cursor:pointer; padding:10px 14px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#8a8a82; border-bottom:1px solid #23232a; text-transform:uppercase; letter-spacing:0.05em;">Name {{ arrows.name }}</div>
+              <div onClick="{{ handlers.role }}" style="cursor:pointer; padding:10px 14px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#8a8a82; border-bottom:1px solid #23232a; text-transform:uppercase; letter-spacing:0.05em;">Role {{ arrows.role }}</div>
+              <div onClick="{{ handlers.revenue }}" style="cursor:pointer; padding:10px 14px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#8a8a82; border-bottom:1px solid #23232a; text-transform:uppercase; letter-spacing:0.05em; text-align:right;">Rev {{ arrows.revenue }}</div>
+              <div onClick="{{ handlers.status }}" style="cursor:pointer; padding:10px 14px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#8a8a82; border-bottom:1px solid #23232a; text-transform:uppercase; letter-spacing:0.05em;">Status {{ arrows.status }}</div>
+              <sc-for list="{{ rows }}" as="row" hint-placeholder-count="7">
+                <div style="padding:11px 14px; font-size:13px; font-weight:500; border-bottom:1px solid #17171c;">{{ row.name }}</div>
+                <div style="padding:11px 14px; font-size:13px; color:#9a9a94; border-bottom:1px solid #17171c;">{{ row.role }}</div>
+                <div style="padding:11px 14px; font-size:13px; font-family:'IBM Plex Mono',monospace; color:#d6d6cf; text-align:right; border-bottom:1px solid #17171c;">{{ row.revenueFmt }}</div>
+                <div style="padding:11px 14px; border-bottom:1px solid #17171c;"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; padding:2px 7px; border-radius:5px; background:{{ row.statusDarkBg }}; color:{{ row.statusDarkInk }};">{{ row.status }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- stats -->
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#1a1a20; border-top:1px solid #1a1a20;">
+          <div style="padding:26px 24px; background:#0b0b0e;"><div style="font-size:36px; font-weight:700; letter-spacing:-0.02em; color:#b6f24a;">1M+</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8a82; text-transform:uppercase; letter-spacing:0.06em;">Rows rendered</div></div>
+          <div style="padding:26px 24px; background:#0b0b0e;"><div style="font-size:36px; font-weight:700; letter-spacing:-0.02em;">&lt;50ms</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8a82; text-transform:uppercase; letter-spacing:0.06em;">Initial load</div></div>
+          <div style="padding:26px 24px; background:#0b0b0e;"><div style="font-size:36px; font-weight:700; letter-spacing:-0.02em;">14</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8a82; text-transform:uppercase; letter-spacing:0.06em;">Data structures</div></div>
+          <div style="padding:26px 24px; background:#0b0b0e;"><div style="font-size:36px; font-weight:700; letter-spacing:-0.02em;">100%</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8a8a82; text-transform:uppercase; letter-spacing:0.06em;">Type safe</div></div>
+        </div>
+        <!-- framework marquee -->
+        <div style="overflow:hidden; border-top:1px solid #1a1a20; padding:16px 0;">
+          <div style="display:flex; gap:48px; width:max-content; animation:zg-marquee 18s linear infinite; font-family:'IBM Plex Mono',monospace; font-size:15px; color:#6b6b64;">
+            <span>React ⌁</span><span>Vue ⌁</span><span>Angular ⌁</span><span>Svelte ⌁</span><span>Vanilla TS ⌁</span><span>SolidJS ⌁</span>
+            <span>React ⌁</span><span>Vue ⌁</span><span>Angular ⌁</span><span>Svelte ⌁</span><span>Vanilla TS ⌁</span><span>SolidJS ⌁</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 1c — PLAYFUL LIGHT ============ -->
+    <div id="1c" style="position:relative; width:1180px; background:#f8f5ef; border:1px solid #e6e0d5; border-radius:28px; color:#211d1a; overflow:hidden; font-family:'Bricolage Grotesque',sans-serif;">
+      <div style="position:absolute; top:18px; right:18px; z-index:20; background:#211d1a; color:#f8f5ef; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:5px 10px; border-radius:6px;">1c · PLAYFUL</div>
+
+      <!-- nav -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 40px;">
+        <div style="display:flex; align-items:center; gap:11px;">
+          <div style="width:28px; height:28px; border-radius:9px; background:#211d1a; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2.5px; padding:4px;">
+            <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+          </div>
+          <span style="font-weight:800; font-size:20px; letter-spacing:-0.02em;">ZenGrid</span>
+        </div>
+        <div style="display:flex; gap:24px; align-items:center; font-size:15px; font-weight:600; color:#544c44;">
+          <span>Features</span><span>Examples</span><span>Docs</span><span>API</span>
+          <span style="background:#211d1a; color:#f8f5ef; padding:9px 18px; border-radius:999px; font-weight:700;">Get started</span>
+        </div>
+      </div>
+
+      <!-- hero -->
+      <div style="padding:52px 40px 36px; text-align:center; position:relative;">
+        <div style="position:absolute; top:40px; left:70px; --r:-8deg; animation:zg-float 5s ease-in-out infinite; background:#f2764e; color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; transform:rotate(-8deg); box-shadow:0 6px 0 #d85a34;">1M rows ✦</div>
+        <div style="position:absolute; top:120px; right:80px; --r:7deg; animation:zg-float 6s ease-in-out infinite 0.5s; background:#57b6a6; color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; transform:rotate(7deg); box-shadow:0 6px 0 #3f9284;">type-safe ✦</div>
+        <div style="display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e6e0d5; padding:7px 16px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; margin-bottom:26px; box-shadow:0 2px 0 #e6e0d5;">
+          <span style="width:7px; height:7px; background:#57b6a6; border-radius:50%; animation:zg-pulse 1.6s ease-in-out infinite;"></span>
+          v1.3.1 · fresh on npm
+        </div>
+        <h1 style="font-size:80px; line-height:0.98; font-weight:800; letter-spacing:-0.03em; margin:0 auto 22px; max-width:840px; text-wrap:balance;">
+          Fast data grids,<br>
+          <span style="font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:#f2764e;">finally</span> a joy to build.
+        </h1>
+        <p style="font-size:19px; line-height:1.55; max-width:520px; margin:0 auto 30px; color:#6b6258; font-weight:500;">
+          A performance-first TypeScript grid with virtual scrolling, typed plugins, and spreadsheet interactions — that actually feels good to wire up.
+        </p>
+        <div style="display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;">
+          <span style="background:#f2764e; color:#fff; font-weight:700; font-size:16px; padding:14px 26px; border-radius:14px; box-shadow:0 5px 0 #d85a34; cursor:pointer;">Start coding →</span>
+          <span style="background:#fff; border:1px solid #e6e0d5; font-weight:700; font-size:16px; padding:13px 24px; border-radius:14px; box-shadow:0 5px 0 #e6e0d5; cursor:pointer;">View examples</span>
+        </div>
+      </div>
+
+      <!-- grid demo -->
+      <div style="padding:0 40px 40px;">
+        <div style="background:#fff; border:1px solid #e6e0d5; border-radius:20px; overflow:hidden; box-shadow:0 12px 40px -12px #21201c30;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #f0ece3;">
+            <div style="display:flex; align-items:center; gap:8px;"><span style="width:11px; height:11px; border-radius:50%; background:#f2764e;"></span><span style="width:11px; height:11px; border-radius:50%; background:#e9b949;"></span><span style="width:11px; height:11px; border-radius:50%; background:#57b6a6;"></span></div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#57b6a6; font-weight:600;">✦ 58ms · 1M rows virtualized</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 1.2fr 1fr 1fr 0.9fr;">
+            <div onClick="{{ handlers.name }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#8a8175; border-bottom:1px solid #f0ece3; text-transform:uppercase; letter-spacing:0.06em; background:#faf8f3;">Name {{ arrows.name }}</div>
+            <div onClick="{{ handlers.role }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#8a8175; border-bottom:1px solid #f0ece3; text-transform:uppercase; letter-spacing:0.06em; background:#faf8f3;">Role {{ arrows.role }}</div>
+            <div onClick="{{ handlers.region }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#8a8175; border-bottom:1px solid #f0ece3; text-transform:uppercase; letter-spacing:0.06em; background:#faf8f3;">Region {{ arrows.region }}</div>
+            <div onClick="{{ handlers.revenue }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#8a8175; border-bottom:1px solid #f0ece3; text-transform:uppercase; letter-spacing:0.06em; background:#faf8f3; text-align:right;">Revenue {{ arrows.revenue }}</div>
+            <div onClick="{{ handlers.status }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#8a8175; border-bottom:1px solid #f0ece3; text-transform:uppercase; letter-spacing:0.06em; background:#faf8f3;">Status {{ arrows.status }}</div>
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="7">
+              <div style="padding:13px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #f5f1e9;">{{ row.name }}</div>
+              <div style="padding:13px 18px; font-size:14px; color:#6b6258; font-weight:500; border-bottom:1px solid #f5f1e9;">{{ row.role }}</div>
+              <div style="padding:13px 18px; font-size:14px; color:#6b6258; font-weight:500; border-bottom:1px solid #f5f1e9;">{{ row.region }}</div>
+              <div style="padding:13px 18px; font-size:14px; font-family:'JetBrains Mono',monospace; text-align:right; border-bottom:1px solid #f5f1e9;">{{ row.revenueFmt }}</div>
+              <div style="padding:13px 18px; border-bottom:1px solid #f5f1e9;"><span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:{{ row.statusSoftBg }}; color:{{ row.statusSoftInk }};">{{ row.status }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- stats -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; padding:0 40px 32px;">
+        <div style="background:#fdeee7; border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:#f2764e;">1M+</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#6b6258; text-transform:uppercase; letter-spacing:0.05em;">Rows rendered</div></div>
+        <div style="background:#e6f3f0; border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:#3f9284;">&lt;50ms</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#6b6258; text-transform:uppercase; letter-spacing:0.05em;">Initial load</div></div>
+        <div style="background:#fbf1dc; border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:#c9962a;">14</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#6b6258; text-transform:uppercase; letter-spacing:0.05em;">Data structures</div></div>
+        <div style="background:#efe9f9; border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:#7b5fc4;">100%</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#6b6258; text-transform:uppercase; letter-spacing:0.05em;">Type safe</div></div>
+      </div>
+      <!-- frameworks -->
+      <div style="display:flex; align-items:center; gap:12px; padding:22px 40px; border-top:1px solid #f0ece3; flex-wrap:wrap;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#8a8175; font-weight:600;">plays nice with</span>
+        <span style="background:#fff; border:1px solid #e6e0d5; padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">React</span>
+        <span style="background:#fff; border:1px solid #e6e0d5; padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Vue</span>
+        <span style="background:#fff; border:1px solid #e6e0d5; padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Angular</span>
+        <span style="background:#fff; border:1px solid #e6e0d5; padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Svelte</span>
+        <span style="background:#fff; border:1px solid #e6e0d5; padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Vanilla TS</span>
+      </div>
+    </div>
+
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { sortKey: 'revenue', sortDir: 'desc' };
+  data = [
+    { name: 'Aria Vaskov', role: 'Data Engineer', region: 'EU-West', revenue: 184200, status: 'Active' },
+    { name: 'Kenji Tanaka', role: 'Product Lead', region: 'APAC', revenue: 92750, status: 'Trial' },
+    { name: 'Lucia Moreno', role: 'Analyst', region: 'LATAM', revenue: 231400, status: 'Active' },
+    { name: 'Otto Bergman', role: 'Platform Eng', region: 'EU-North', revenue: 57300, status: 'Churned' },
+    { name: 'Priya Nair', role: 'Staff SWE', region: 'APAC', revenue: 168900, status: 'Active' },
+    { name: 'Marcus Webb', role: 'Designer', region: 'US-East', revenue: 43600, status: 'Trial' },
+    { name: 'Sofia Rossi', role: 'Eng Manager', region: 'EU-South', revenue: 205100, status: 'Active' },
+  ];
+
+  sort(key) {
+    this.setState(s => ({
+      sortKey: key,
+      sortDir: s.sortKey === key && s.sortDir === 'desc' ? 'asc' : 'desc',
+    }));
+  }
+
+  renderVals() {
+    const { sortKey, sortDir } = this.state;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const sorted = [...this.data].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+
+    const palette = {
+      Active:  { bg: '#c9ead4', ink: '#1a6b3a', dark: { bg: '#16341f', ink: '#7fe6a0' }, soft: { bg: '#e3f5e9', ink: '#2f8f52' } },
+      Trial:   { bg: '#fbe6b8', ink: '#8a6510', dark: { bg: '#3a3113', ink: '#f0cf6b' }, soft: { bg: '#fbf1d6', ink: '#a67c1a' } },
+      Churned: { bg: '#f2d3cc', ink: '#9c3a26', dark: { bg: '#3a1f18', ink: '#f0a08c' }, soft: { bg: '#f7e3dd', ink: '#b04a34' } },
+    };
+
+    const rows = sorted.map(r => {
+      const p = palette[r.status];
+      return {
+        ...r,
+        revenueFmt: '$' + r.revenue.toLocaleString(),
+        statusBg: p.bg, statusInk: p.ink,
+        statusDarkBg: p.dark.bg, statusDarkInk: p.dark.ink,
+        statusSoftBg: p.soft.bg, statusSoftInk: p.soft.ink,
+      };
+    });
+
+    const mk = () => (sortKey && sortDir ? (sortDir === 'asc' ? '↑' : '↓') : '');
+    const arrows = {};
+    ['name', 'role', 'region', 'revenue', 'status'].forEach(k => { arrows[k] = sortKey === k ? mk() : ''; });
+
+    const handlers = {};
+    ['name', 'role', 'region', 'revenue', 'status'].forEach(k => { handlers[k] = () => this.sort(k); });
+
+    return { rows, arrows, handlers };
+  }
+}
+</script>
+</body>
+</html>

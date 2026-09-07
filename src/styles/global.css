@@ -1,222 +1,171 @@
 @import "tailwindcss";
 
-/* ============================================
-   ZenGrid Design System (Dark Mode / Dev Theme)
-   ============================================ */
+/* Design tokens mapped to Tailwind utilities. `inline` keeps utilities
+   referencing the runtime CSS variables below, so theme switching is live. */
+@theme inline {
+  --font-display: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Instrument Sans Variable", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 
-@layer theme {
-  :root {
-    /* Brand Colors - Neon & Deep */
-    --zen-primary: #10b981;       /* Emerald 500 */
-    --zen-primary-glow: #34d399;  /* Emerald 400 */
-    --zen-secondary: #8b5cf6;     /* Violet 500 */
-    
-    /* Backgrounds - Deep Slate/Black */
-    --bg-dark: #020617;           /* Slate 950 - Main BG */
-    --bg-card: #0f172a;           /* Slate 900 - Card BG */
-    --bg-card-hover: #1e293b;     /* Slate 800 */
-    
-    /* Text */
-    --text-main: #f8fafc;         /* Slate 50 */
-    --text-muted: #94a3b8;        /* Slate 400 */
-    --text-dim: #64748b;          /* Slate 500 */
-    --font-sans: "Inter", "Aptos", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-row-line: var(--row-line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-coral: var(--coral);
+  --color-coral-sh: var(--coral-sh);
+  --color-teal: var(--teal);
+  --color-teal-ink: var(--teal-ink);
+  --color-violet: var(--violet-b);
+  --color-logo-ink: var(--logo-ink);
+  --color-ink-coral: var(--ink-coral);
+  --color-ink-teal: var(--ink-teal);
+  --color-ink-violet: var(--ink-violet);
+  --color-ink-amber: var(--ink-amber);
+}
 
-    /* Borders & Lines */
-    --border-subtle: #1e293b;     /* Slate 800 */
-    --border-highlight: #334155;  /* Slate 700 */
+:root {
+  --bg: #f8f5ef;
+  --surface: #ffffff;
+  --surface-2: #faf8f3;
+  --border: #e6e0d5;
+  --border-soft: #f0ece3;
+  --row-line: #f5f1e9;
+  --ink: #211d1a;
+  --muted: #6b6258;
+  --faint: #9a9184;
+  --coral: #f2764e;
+  --coral-sh: #d85a34;
+  --teal: #57b6a6;
+  --teal-sh: #3f9284;
+  --teal-ink: #3f9284;
+  --violet-b: #9b7ed6;
+  --logo-ink: #211d1a;
+  --card-shadow: 0 14px 40px -18px #21201c33;
+  --ink-coral: #e0603a;
+  --ink-teal: #3f9284;
+  --ink-violet: #7b5fc4;
+  --ink-amber: #c9962a;
+  --pill-active-bg: #e3f5e9;
+  --pill-active-ink: #2f8f52;
+  --pill-trial-bg: #fbf1d6;
+  --pill-trial-ink: #a67c1a;
+  --pill-churned-bg: #f7e3dd;
+  --pill-churned-ink: #b04a34;
+  color-scheme: light;
+}
 
-    /* Effects */
-    --glow-primary: 0 0 20px rgba(16, 185, 129, 0.3);
-    --glow-text: 0 0 10px rgba(52, 211, 153, 0.5);
+[data-theme="dark"] {
+  --bg: #1a1714;
+  --surface: #232019;
+  --surface-2: #2a261e;
+  --border: #34302a;
+  --border-soft: #2f2b24;
+  --row-line: #2a261f;
+  --ink: #f6f1e7;
+  --muted: #b3a998;
+  --faint: #8c8272;
+  --coral: #f2764e;
+  --coral-sh: #a34d2f;
+  --teal: #57b6a6;
+  --teal-sh: #2f6b60;
+  --teal-ink: #6fd0bf;
+  --violet-b: #9b7ed6;
+  --logo-ink: #f6f1e7;
+  --card-shadow: 0 14px 40px -18px #00000080;
+  --ink-coral: #f7906b;
+  --ink-teal: #6fd0bf;
+  --ink-violet: #ad93e0;
+  --ink-amber: #e3b354;
+  --pill-active-bg: #16341f;
+  --pill-active-ink: #7fe6a0;
+  --pill-trial-bg: #3a3113;
+  --pill-trial-ink: #f0cf6b;
+  --pill-churned-bg: #3a1f18;
+  --pill-churned-ink: #f0a08c;
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--ink);
+  }
+  a {
+    color: var(--coral);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--coral-sh);
+  }
+  ::selection {
+    background: var(--coral);
+    color: #fff;
   }
 }
 
-/* ============================================
-   Base Styles
-   ============================================ */
-
-html, body {
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  font-family: var(--font-sans);
-  scroll-behavior: smooth;
-  position: relative;
+@keyframes zg-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+@keyframes zg-fadeup {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes zg-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
-/* Animated Background */
-body::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.3), transparent 40%),
-    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.25), transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.25), transparent 40%);
-  animation: bgFloat 20s ease-in-out infinite;
-  pointer-events: none;
-  will-change: transform;
-}
+.zg-fadeup { animation: zg-fadeup 0.5s ease both; }
+.zg-pulse { animation: zg-pulse 1.6s ease-in-out infinite; }
+.zg-blink { animation: zg-blink 1.1s step-end infinite; }
 
-@keyframes bgFloat {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  33% {
-    transform: translate3d(-5%, -5%, 0) scale(1.1);
-  }
-  66% {
-    transform: translate3d(5%, 5%, 0) scale(1.05);
+/* Hero headline entrance — a soft focus-in reveal driven by the `motion`
+   library. The initial hidden state applies only when JS is present (`html.js`)
+   and motion is welcome, so no-JS and reduced-motion visitors always get the
+   finished headline with no flash. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .zg-hero-line {
+    opacity: 0;
   }
 }
 
-::selection {
-  background: var(--zen-primary);
-  color: #000;
-}
-
-/* ============================================
-   Typography
-   ============================================ */
-
-h1, h2, h3, h4 {
-  color: var(--text-main);
-  letter-spacing: -0.02em;
-}
-
-h1 {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 800;
-  line-height: 1.1;
-  text-shadow: 0 0 40px rgba(0,0,0,0.5);
-}
-
-p {
-  color: var(--text-muted);
-  line-height: 1.7;
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, var(--zen-primary-glow), var(--zen-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 800;
-}
-
-/* ============================================
-   Layout & Components
-   ============================================ */
-
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-/* Modern Card */
-.card {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 2rem;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+/* Skeleton shimmer for the hero's decorative "not rendered" rows — a slow
+   light sweep that reads as content still loading/off-screen. Motion-safe. */
+.zg-skeleton {
   position: relative;
   overflow: hidden;
 }
-
-.card:hover {
-  border-color: var(--zen-primary);
-  box-shadow: var(--glow-primary);
+@media (prefers-reduced-motion: no-preference) {
+  .zg-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--surface) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    animation: zg-shimmer 2.4s ease-in-out infinite;
+  }
+}
+@keyframes zg-shimmer {
+  100% { transform: translateX(100%); }
 }
 
-/* Badge */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.8rem;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 20px;
-  color: var(--zen-primary);
-  font-size: 0.8rem;
-  font-weight: 500;
-  margin-bottom: 1rem;
-}
-
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.8rem;
-  border-radius: 8px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: var(--zen-primary);
-  color: #020617 !important;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-}
-
-.btn-primary:hover {
-  background: var(--zen-primary-glow);
-  transform: translateY(-2px);
-  box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid var(--border-highlight);
-  color: var(--text-main) !important;
-}
-
-.btn-secondary:hover {
-  border-color: var(--text-main);
-  background: rgba(255,255,255,0.05);
-}
-
-/* ============================================
-   Background Effects
-   ============================================ */
-
-.bg-grid-pattern {
-  background-image: 
-    linear-gradient(rgba(30, 41, 59, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(30, 41, 59, 0.3) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-}
-
-.glow-spot {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: -1;
-  filter: blur(50px);
-}
-
-/* Animation Utilities */
-.animate-float { animation: float 6s ease-in-out infinite; }
-
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-/* Stats Bar Override */
-.stats-bar {
-  border-top: 1px solid var(--border-subtle) !important;
-  border-bottom: 1px solid var(--border-subtle) !important;
-  background: rgba(2, 6, 23, 0.82) !important;
-  backdrop-filter: blur(10px);
+/* Code panel blends into dark mode. `bg-ink` inverts to cream in dark, which
+   turns the grid.ts panel into a bright, flashy slab; pin it to a deep warm
+   surface close to the page so it recedes instead. */
+[data-theme="dark"] [data-code-panel] {
+  background-color: #17130e;
+  color: #f1ece1;
 }

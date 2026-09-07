@@ -1,0 +1,43 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import PlanCard from "../components/payments/PlanCard.astro";
+import PurchaseDetails from "../components/payments/PurchaseDetails.astro";
+import { buy, links } from "../config/site";
+---
+
+<Layout title="Buy — ZenGrid" description="Compare ZenGrid Solo and Team licenses. Pay through Polar and manage your billing without a ZenGrid account.">
+  <header><Nav /></header>
+  <main id="main">
+    <section class="pt-16 pb-10 max-w-[680px]" aria-label="Buy ZenGrid">
+      <h1 class="font-display text-[clamp(34px,5.5vw,52px)] leading-[1.08] font-extrabold tracking-[-0.035em] m-0 mb-6 text-balance">
+        <span class="block">{buy.title}</span>
+        <span class="block text-ink-coral">{buy.titleAccent}</span>
+      </h1>
+      <p class="text-[17px] leading-[1.6] max-w-[560px] m-0 text-muted">{buy.description}</p>
+      <p class="text-sm text-muted mt-4 mb-0">Already purchased? <a href={links.billing} class="underline hover:text-coral-sh">Manage billing and invoices →</a></p>
+    </section>
+
+    <section class="pb-8" aria-label="Choose a plan">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-[840px]">
+        {buy.plans.map((plan) => <PlanCard plan={plan} />)}
+      </div>
+    </section>
+
+    <section class="flex items-start justify-between gap-5 flex-wrap mb-10 max-w-[840px]" aria-label="Other options">
+      <p class="text-sm leading-relaxed text-muted m-0 max-w-[540px]">{buy.seatNote}</p>
+      <a href={links.enterprise} class="font-mono text-sm font-semibold text-ink-violet hover:text-coral-sh rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-coral">{buy.enterpriseLinkLabel}</a>
+    </section>
+
+    <PurchaseDetails />
+
+    <section class="mb-20 max-w-[840px]" aria-label="Checkout terms">
+      <p class="text-sm leading-relaxed text-muted m-0">
+        {buy.trustNote} By purchasing you agree to the <a href={links.license} class="underline">License Agreement</a> and <a href={links.terms} class="underline">Terms</a>.
+        See our <a href={links.refund} class="underline">Refund policy</a> and <a href={links.privacy} class="underline">Privacy policy</a>.
+      </p>
+    </section>
+  </main>
+  <Footer slot="footer" />
+</Layout>

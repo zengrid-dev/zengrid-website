@@ -1,0 +1,218 @@
+---
+title: Value List
+description: Shape the value list a List Filter shows — supply values from an array, a synchronous transform, or an asynchronous server call, and sort, format and count them — with the enterprise setFilter() helper, demonstrated live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The **Value List** is the checkbox list inside a [List Filter](/features/filters/list-filter/):
+the set of distinct values the reader ticks to filter the column. By default
+`setFilter()` builds that list from the column's own data, sorts it
+alphabetically, and labels each value with `String(value)`. This page is about
+taking control of the list — **what values it holds**, **how they're ordered**,
+and **how they read**.
+
+`setFilter()` is an **enterprise** column helper, so these are all options on it:
+
+```ts
+import { setFilter } from '@zengrid/enterprise';
+
+setFilter({
+  field: 'region', header: 'Region',
+  values: ['APAC', 'EU-West', 'US-East'],   // what's in the list
+  comparator: (a, b) => /* … */ 0,          // the order
+  valueFormatter: (v) => String(v),         // the labels
+});
+```
+
+## Supplying the values
+
+`values` decides what the list holds. It takes three forms:
+
+| Form | Signature | Use it for |
+|------|-----------|------------|
+| **Array** | `values: unknown[]` | A fixed, hand-authored list — including values that **aren't in the data** (they show with a count of `0`). |
+| **Synchronous** | `values: (derived) => list` | Filter, reorder or extend the values ZenGrid derived from the column. |
+| **Asynchronous** | `values: (derived, success) => void` | Fetch the list elsewhere (a lookup table, an API) and hand it back via `success(list)`. The popup shows a **`Loading…`** state until it fires. |
+
+Omit `values` entirely and the list is every distinct value in the column.
+Supplied values are decoupled from the data, so the list stays stable even when a
+value currently has no matching rows — useful for canonical lookups (all regions,
+every status) where you don't want the options to come and go with the data.
+
+```ts
+// Async: load the option list from a server, then hand it back.
+setFilter({
+  field: 'role', header: 'Role',
+  defaultToNothingSelected: true,
+  values: (derived, success) => {
+    fetchRoles().then(success); // popup shows "Loading…" until this resolves
+  },
+});
+```
+
+`defaultToNothingSelected` starts the list with **nothing** ticked — the grid
+shows no rows until the reader picks a value — instead of the default
+"everything ticked / no filter."
+
+## Sorting the list
+
+`comparator: (a, b) => number` orders the **raw values** (not the labels).
+The default is a locale-aware ascending sort by label; supply a comparator to
+force a domain order (severity, workflow stage) or to reverse it.
+
+```ts
+const ORDER = ['Active', 'Trial', 'Churned'];
+setFilter({
+  field: 'status', header: 'Status',
+  comparator: (a, b) => ORDER.indexOf(a) - ORDER.indexOf(b),
+});
+```
+
+## Formatting & missing values
+
+`valueFormatter: (value) => string` sets each row's label without changing the
+value that gets filtered — map codes to names, upper-case, add units. Blank
+values (`null`, `undefined`, `''`) collapse to a single **`(Blanks)`** row.
+Turn on `showCount` to append each value's occurrence count.
+
+## Try it live
+
+Open the **Region**, **Role** or **Status** funnel in each variant to see how the
+list was shaped. In the async variant, watch the **`Loading…`** state before the
+options appear. The buttons drive the same `in` filter from code.
+
+export const cols = (region, role, status) => `  columns: [
+    { field: 'name',    header: 'Name',    width: 200 },
+    ${role},
+    ${region},
+    { field: 'revenue', header: 'Revenue', width: 150, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, align: 'right', renderer: currency },
+    ${status},
+  ],`;
+
+export const plainRole = `{ field: 'role', header: 'Role', width: 180 }`;
+export const plainStatus = `{ field: 'status', header: 'Status', width: 150, renderer: chips }`;
+
+export const variants = [
+  {
+    id: 'supply',
+    label: 'Supplying the values',
+    hint: 'Region’s list is a hand-authored array, not the derived uniques. Open the funnel: "ANZ" is present even though no row has it, so with showCount it reads 0 — the list is decoupled from the data.',
+    code: `// In scope (enterprise): Zengrid, mount, rows, setFilter, currency, chips
+// An array replaces the derived uniques wholesale — including values that
+// aren't in the data. With showCount, "ANZ" shows a count of 0.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+${cols(
+  `setFilter({
+      field: 'region', header: 'Region', width: 160, showCount: true,
+      values: ['APAC', 'ANZ', 'EU-North', 'EU-South', 'EU-West', 'LATAM', 'MEA', 'US-East', 'US-West'],
+    })`,
+  plainRole,
+  plainStatus,
+)}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Keep APAC + EU-West', action: `grid.filter.set(2, 'in', ['APAC', 'EU-West'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'async',
+    label: 'Async values + nothing selected',
+    hint: 'Role’s list is fetched from a "server" — the popup shows Loading… for ~0.7s, then the options appear. defaultToNothingSelected starts them all unticked, so the grid shows no rows until you pick one.',
+    code: `// A values function that returns nothing and calls success(list) later is an
+// async supplier: the popup shows "Loading…" until it resolves. Here setTimeout
+// stands in for a fetch. defaultToNothingSelected starts with none ticked.
+const ROLES = ['Analyst', 'Data Engineer', 'Designer', 'Eng Manager',
+  'Platform Eng', 'Product Lead', 'Researcher', 'Solutions Eng', 'SRE', 'Staff SWE'];
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+${cols(
+  `{ field: 'region', header: 'Region', width: 160 }`,
+  `setFilter({
+      field: 'role', header: 'Role', width: 200,
+      defaultToNothingSelected: true,
+      values: (derived, success) => {
+        setTimeout(() => success(ROLES), 700); // pretend this is a server call
+      },
+    })`,
+  plainStatus,
+)}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Only Analyst + Designer', action: `grid.filter.set(1, 'in', ['Analyst', 'Designer'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'sort-format',
+    label: 'Sorting & formatting',
+    hint: 'Status is ordered Active → Trial → Churned via comparator and upper-cased via valueFormatter (the filtered value stays "Active"). Region sorts Z→A. Both list counts via showCount.',
+    code: `// comparator orders the raw values; valueFormatter sets the labels without
+// changing what gets filtered. Status keeps a workflow order; Region reverses.
+const STATUS_ORDER = ['Active', 'Trial', 'Churned'];
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 40,
+${cols(
+  `setFilter({
+      field: 'region', header: 'Region', width: 160, showCount: true,
+      comparator: (a, b) => String(b).localeCompare(String(a)), // Z → A
+    })`,
+  plainRole,
+  `setFilter({
+      field: 'status', header: 'Status', width: 150, renderer: chips, showCount: true,
+      valueFormatter: (v) => v.toUpperCase(),
+      comparator: (a, b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b),
+    })`,
+)}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Active only', action: `grid.filter.set(5, 'in', ['Active'])` },
+      { label: 'US regions', action: `grid.filter.set(2, 'in', ['US-East', 'US-West'])` },
+      { label: 'Clear', action: `grid.filter.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Options reference
+
+| Option | What it does |
+|--------|--------------|
+| `values` | Source the list: an **array**, a synchronous `(derived) => list`, or an asynchronous `(derived, success) => void`. |
+| `comparator` | Order the raw values: `(a, b) => number`. Default is ascending by label. |
+| `valueFormatter` | Label each value: `(value) => string`. Blanks show as `(Blanks)`. |
+| `showCount` | Append each value's occurrence count. Default `false`. |
+| `defaultToNothingSelected` | Start with nothing ticked (grid shows no rows until a value is picked). Default `false`. |
+
+## Next
+
+- [List Filter](/features/filters/list-filter/) — the checkbox filter these list
+  options belong to, and how a selection maps to an `in` condition.
+- [Filter Search](/features/filters/filter-search/) — the search box that narrows the
+  list.
+- [Column Filters](/features/filters/column-filters/) — the `in` operator the Set
+  Filter builds on.

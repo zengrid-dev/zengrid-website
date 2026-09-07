@@ -1,0 +1,58 @@
+---
+title: Column Pinning
+description: Freeze columns to the left or right edge so key fields stay in view.
+since: 1.2.0
+tier: enterprise
+slug: 1.3/features/column-pinning
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import GridDemo from '../../../../components/docs/GridDemo.astro';
+
+<FeatureMeta since="1.2.0" tier="enterprise" />
+
+## Introduction
+
+Column pinning freezes one or more columns against the left or right edge of the
+grid so they stay visible while the remaining columns scroll horizontally. It's
+ideal for keeping an identifier (like a name or ID) and a summary metric on
+screen at all times.
+
+## How it works
+
+Pinned columns are lifted into their own fixed layer that sits above the
+scrolling body and shares the grid's virtualization, so pinning stays fast even
+with a million rows. Left-pinned columns anchor to the start edge, right-pinned
+to the end edge, and the scrollable columns fill the space between.
+
+## Types
+
+```ts
+interface ColumnDef {
+  field: string;
+  header: string;
+  width?: number;
+  /** Freeze this column against an edge. Omit to leave it scrollable. */
+  pin?: 'left' | 'right';
+}
+```
+
+## Code
+
+```ts
+const grid = new Grid(el, {
+  rowCount,
+  columns: [
+    { field: 'name', header: 'Name', width: 240, pin: 'left' },
+    { field: 'role', header: 'Role', width: 200 },
+    { field: 'region', header: 'Region', width: 160 },
+    { field: 'status', header: 'Status', width: 140, pin: 'right' },
+  ],
+});
+```
+
+## Live demo
+
+Scroll the grid horizontally — the first and last columns stay put.
+
+<GridDemo label="Column pinning · Enterprise" />

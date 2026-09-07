@@ -1,0 +1,76 @@
+---
+// Server renders the light-theme state (moon icon → "switch to dark"); the
+// inline script corrects it on load to match the persisted theme before the
+// user interacts.
+---
+
+<button
+  id="theme-toggle"
+  type="button"
+  aria-label="Switch to dark theme"
+  aria-pressed="false"
+  class="inline-flex items-center gap-1.5 bg-surface border border-border text-ink px-3.5 py-2 rounded-full font-mono text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+>
+  <span data-icon-moon aria-hidden="true" class="inline-flex">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"></path>
+    </svg>
+  </span>
+  <span data-icon-sun aria-hidden="true" class="hidden inline-flex">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <circle cx="12" cy="12" r="4"></circle>
+      <path
+        d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+      ></path>
+    </svg>
+  </span>
+  <span data-theme-label>Dark</span>
+</button>
+
+<script>
+  const btn = document.getElementById("theme-toggle");
+  const label = btn?.querySelector<HTMLElement>("[data-theme-label]");
+  const moon = btn?.querySelector<HTMLElement>("[data-icon-moon]");
+  const sun = btn?.querySelector<HTMLElement>("[data-icon-sun]");
+  const root = document.documentElement;
+
+  const sync = () => {
+    const dark = root.dataset.theme === "dark";
+    if (label) label.textContent = dark ? "Light" : "Dark";
+    moon?.classList.toggle("hidden", dark);
+    sun?.classList.toggle("hidden", !dark);
+    btn?.setAttribute("aria-pressed", String(dark));
+    btn?.setAttribute(
+      "aria-label",
+      dark ? "Switch to light theme" : "Switch to dark theme",
+    );
+  };
+
+  sync();
+
+  btn?.addEventListener("click", () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    // Shared with Starlight so the choice syncs both ways (homepage ↔ docs).
+    localStorage.setItem("starlight-theme", next);
+    sync();
+  });
+</script>

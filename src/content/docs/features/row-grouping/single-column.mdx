@@ -1,0 +1,230 @@
+---
+title: Single Column
+description: Show the whole group hierarchy in one leading column — and customise how that column reads, indents, and renders.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+[Group Display Types](/features/row-grouping/group-display-types/) introduced the
+three ways to surface a group hierarchy. This page is a deep dive on
+**`displayType: 'singleColumn'`** — the whole hierarchy, however many levels deep,
+collapsed into **one leading column** that indents with depth. Every other column
+stays a normal data column, so aggregates render **in their own column** rather
+than in a full-width header.
+
+Ask the manager for that one column with **`getGroupColumns()`** and spread it
+ahead of your data columns:
+
+```ts
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status, both in the one column
+  displayType: 'singleColumn',
+  aggregations: { 3: 'sum' },      // renders in the real Revenue column
+  groupColumnLabel: () => 'Region / Status',
+});
+
+new Zengrid(mount, {
+  columns: [...grouping.getGroupColumns(), ...dataColumns],
+  fullWidthProvider: grouping.provider,
+});
+```
+
+Because the manager reshapes the rows to match the prepended column, **keep your
+data columns contiguous from the first source index** — the group column owns the
+leading slot.
+
+## Customising the group column
+
+The single column is where every level lives, so it earns the most tuning. All of
+these are options on `rowGrouping()`:
+
+- **`groupColumnLabel(index, spec)`** — the column header text (`index` is `0`
+  here, since there's one column).
+- **`groupColumnWidth`** — its width in pixels.
+- **`indentPerLevel`** — how far (px) each nesting level shifts right. Raise it to
+  make a deep hierarchy read like an outline; lower it to keep the column narrow.
+  Defaults to `18`.
+- **`suppressCount`** — hide the `(N)` leaf-count suffix after each label.
+- **`groupCellRenderer(params)`** — draw the cell content yourself. Return an HTML
+  string or an `HTMLElement`; it's placed after the chevron, replacing the default
+  label + count. `params` carries `{ key, label, col, count, level, expanded,
+  aggs }`, so you can render an icon, a badge, a formatted count, or an inline
+  aggregate — while the cell keeps handling indentation and click-to-toggle.
+
+```ts
+rowGrouping({
+  groupBy: [2, 5],
+  displayType: 'singleColumn',
+  indentPerLevel: 28,
+  suppressCount: true,
+  groupCellRenderer: ({ label, count, level }) =>
+    `${level === 0 ? '🌐' : '•'} <strong>${label}</strong>` +
+    ` <span style="opacity:.6">${count} rows</span>`,
+});
+```
+
+## Try it live
+
+export const basic = `// In scope: Zengrid, mount, currency, rowGrouping
+// The default single-column layout: Region -> Status in ONE column, indented by
+// depth. getGroupColumns() supplies it; the Revenue aggregate renders in the
+// real Revenue column, formatted by that column's own renderer.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status
+  displayType: 'singleColumn',
+  aggregations: { 3: 'sum' },      // 3 = Revenue -> rendered in its own column
+  groupColumnLabel: () => 'Region / Status',
+  groupColumnWidth: 240,
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const indentCount = `// Tune how the one column reads: widen the per-level indent so the nesting is
+// obvious, and drop the (N) count with suppressCount.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status
+  displayType: 'singleColumn',
+  aggregations: { 3: 'sum' },
+  groupColumnLabel: () => 'Hierarchy',
+  groupColumnWidth: 260,
+  indentPerLevel: 30,              // default is 18 — deeper levels shift further
+  suppressCount: true,            // hide the (N) leaf count after each label
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const customRenderer = `// Draw the group cell yourself with groupCellRenderer. It receives
+// { key, label, col, count, level, expanded, aggs } and returns an HTML string
+// (or an HTMLElement). Here: a per-level glyph, a bold label, and a pill count.
+const data = rows.slice(0, 200);
+
+const grouping = rowGrouping({
+  groupBy: [2, 5],                 // Region -> Status
+  displayType: 'singleColumn',
+  aggregations: { 3: 'sum' },
+  groupColumnLabel: () => 'Team',
+  groupColumnWidth: 280,
+  indentPerLevel: 26,
+  groupCellRenderer: ({ label, count, level }) => {
+    const glyph = level === 0 ? '🌐' : '👥';
+    const pill =
+      '<span style="margin-left:8px;padding:1px 8px;border-radius:10px;' +
+      'background:var(--zg-accent,#2563eb);color:#fff;font-size:11px">' +
+      count + '</span>';
+    return glyph + ' <strong>' + label + '</strong>' + pill;
+  },
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 40,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    ...grouping.getGroupColumns(),
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 150 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'One column',
+    hint: 'The default single-column layout. Region -> Status collapse into one indented column; the Revenue aggregate renders in the real Revenue column. Try changing groupColumnWidth.',
+    code: basic,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'indent-count',
+    label: 'Indent & count',
+    hint: 'indentPerLevel: 30 makes the nesting obvious; suppressCount hides the (N). Tweak both numbers and watch the column re-lay-out.',
+    code: indentCount,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'custom-renderer',
+    label: 'Custom cell',
+    hint: 'groupCellRenderer draws the cell: a per-level glyph, a bold label, and a coloured count pill. Return an HTML string or an HTMLElement — the chevron, indent and toggle stay wired.',
+    code: customRenderer,
+    controls: [
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **One column, every level.** `singleColumn` always returns exactly one column
+  from `getGroupColumns()`, regardless of how many `groupBy` levels you have — the
+  hierarchy is expressed by indentation, not extra columns. For a column per
+  level, use [Multiple Columns](/features/row-grouping/multiple-columns/).
+- **Aggregates render in their column.** With no full-width header to host them,
+  each configured aggregate lands in its real data column and is formatted by that
+  column's own `renderer` (here, `currency`).
+- **The custom renderer keeps the plumbing.** `groupCellRenderer` only replaces
+  the label + count. The chevron, per-level indent (`indentPerLevel`) and
+  click-to-toggle are still applied by the cell around your content.
+- **Keep data columns contiguous.** With positional array rows the group column
+  takes the leading slot; your data columns must follow in source order so each
+  cell lands under the right column.
+
+## Next
+
+- [Multiple Columns](/features/row-grouping/multiple-columns/) — a column per
+  level, with per-column control.
+- [Group Rows](/features/row-grouping/group-rows/) — the full-width header layout.

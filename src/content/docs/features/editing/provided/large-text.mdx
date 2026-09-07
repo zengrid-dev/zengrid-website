@@ -1,0 +1,176 @@
+---
+title: Large Text Editor
+description: The built-in multi-line popup editor — enable it with editor 'largeText' and configure rows, size, a character counter and validation through editorOptions.
+tier: community
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+The **Large Text Editor** is ZenGrid's built-in editor for long, multi-line
+values — notes, descriptions, addresses, bios. Where the single-line
+[Text Editor](/features/editing/provided/text/) clips content and treats Enter
+as *commit*, the large-text editor opens a floating `<textarea>` panel over the
+cell so you can see and edit several lines at once.
+
+Select it on any editable column with `editor: 'largeText'`:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'notes', header: 'Notes', editable: true, editor: 'largeText',
+      editorOptions: { rows: 6, maxLength: 500, showCharCount: true } },
+  ],
+});
+```
+
+### Committing vs. a new line
+
+Because the value is multi-line, the keys behave differently from the
+single-line editor:
+
+| Key | Action |
+|-----|--------|
+| **Enter** (or Shift+Enter) | Insert a new line — does **not** commit. |
+| **Ctrl / ⌘ + Enter** | Commit the value. |
+| **Tab** | Commit and move on. |
+| **Click outside** | Commit (unless `stopOnBlur: false`). |
+| **Escape** | Cancel and restore the original value. |
+
+### `editorOptions`
+
+Everything is configured declaratively through the column's **`editorOptions`** —
+you never construct the editor yourself.
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `rows` | `number` | Visible rows of the textarea (default `5`). |
+| `width` | `number` | Panel width in px (default `320`). |
+| `height` | `number` | Fixed textarea height in px (otherwise fits `rows`). |
+| `placeholder` | `string` | Placeholder shown when empty. |
+| `maxLength` | `number` | Hard character cap enforced by the browser. |
+| `showCharCount` | `boolean` | Show a live `n / max` counter under the textarea. |
+| `required` | `boolean` | Reject an empty value on commit. |
+| `validator` | `(value) => boolean \| string` | Custom check; return a string to supply the error message. |
+| `selectAllOnFocus` | `boolean` | Select the existing text when the editor opens (default `true`). |
+| `className` | `string` | Class on the textarea for custom styling. |
+| `stopOnBlur` | `boolean` | Commit when the panel loses focus (default `true`). |
+
+A failing `required` / `validator` commit is governed by the grid-level
+[`editing.invalidEditMode`](/features/editing/validation/): `'block'` (default)
+keeps the editor open and flags the cell, `'revert'` restores the old value,
+`'commit'` accepts it but marks the cell.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'basics',
+    label: 'Enable & edit',
+    hint: "Notes uses editor:'largeText'. Double-click a Notes cell to open the panel — press Enter to add a new line (it does NOT commit), then commit with Ctrl/⌘+Enter, Tab, or by clicking outside. Escape cancels. Try adding a couple of lines and clicking away.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// The built-in multi-line editor, selected with editor: 'largeText'.
+const data = [
+  ['Aria Vaskov', 'Data Engineer', 'Owns the ingestion pipeline.\\nOn call this week.'],
+  ['Kenji Tanaka', 'Product Lead', 'Driving the Q3 roadmap.\\nLikes short standups.'],
+  ['Lucia Moreno', 'Analyst', 'Focus: retention cohorts.'],
+  ['Otto Bergman', 'Platform Eng', 'Migrating the cluster to v2.'],
+  ['Priya Nair', 'Staff SWE', 'Owns the query planner.\\nMentoring two interns.'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 170 },
+    { field: 'role', header: 'Role', width: 160 },
+    { field: 'notes', header: 'Notes', width: 340, editable: true, editor: 'largeText',
+      editorOptions: { rows: 5, placeholder: 'Add a note…' } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'sizing',
+    label: 'Size & counter',
+    hint: "Shape the panel and show a live counter. Notes sets width:420, rows:8 and showCharCount:true with maxLength:180 — double-click it and watch the 'n / 180' counter update as you type; the browser stops you at 180. Change rows to 3 or width to 260 and re-run.",
+    code: `// width / height / rows shape the panel; showCharCount + maxLength add a counter.
+const data = [
+  ['Aria Vaskov', 'A concise summary that grows as you add detail about the account.'],
+  ['Kenji Tanaka', 'Product lead for the analytics suite.\\nPrefers written updates.'],
+  ['Lucia Moreno', 'Retention analyst.'],
+  ['Otto Bergman', 'Platform engineer, cluster + CI ownership.'],
+  ['Priya Nair', 'Staff engineer on the query planner.'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 180 },
+    { field: 'bio', header: 'Bio', width: 460, editable: true, editor: 'largeText',
+      editorOptions: {
+        width: 420,
+        rows: 8,
+        maxLength: 180,
+        showCharCount: true,
+        placeholder: 'Up to 180 characters…',
+      } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'validation',
+    label: 'Required & validator',
+    hint: "Reject bad values under invalidEditMode:'block'. Bio is required AND must be at least 20 characters (custom validator supplies the message). Double-click Bio, clear it or type something short, then Ctrl/⌘+Enter — the commit is blocked and the editor stays open with the cell flagged; a valid value commits and closes.",
+    code: `// required + validator feed isValid(); invalidEditMode:'block' keeps the
+// editor open on a failing commit.
+const data = [
+  ['Aria Vaskov', 'Owns ingestion and the nightly ETL jobs.'],
+  ['Kenji Tanaka', 'Leads product for the analytics suite.'],
+  ['Lucia Moreno', 'Retention and cohort analysis.'],
+  ['Otto Bergman', 'Platform: cluster, CI, and release tooling.'],
+  ['Priya Nair', 'Staff engineer, query planner.'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'name', header: 'Name', width: 180 },
+    { field: 'bio', header: 'Bio (min 20 chars)', width: 460, editable: true, editor: 'largeText',
+      editorOptions: {
+        rows: 6,
+        required: true,
+        validator: (v) =>
+          (typeof v === 'string' && v.trim().length >= 20) ||
+          'Please write at least 20 characters',
+      } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Text Editor](/features/editing/provided/text/) — the single-line default.
+- [Select Editor](/features/editing/provided/select/) — pick from a fixed list.
+- [Edit Components](/features/editing/edit-components/) — build your own editor
+  when the built-ins aren't enough.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

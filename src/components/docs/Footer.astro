@@ -1,0 +1,20 @@
+---
+// Starlight `Footer` override — keep Starlight's built-in page footer
+// (pagination, last-updated, edit link) and append the marketing site's brand
+// footer beneath it for visual continuity with the rest of the site.
+import Default from '@astrojs/starlight/components/Footer.astro';
+import BrandFooter from '../Footer.astro';
+---
+
+<Default><slot /></Default>
+
+<div class="zg-brand-footer font-sans">
+  <BrandFooter />
+</div>
+
+<style>
+  .zg-brand-footer {
+    margin-top: 3rem;
+    color: var(--ink);
+  }
+</style>

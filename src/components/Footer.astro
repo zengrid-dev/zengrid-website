@@ -1,184 +1,64 @@
 ---
-import { Github, Twitter } from 'lucide-astro';
+import Logo from "./Logo.astro";
+import { footer } from "../config/site";
 
-const currentYear = new Date().getFullYear();
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+const destination = (href: string) =>
+  href.startsWith("#") && Astro.url.pathname !== "/" ? `/${href}` : href;
+const linkClass =
+  "text-muted hover:text-coral-sh cursor-pointer transition-colors rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral";
 ---
 
-<footer class="footer">
-  <div class="container">
-    <div class="footer-content">
-      <!-- Brand Column -->
-      <div class="footer-column">
-        <div class="footer-logo">
-          <img src="/zengrid-final-dark.svg" alt="ZenGrid" class="footer-logo-svg" width="122" height="36" />
-        </div>
-        <p class="footer-tagline">
-          Performance-first virtual grid for the web
-        </p>
-        <div class="social-links">
-          <a href="https://github.com/zengrid-dev/zengrid" target="_blank" rel="noopener" aria-label="GitHub">
-            <Github size={24} strokeWidth={1.5} />
-          </a>
-          <a href="https://x.com/Zengrid_dev" target="_blank" rel="noopener" aria-label="X">
-            <Twitter size={24} strokeWidth={1.5} />
-          </a>
-        </div>
+<footer>
+  <div class="mx-auto max-w-[1200px] px-5 sm:px-10 py-10 border-t border-border-soft">
+  <div class="grid grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10">
+    <div>
+      <div class="mb-3.5">
+        <Logo size={26} textSize={18} />
       </div>
-
-      <!-- Product Column -->
-      <div class="footer-column">
-        <h4 class="footer-heading">Product</h4>
-        <ul class="footer-links">
-          <li><a href="/features">Features</a></li>
-          <li><a href="/examples">Examples</a></li>
-          <li><a href="/performance">Performance</a></li>
-          <li><a href="/plugins">Plugins</a></li>
-        </ul>
-      </div>
-
-      <!-- Developers Column -->
-      <div class="footer-column">
-        <h4 class="footer-heading">Developers</h4>
-        <ul class="footer-links">
-          <li><a href="/docs">Documentation</a></li>
-          <li><a href="/api">API Reference</a></li>
-          <li><a href="/docs/getting-started">Getting Started</a></li>
-          <li><a href="https://github.com/zengrid-dev/zengrid">GitHub</a></li>
-        </ul>
-      </div>
-
-      <!-- Community Column -->
-      <div class="footer-column">
-        <h4 class="footer-heading">Community</h4>
-        <ul class="footer-links">
-          <li><a href="/">About ZenGrid</a></li>
-          <li><a href="https://x.com/Zengrid_dev" target="_blank" rel="noopener">X</a></li>
-          <li><a href="mailto:hello@zengrid.dev">Contact</a></li>
-        </ul>
-      </div>
+      <p class="text-sm text-muted max-w-[260px] m-0">{footer.tagline}</p>
     </div>
+    {
+      footer.columns.map((col) => (
+        <nav aria-label={col.title}>
+          <div class="font-mono text-[11px] font-bold tracking-[0.08em] uppercase text-faint mb-3.5">
+            {col.title}
+          </div>
+          <div class="flex flex-col gap-2.5 text-sm font-medium">
+            {col.links.map((link) => (
+              <a
+                href={destination(link.href)}
+                target={isExternal(link.href) ? "_blank" : undefined}
+                rel={isExternal(link.href) ? "noopener noreferrer" : undefined}
+                class={linkClass}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </nav>
+      ))
+    }
+  </div>
 
-    <!-- Bottom Bar -->
-    <div class="footer-bottom">
-      <p class="copyright">
-        © {currentYear} ZenGrid. Open source under MIT License.
-      </p>
-      <div class="footer-bottom-links">
-        <a href="https://github.com/zengrid-dev/zengrid/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
-        <a href="mailto:hello@zengrid.dev">Contact</a>
-      </div>
-    </div>
+  <div
+    class="flex items-center justify-between mt-14 pt-[22px] border-t border-border-soft font-mono text-xs text-faint flex-wrap gap-3"
+  >
+    <span>{footer.copyright}</span>
+    <span class="flex flex-wrap gap-x-5 gap-y-3">
+      {
+        footer.legal.map((item) => (
+          <a
+            href={item.href}
+            target={isExternal(item.href) ? "_blank" : undefined}
+            rel={isExternal(item.href) ? "noopener noreferrer" : undefined}
+            class="text-faint hover:text-coral-sh cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </span>
+  </div>
   </div>
 </footer>
-
-<style>
-  .footer {
-    background: #020617; /* Slate 950 manually or var(--bg-dark) */
-    color: var(--text-muted);
-    padding: 4rem 0 2rem;
-    border-top: 1px solid var(--border-subtle);
-  }
-
-  .footer-content {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
-  }
-
-  .footer-logo {
-    margin-bottom: 1rem;
-  }
-
-  .footer-logo-svg {
-    height: 36px;
-    width: auto;
-    opacity: 0.9;
-  }
-
-  .footer-tagline {
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
-    max-width: 300px;
-  }
-
-  .social-links {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .social-links a {
-    color: var(--text-muted);
-    transition: color 0.2s;
-  }
-
-  .social-links a:hover {
-    color: var(--zen-primary);
-  }
-
-  .footer-heading {
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-main);
-    margin-bottom: 1rem;
-  }
-
-  .footer-links {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .footer-links a {
-    color: var(--text-muted);
-    transition: color 0.2s;
-  }
-
-  .footer-links a:hover {
-    color: var(--zen-primary);
-  }
-
-  .footer-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border-subtle);
-  }
-
-  .copyright {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-
-  .footer-bottom-links {
-    display: flex;
-    gap: 2rem;
-  }
-
-  .footer-bottom-links a {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    transition: color 0.2s;
-  }
-
-  .footer-bottom-links a:hover {
-    color: var(--zen-primary);
-  }
-
-  @media (max-width: 768px) {
-    .footer-content {
-      grid-template-columns: 1fr;
-      gap: 2rem;
-    }
-
-    .footer-bottom {
-      flex-direction: column;
-      gap: 1rem;
-      text-align: center;
-    }
-  }
-</style>

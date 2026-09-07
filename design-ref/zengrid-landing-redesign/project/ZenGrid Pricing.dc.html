@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  a { color: var(--coral); text-decoration: none; }
+  a:hover { color: var(--coral-sh); }
+  ::selection { background: var(--coral); color: #fff; }
+  @keyframes zg-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
+  @keyframes zg-fadeup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="{{ themeStyle }} background:var(--bg); color:var(--ink); font-family:'Instrument Sans',sans-serif; min-height:100vh; transition:background-color .3s ease, color .3s ease;">
+  <div style="max-width:1200px; margin:0 auto; padding:0 40px;">
+
+    <!-- nav -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 0;">
+      <a href="ZenGrid Home v4.dc.html" style="display:flex; align-items:center; gap:11px; color:var(--ink);">
+        <div style="width:28px; height:28px; border-radius:9px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2.5px; padding:4px;">
+          <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+        </div>
+        <span style="font-family:'Manrope',sans-serif; font-weight:800; font-size:20px; letter-spacing:-0.02em;">ZenGrid</span>
+      </a>
+      <div style="display:flex; gap:24px; align-items:center; font-size:15px; font-weight:500;">
+        <a href="ZenGrid Features.dc.html" style="color:var(--muted);">Features</a><a href="ZenGrid Examples.dc.html" style="color:var(--muted);">Examples</a><a href="ZenGrid Pricing.dc.html" style="color:var(--ink); font-weight:600;">Pricing</a><a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a><a href="ZenGrid API.dc.html" style="color:var(--muted);">API</a>
+        <button onClick="{{ toggleTheme }}" style="display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); color:var(--ink); padding:8px 14px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ themeIcon }}</button>
+        <span style="background:var(--ink); color:var(--bg); padding:9px 18px; border-radius:999px; font-weight:600; cursor:pointer;">Get started</span>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div style="padding:56px 0 40px; text-align:center;">
+      <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--coral); margin-bottom:16px; animation:zg-fadeup .5s ease both;">
+        <span style="width:7px; height:7px; background:var(--coral); border-radius:50%; animation:zg-pulse 1.6s ease-in-out infinite;"></span>Pricing
+      </div>
+      <h1 style="font-family:'Manrope',sans-serif; font-size:56px; line-height:1.06; font-weight:800; letter-spacing:-0.035em; margin:0 auto 16px; max-width:700px; text-wrap:balance; animation:zg-fadeup .5s ease .08s both;">
+        Free core. <span style="color:var(--coral);">Per-seat</span> when you scale.
+      </h1>
+      <p style="font-size:17px; line-height:1.6; max-width:540px; margin:0 auto; color:var(--muted); animation:zg-fadeup .5s ease .16s both;">
+        The core grid is open source, forever. Paid plans are licensed per developer seat and unlock pro plugins and support. Premium support is an add-on to any paid plan.
+      </p>
+    </div>
+
+    <!-- plans -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; align-items:stretch; padding:24px 0 12px;">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; display:flex; flex-direction:column;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:{{ aTeal.ink }}; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px;">Community</div>
+        <div style="font-family:'Manrope',sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.02em;">$0</div>
+        <div style="font-size:13px; color:var(--faint); margin-bottom:20px;">open source · forever</div>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; color:var(--muted); flex:1;">
+          <span>✓ Full core grid, MIT licensed</span>
+          <span>✓ Virtual scrolling, 1M+ rows</span>
+          <span>✓ Sorting, filtering, selection</span>
+          <span>✓ Community support</span>
+        </div>
+        <span style="margin-top:22px; text-align:center; background:var(--surface-2); border:1px solid var(--border); color:var(--ink); font-weight:600; font-size:14px; padding:12px 16px; border-radius:11px; cursor:pointer;">Star on GitHub</span>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; display:flex; flex-direction:column;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:{{ aCoral.ink }}; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px;">Solo</div>
+        <div style="font-family:'Manrope',sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.02em;">$10k</div>
+        <div style="font-size:13px; color:var(--faint); margin-bottom:20px;">1 dev seat · per year</div>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; color:var(--muted); flex:1;">
+          <span>✓ Everything in Community</span>
+          <span>✓ All pro plugins &amp; editors</span>
+          <span>✓ CSV / TSV export tools</span>
+          <span>✓ Email support</span>
+        </div>
+        <span style="margin-top:22px; text-align:center; background:var(--coral); color:#fff; font-weight:600; font-size:14px; padding:12px 16px; border-radius:11px; box-shadow:0 4px 0 var(--coral-sh); cursor:pointer;">Buy Solo</span>
+      </div>
+      <div style="background:var(--ink); color:var(--bg); border:1px solid var(--ink); border-radius:20px; padding:28px 24px; display:flex; flex-direction:column; position:relative;">
+        <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:var(--coral); color:#fff; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; padding:4px 12px; border-radius:999px; white-space:nowrap;">MOST POPULAR</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--coral); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px;">Team</div>
+        <div style="font-family:'Manrope',sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.02em;">$50k</div>
+        <div style="font-size:13px; opacity:0.6; margin-bottom:20px;">10 dev seats · per year</div>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; opacity:0.85; flex:1;">
+          <span>✓ Everything in Solo</span>
+          <span>✓ 10 developer seats ($5k/seat)</span>
+          <span>✓ Priority support queue</span>
+          <span>✓ Upgrade &amp; migration help</span>
+        </div>
+        <span style="margin-top:22px; text-align:center; background:var(--coral); color:#fff; font-weight:600; font-size:14px; padding:12px 16px; border-radius:11px; box-shadow:0 4px 0 var(--coral-sh); cursor:pointer;">Buy Team</span>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px 24px; display:flex; flex-direction:column;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:{{ aViolet.ink }}; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:14px;">Enterprise</div>
+        <div style="font-family:'Manrope',sans-serif; font-size:40px; font-weight:800; letter-spacing:-0.02em;">Custom</div>
+        <div style="font-size:13px; color:var(--faint); margin-bottom:20px;">unlimited seats · SLA</div>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; color:var(--muted); flex:1;">
+          <span>✓ Everything in Team</span>
+          <span>✓ Unlimited developer seats</span>
+          <span>✓ SLA &amp; dedicated support</span>
+          <span>✓ Custom licensing terms</span>
+        </div>
+        <span style="margin-top:22px; text-align:center; background:var(--surface-2); border:1px solid var(--border); color:var(--ink); font-weight:600; font-size:14px; padding:12px 16px; border-radius:11px; cursor:pointer;">Contact us</span>
+      </div>
+    </div>
+    <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint); padding-bottom:56px;">All paid plans are licensed per developer seat, per year.</div>
+
+    <!-- comparison -->
+    <div style="padding-bottom:64px;">
+      <h2 style="font-family:'Manrope',sans-serif; font-size:32px; font-weight:800; letter-spacing:-0.025em; margin:0 0 20px;">Compare plans</h2>
+      <div style="border:1px solid var(--border); border-radius:18px; background:var(--surface); overflow:hidden;">
+        <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; background:var(--surface-2); border-bottom:1px solid var(--border-soft);">
+          <div style="padding:13px 20px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--faint); text-transform:uppercase; letter-spacing:0.06em;">What you get</div>
+          <div style="padding:13px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ aTeal.ink }}; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Community</div>
+          <div style="padding:13px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ aCoral.ink }}; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Solo</div>
+          <div style="padding:13px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--ink); text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Team</div>
+          <div style="padding:13px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ aViolet.ink }}; text-transform:uppercase; letter-spacing:0.06em; text-align:center;">Enterprise</div>
+        </div>
+        <sc-for list="{{ compareRows }}" as="c" hint-placeholder-count="8">
+          <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; border-bottom:1px solid var(--row-line);">
+            <div style="padding:13px 20px; font-size:14px; font-weight:600;">{{ c.label }}</div>
+            <div style="padding:13px 16px; font-size:13.5px; text-align:center; color:var(--muted); font-family:'JetBrains Mono',monospace;">{{ c.community }}</div>
+            <div style="padding:13px 16px; font-size:13.5px; text-align:center; color:var(--muted); font-family:'JetBrains Mono',monospace;">{{ c.solo }}</div>
+            <div style="padding:13px 16px; font-size:13.5px; text-align:center; color:var(--ink); font-weight:600; font-family:'JetBrains Mono',monospace;">{{ c.team }}</div>
+            <div style="padding:13px 16px; font-size:13.5px; text-align:center; color:var(--muted); font-family:'JetBrains Mono',monospace;">{{ c.enterprise }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- support add-on -->
+    <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:24px; padding-bottom:64px; align-items:stretch;">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 34px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:{{ aAmber.ink }}; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px;">Add-on</div>
+        <h3 style="font-family:'Manrope',sans-serif; font-size:26px; font-weight:800; letter-spacing:-0.02em; margin:0 0 10px;">Premium support</h3>
+        <p style="font-size:15px; color:var(--muted); line-height:1.6; margin:0 0 18px; max-width:480px;">
+          Attach premium support to any paid plan: a dedicated shared channel, guaranteed 24-hour response, upgrade planning, and performance reviews of your grid configs.
+        </p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span style="background:var(--surface-2); border:1px solid var(--border); padding:6px 13px; border-radius:999px; font-size:13px; font-weight:600;">Dedicated channel</span>
+          <span style="background:var(--surface-2); border:1px solid var(--border); padding:6px 13px; border-radius:999px; font-size:13px; font-weight:600;">24h response</span>
+          <span style="background:var(--surface-2); border:1px solid var(--border); padding:6px 13px; border-radius:999px; font-size:13px; font-weight:600;">Upgrade planning</span>
+          <span style="background:var(--surface-2); border:1px solid var(--border); padding:6px 13px; border-radius:999px; font-size:13px; font-weight:600;">Config reviews</span>
+        </div>
+      </div>
+      <div style="background:var(--ink); color:var(--bg); border-radius:20px; padding:32px 34px; display:flex; flex-direction:column; justify-content:center;">
+        <div style="font-family:'Manrope',sans-serif; font-size:22px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">Priced per team.</div>
+        <div style="font-size:14.5px; opacity:0.7; line-height:1.6; margin-bottom:20px;">Support pricing scales with seats — tell us your team size and we'll quote it.</div>
+        <span style="align-self:flex-start; background:var(--coral); color:#fff; font-weight:600; font-size:14px; padding:12px 20px; border-radius:12px; box-shadow:0 4px 0 var(--coral-sh); cursor:pointer;">Talk to us →</span>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div style="padding-bottom:72px; max-width:760px;">
+      <h2 style="font-family:'Manrope',sans-serif; font-size:32px; font-weight:800; letter-spacing:-0.025em; margin:0 0 20px;">Questions</h2>
+      <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="4">
+        <div onClick="{{ f.onClick }}" style="border:1px solid var(--border); border-radius:14px; background:var(--surface); padding:18px 22px; margin-bottom:10px; cursor:pointer;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+            <span style="font-size:15.5px; font-weight:600;">{{ f.q }}</span>
+            <span style="font-family:'JetBrains Mono',monospace; color:var(--faint); font-weight:700;">{{ f.mark }}</span>
+          </div>
+          <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14.5px; color:var(--muted); line-height:1.6; padding-top:10px;">{{ f.a }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- footer -->
+    <div style="border-top:1px solid var(--border-soft); padding:28px 0 36px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:22px; height:22px; border-radius:7px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:3px;">
+          <div style="background:#f2764e; border-radius:1.5px;"></div><div style="background:#e9b949; border-radius:1.5px;"></div><div style="background:#57b6a6; border-radius:1.5px;"></div><div style="background:#9b7ed6; border-radius:1.5px;"></div>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint);">© 2026 ZenGrid · MIT</span>
+      </div>
+      <div style="display:flex; gap:20px; font-size:14px; font-weight:500;">
+        <a href="ZenGrid Home v4.dc.html" style="color:var(--muted);">Home</a>
+        <a href="ZenGrid Features.dc.html" style="color:var(--muted);">Features</a>
+        <a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a>
+        <span style="color:var(--muted); cursor:pointer;">GitHub</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: 'light', openFaq: 0 };
+
+  themes = {
+    light: "--bg:#f8f5ef;--surface:#ffffff;--surface-2:#faf8f3;--border:#e6e0d5;--border-soft:#f0ece3;--row-line:#f5f1e9;--ink:#211d1a;--muted:#6b6258;--faint:#9a9184;--coral:#f2764e;--coral-sh:#d85a34;--teal:#57b6a6;--teal-ink:#3f9284;--violet-b:#9b7ed6;--logo-ink:#211d1a;--card-shadow:0 14px 40px -18px #21201c33;",
+    dark: "--bg:#1a1714;--surface:#232019;--surface-2:#2a261e;--border:#34302a;--border-soft:#2f2b24;--row-line:#2a261f;--ink:#f6f1e7;--muted:#b3a998;--faint:#8c8272;--coral:#f2764e;--coral-sh:#a34d2f;--teal:#57b6a6;--teal-ink:#6fd0bf;--violet-b:#9b7ed6;--logo-ink:#f6f1e7;--card-shadow:0 14px 40px -18px #00000080;",
+  };
+  accents = {
+    light: { coral: { ink: '#e0603a' }, teal: { ink: '#3f9284' }, amber: { ink: '#c9962a' }, violet: { ink: '#7b5fc4' } },
+    dark:  { coral: { ink: '#f7906b' }, teal: { ink: '#6fd0bf' }, amber: { ink: '#e3b354' }, violet: { ink: '#ad93e0' } },
+  };
+
+  compare = [
+    { label: 'Core grid + virtual scrolling', community: '✓', solo: '✓', team: '✓', enterprise: '✓' },
+    { label: 'Sorting, filtering, selection', community: '✓', solo: '✓', team: '✓', enterprise: '✓' },
+    { label: 'Pro plugins & editors', community: '—', solo: '✓', team: '✓', enterprise: '✓' },
+    { label: 'CSV / TSV export tools', community: '—', solo: '✓', team: '✓', enterprise: '✓' },
+    { label: 'Developer seats', community: '∞*', solo: '1', team: '10', enterprise: '∞' },
+    { label: 'Support', community: 'community', solo: 'email', team: 'priority', enterprise: 'dedicated' },
+    { label: 'Premium support add-on', community: '—', solo: 'available', team: 'available', enterprise: 'included' },
+    { label: 'SLA & custom terms', community: '—', solo: '—', team: '—', enterprise: '✓' },
+  ];
+
+  faqData = [
+    { q: 'What counts as a developer seat?', a: 'Any developer who writes or maintains code that imports ZenGrid. Designers, PMs, and end users of your app never need a seat.' },
+    { q: 'Is the open source core enough for production?', a: 'Yes — the MIT core includes virtual scrolling, sorting, filtering, and selection. Paid plans add pro plugins, editors, export tooling, and support.' },
+    { q: 'Can we mix plans across teams?', a: 'Yes. Seats are pooled at the organization level; you can start with Solo and upgrade to Team pricing ($5k/seat at 10 seats) whenever you grow.' },
+    { q: 'How does the premium support add-on work?', a: "It attaches to any paid plan and is priced by team size. You get a dedicated channel, 24-hour response, and upgrade planning. Contact us for a quote." },
+  ];
+
+  toggleTheme() { this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' })); }
+  toggleFaq(i) { this.setState(s => ({ openFaq: s.openFaq === i ? -1 : i })); }
+
+  renderVals() {
+    const { theme, openFaq } = this.state;
+    const a = this.accents[theme];
+    const faqs = this.faqData.map((f, i) => ({
+      ...f, open: openFaq === i, mark: openFaq === i ? '−' : '+', onClick: () => this.toggleFaq(i),
+    }));
+    return {
+      compareRows: this.compare, faqs,
+      themeStyle: this.themes[theme],
+      themeIcon: theme === 'light' ? '☾ Dark' : '☀ Light',
+      toggleTheme: () => this.toggleTheme(),
+      aCoral: a.coral, aTeal: a.teal, aAmber: a.amber, aViolet: a.violet,
+    };
+  }
+}
+</script>
+</body>
+</html>

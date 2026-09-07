@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  a { color: var(--coral); text-decoration: none; }
+  a:hover { color: var(--coral-sh); }
+  ::selection { background: var(--coral); color: #fff; }
+  @keyframes zg-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
+  @keyframes zg-fadeup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="{{ themeStyle }} background:var(--bg); color:var(--ink); font-family:'Instrument Sans',sans-serif; min-height:100vh; transition:background-color .3s ease, color .3s ease;">
+  <div style="max-width:1200px; margin:0 auto; padding:0 40px;">
+
+    <!-- nav -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 0;">
+      <a href="ZenGrid Home v4.dc.html" style="display:flex; align-items:center; gap:11px; color:var(--ink);">
+        <div style="width:28px; height:28px; border-radius:9px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2.5px; padding:4px;">
+          <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+        </div>
+        <span style="font-family:'Manrope',sans-serif; font-weight:800; font-size:20px; letter-spacing:-0.02em;">ZenGrid</span>
+      </a>
+      <div style="display:flex; gap:24px; align-items:center; font-size:15px; font-weight:500;">
+        <a href="ZenGrid Features.dc.html" style="color:var(--muted);">Features</a><a href="ZenGrid Examples.dc.html" style="color:var(--ink); font-weight:600;">Examples</a><a href="ZenGrid Pricing.dc.html" style="color:var(--muted);">Pricing</a><a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a><a href="ZenGrid API.dc.html" style="color:var(--muted);">API</a>
+        <button onClick="{{ toggleTheme }}" style="display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); color:var(--ink); padding:8px 14px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ themeIcon }}</button>
+        <span style="background:var(--ink); color:var(--bg); padding:9px 18px; border-radius:999px; font-weight:600; cursor:pointer;">Get started</span>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div style="padding:56px 0 36px;">
+      <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--coral); margin-bottom:16px; animation:zg-fadeup .5s ease both;">
+        <span style="width:7px; height:7px; background:var(--coral); border-radius:50%; animation:zg-pulse 1.6s ease-in-out infinite;"></span>Examples
+      </div>
+      <h1 style="font-family:'Manrope',sans-serif; font-size:56px; line-height:1.06; font-weight:800; letter-spacing:-0.035em; margin:0 0 16px; max-width:720px; text-wrap:balance; animation:zg-fadeup .5s ease .08s both;">
+        Learn by <span style="color:var(--coral);">poking</span> at working grids.
+      </h1>
+      <p style="font-size:17px; line-height:1.6; max-width:540px; margin:0; color:var(--muted); animation:zg-fadeup .5s ease .16s both;">
+        Every example ships with full source. Filter by what you're building.
+      </p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:24px; animation:zg-fadeup .5s ease .22s both;">
+        <sc-for list="{{ tags }}" as="t" hint-placeholder-count="6">
+          <button onClick="{{ t.onClick }}" style="background:{{ t.bg }}; border:1px solid {{ t.border }}; color:{{ t.ink }}; padding:7px 15px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ t.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- example cards -->
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding-bottom:72px;">
+      <sc-for list="{{ examples }}" as="ex" hint-placeholder-count="6">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:18px; overflow:hidden; display:flex; flex-direction:column; transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;" style-hover="transform:translateY(-4px); border-color:{{ ex.accent }}; box-shadow:0 16px 34px -18px {{ ex.accent }};">
+          <div style="display:flex; align-items:center; gap:7px; padding:10px 14px; border-bottom:1px solid var(--border-soft); background:var(--surface-2);">
+            <span style="width:10px; height:10px; border-radius:50%; background:#ff5f56; display:inline-block;"></span>
+            <span style="width:10px; height:10px; border-radius:50%; background:#ffbd2e; display:inline-block;"></span>
+            <span style="width:10px; height:10px; border-radius:50%; background:#27c93f; display:inline-block;"></span>
+            <span style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint);">{{ ex.file }}</span>
+          </div>
+          <div style="padding:14px; display:flex; flex-direction:column; gap:5px;">
+            <div style="height:9px; border-radius:99px; background:{{ ex.accent }}; opacity:0.85; width:52%;"></div>
+            <div style="height:7px; border-radius:99px; background:var(--border); width:88%;"></div>
+            <div style="height:7px; border-radius:99px; background:var(--border); width:74%;"></div>
+            <div style="height:7px; border-radius:99px; background:var(--border-soft); width:81%;"></div>
+            <div style="height:7px; border-radius:99px; background:var(--border-soft); width:66%;"></div>
+          </div>
+          <div style="padding:6px 20px 20px; display:flex; flex-direction:column; gap:8px; flex:1;">
+            <div style="font-family:'Manrope',sans-serif; font-size:18px; font-weight:800; letter-spacing:-0.01em;">{{ ex.title }}</div>
+            <div style="font-size:14px; color:var(--muted); line-height:1.55; flex:1;">{{ ex.desc }}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:{{ ex.accent }};">{{ ex.tag }}</span>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--ink); cursor:pointer;">Open →</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- CTA -->
+    <div style="background:var(--ink); color:var(--bg); border-radius:22px; padding:40px 44px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:72px;">
+      <div>
+        <div style="font-family:'Manrope',sans-serif; font-size:28px; font-weight:800; letter-spacing:-0.02em; margin-bottom:6px;">Missing an example?</div>
+        <div style="font-size:15px; opacity:0.7;">Tell us what you're building — we add examples from real requests.</div>
+      </div>
+      <span style="background:var(--coral); color:#fff; font-weight:600; font-size:15px; padding:13px 22px; border-radius:13px; box-shadow:0 5px 0 var(--coral-sh); cursor:pointer;">Request one →</span>
+    </div>
+
+    <!-- footer -->
+    <div style="border-top:1px solid var(--border-soft); padding:28px 0 36px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:22px; height:22px; border-radius:7px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; padding:3px;">
+          <div style="background:#f2764e; border-radius:1.5px;"></div><div style="background:#e9b949; border-radius:1.5px;"></div><div style="background:#57b6a6; border-radius:1.5px;"></div><div style="background:#9b7ed6; border-radius:1.5px;"></div>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--faint);">© 2026 ZenGrid · MIT</span>
+      </div>
+      <div style="display:flex; gap:20px; font-size:14px; font-weight:500;">
+        <a href="ZenGrid Home v4.dc.html" style="color:var(--muted);">Home</a>
+        <a href="ZenGrid Pricing.dc.html" style="color:var(--muted);">Pricing</a>
+        <a href="ZenGrid Docs.dc.html" style="color:var(--muted);">Docs</a>
+        <span style="color:var(--muted); cursor:pointer;">GitHub</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: 'light', tag: 'All' };
+
+  themes = {
+    light: "--bg:#f8f5ef;--surface:#ffffff;--surface-2:#faf8f3;--border:#e6e0d5;--border-soft:#f0ece3;--row-line:#f5f1e9;--ink:#211d1a;--muted:#6b6258;--faint:#9a9184;--coral:#f2764e;--coral-sh:#d85a34;--teal:#57b6a6;--teal-ink:#3f9284;--logo-ink:#211d1a;",
+    dark: "--bg:#1a1714;--surface:#232019;--surface-2:#2a261e;--border:#34302a;--border-soft:#2f2b24;--row-line:#2a261f;--ink:#f6f1e7;--muted:#b3a998;--faint:#8c8272;--coral:#f2764e;--coral-sh:#a34d2f;--teal:#57b6a6;--teal-ink:#6fd0bf;--logo-ink:#f6f1e7;",
+  };
+
+  accentHex = {
+    light: { coral: '#e0603a', teal: '#3f9284', amber: '#c9962a', violet: '#7b5fc4' },
+    dark:  { coral: '#f7906b', teal: '#6fd0bf', amber: '#e3b354', violet: '#ad93e0' },
+  };
+
+  exampleData = [
+    { title: 'Basic grid', file: 'basic.ts', tag: 'Basics', accent: 'teal', desc: 'The smallest possible setup — data in, grid out. A good first read.' },
+    { title: 'Sortable columns', file: 'sortable.ts', tag: 'Sorting', accent: 'coral', desc: 'Multi-column sorting with custom comparators and sort state events.' },
+    { title: 'Filterable grid', file: 'filterable.ts', tag: 'Filtering', accent: 'amber', desc: 'Column filters plus a quick filter, with logical operators.' },
+    { title: 'Inline editing', file: 'editable.ts', tag: 'Editing', accent: 'violet', desc: 'Built-in editors, validation, and commit/rollback change events.' },
+    { title: 'One million rows', file: 'million-rows.ts', tag: 'Performance', accent: 'coral', desc: 'The stress test: 1M rows, virtual scrolling, stable 60fps.' },
+    { title: 'Backend loading', file: 'backend.ts', tag: 'Performance', accent: 'teal', desc: 'Infinite scroll with on-demand row loading from a server API.' },
+  ];
+
+  tagList = ['All', 'Basics', 'Sorting', 'Filtering', 'Editing', 'Performance'];
+
+  toggleTheme() { this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' })); }
+  setTag(t) { this.setState({ tag: t }); }
+
+  renderVals() {
+    const { theme, tag } = this.state;
+    const hex = this.accentHex[theme];
+    const examples = this.exampleData
+      .filter(e => tag === 'All' || e.tag === tag)
+      .map(e => ({ ...e, accent: hex[e.accent] }));
+    const tags = this.tagList.map(label => {
+      const active = label === tag;
+      return {
+        label,
+        onClick: () => this.setTag(label),
+        bg: active ? 'var(--ink)' : 'var(--surface)',
+        ink: active ? 'var(--bg)' : 'var(--muted)',
+        border: active ? 'var(--ink)' : 'var(--border)',
+      };
+    });
+    return {
+      examples, tags,
+      themeStyle: this.themes[theme],
+      themeIcon: theme === 'light' ? '☾ Dark' : '☀ Light',
+      toggleTheme: () => this.toggleTheme(),
+    };
+  }
+}
+</script>
+</body>
+</html>

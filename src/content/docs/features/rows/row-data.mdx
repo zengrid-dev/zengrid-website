@@ -1,0 +1,127 @@
+---
+title: Row Data
+description: How the grid gets its rows — row count, the data array, and live updates you can drive right here in the page.
+---
+
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+## Introduction
+
+ZenGrid renders rows from the data you give it. You hand it the records with
+`setData()`, and it derives the row count from the array length — so a grid is
+just a mount element, some columns, and a call to `setData`. Because the grid is
+virtualized, only the rows in view are ever materialized: the array can hold
+tens of thousands of rows without a matching pile of DOM.
+
+```ts
+import { Zengrid } from '@zengrid/core';
+
+const grid = new Zengrid(el, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns,
+});
+
+grid.setData(rows); // auto-renders in v1.4 — no grid.render() needed
+```
+
+:::note[Rows are arrays]
+`setData` takes an **array of arrays** — each column reads its cell by
+**position**, left to right. The `field` is just a label; reorder a column and
+its data follows the slot. Switch to the **Reorder columns** tab below to see it.
+:::
+
+## Try it live
+
+The panel runs the real `@zengrid/core` in your browser. Switch variants with
+the tabs, edit the code, or drive the grid with the buttons above it — every
+change re-renders live.
+
+export const variants = [
+  {
+    id: 'basic',
+    label: 'Basic',
+    hint: 'setData derives the row count from the array. Change rowHeight or a header and watch it re-render.',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// rows are arrays — columns read left-to-right:
+// [name, role, region, revenue, mrr, status]
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'update',
+    label: 'Update rows',
+    hint: 'Call setData() again to replace the rows — rowCount stays in sync automatically. Use the buttons.',
+    code: `// setData replaces the whole row set and re-renders. rowCount tracks
+// the new array length on its own — you never set it twice.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',      width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'First 10 rows', action: 'grid.setData(rows.slice(0, 10))' },
+      { label: 'Reverse order', action: 'grid.setData([...rows].reverse())' },
+      { label: 'Restore all', action: 'grid.setData(rows)' },
+    ],
+  },
+  {
+    id: 'reorder',
+    label: 'Reorder columns',
+    hint: 'Same data, columns reordered. Each column still reads its cell by position — Revenue now sits first.',
+    code: `// The data never changed — only the column order did. A column reads
+// its cell by POSITION in the row array, set by 'field', so moving a
+// column moves the data with it.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'region',  header: 'Region',  width: 150 },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Updating rows
+
+Call `setData()` again with a new array to replace the rows — the grid re-renders
+and keeps `rowCount` in step with the new length, so you never set the count
+twice. The **Update rows** tab above wires this to buttons: slicing, reversing,
+and restoring the same underlying array.
+
+## Next
+
+- [Accessing Rows](/features/rows/accessing-rows/) — read values back out of the grid.
+- [Row Sorting](/features/rows/row-sorting/) — order the rows.
+- [Row Pagination](/features/rows/row-pagination/) — page through large sets.

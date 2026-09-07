@@ -1,0 +1,233 @@
+---
+title: Undo / Redo Edits
+description: Step cell edits backward and forward — keyboard shortcuts (Ctrl/⌘+Z, Ctrl+Y), a ready toolbar hook, grouped or discrete history, and the programmatic grid.undoRedo API. Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Every committed cell edit is recorded, so it can be **undone** and **redone**.
+The grid keeps that history for you; the premium
+[`undoRedo()`](#) helper adds the parts an app usually has to wire by hand —
+**keyboard shortcuts** (Ctrl/⌘+Z to undo, Ctrl+Y or Ctrl/⌘+Shift+Z to redo) and a
+single `onChange` callback to keep a toolbar's buttons in sync:
+
+```ts
+import { undoRedo } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, { columns /* editable cells */ });
+
+const history = undoRedo(grid, {
+  onChange: (s) => {
+    undoBtn.disabled = !s.canUndo;
+    redoBtn.disabled = !s.canRedo;
+  },
+});
+
+undoBtn.onclick = () => history.undo();
+redoBtn.onclick = () => history.redo();
+// Ctrl/⌘+Z and Ctrl+Y now work while the grid has focus.
+```
+
+Edit a few cells, then press **Ctrl/⌘+Z** — the value steps back; **Ctrl+Y**
+steps it forward again. Shortcuts are scoped to the grid's viewport, so they
+never hijack the page's own Ctrl+Z, and they stand aside while a cell editor is
+open (the editor keeps Ctrl+Z for its own text).
+
+### Helper options
+
+`undoRedo(grid, options?)`:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `keyboard` | `boolean` | Bind Ctrl/⌘+Z (undo) and Ctrl+Y / Ctrl/⌘+Shift+Z (redo). Default `true` — set `false` to bind your own keys. |
+| `target` | `HTMLElement` | Element the shortcuts listen on (default: the grid viewport, so they only fire while the grid has focus). |
+| `onChange` | `(state) => void` | Fires on every history change **and** once at attach — ideal for toolbar button state. `state` is `{ canUndo, canRedo, undoCount, redoCount }`. |
+
+The returned handle exposes `undo()`, `redo()`, `canUndo()`, `canRedo()`,
+`clear()`, `getState()`, `onChange()`, and `destroy()` (unbinds everything).
+
+### History behaviour
+
+How much history is kept, and whether rapid edits collapse into one step, is a
+**core** concern set on `GridOptions.undoRedo` — so it applies with or without
+the helper:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `enableCommandGrouping` | `boolean` | Merge edits made in quick succession into a single undo step (default `true`). Set `false` so every edit is its own step. |
+| `groupingTimeWindow` | `number` | Window (ms) within which edits group (default `1000`). |
+| `maxHistorySize` | `number` | Cap on remembered steps; older ones drop off (default `100`). |
+
+### Without the helper
+
+The history itself is **community** and always on — reach it directly through
+[`grid.undoRedo`](#) (`undo()` / `redo()` / `canUndo()` / `canRedo()` /
+`clear()` / `getUndoCount()` / `getRedoCount()` / `onChange()`) to drive undo
+from your own buttons or key handler. The enterprise `undoRedo()` helper is the
+batteries-included layer on top: shortcuts + a toolbar hook in one call.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'toolbar',
+    label: 'Keyboard & toolbar',
+    hint: "Double-click a Name/Role/Revenue cell, change it, press Enter. Then use Undo/Redo — the buttons enable/disable from onChange, and Ctrl/⌘+Z / Ctrl+Y work once you've clicked into the grid. Edit a few cells, then step all the way back and forward.",
+    code: `// In scope (enterprise): undoRedo
+// Row shape: [name, role, revenue]
+const data = [
+  ['Acme Corp', 'Enterprise', 120000],
+  ['Globex', 'Growth', 48000],
+  ['Initech', 'Starter', 9000],
+  ['Umbrella', 'Enterprise', 210000],
+  ['Soylent', 'Growth', 63000],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 200, editable: true, editor: 'text' },
+    { field: 'role',    header: 'Role',    width: 160, editable: true, editor: 'text' },
+    { field: 'revenue', header: 'Revenue', width: 160, editable: true, editor: 'number', renderer: currency },
+  ],
+});
+
+grid.setData(data);
+
+// A tiny toolbar whose buttons reflect onChange and drive the handle.
+const play = mount.closest('.zg-play');
+let bar = play && play.querySelector('.zg-undo-bar');
+if (play && !bar) {
+  bar = document.createElement('div');
+  bar.className = 'zg-undo-bar';
+  bar.style.cssText = 'display:flex;gap:.5rem;align-items:center;padding:.5rem .7rem;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft)';
+  bar.innerHTML = '<button class="u" style="cursor:pointer">↶ Undo</button><button class="r" style="cursor:pointer">↷ Redo</button><span class="c"></span>';
+  mount.parentElement.insertBefore(bar, mount);
+}
+const undoBtn = bar && bar.querySelector('.u');
+const redoBtn = bar && bar.querySelector('.r');
+const counts  = bar && bar.querySelector('.c');
+
+const history = undoRedo(grid, {
+  onChange: (s) => {
+    if (undoBtn) undoBtn.disabled = !s.canUndo;
+    if (redoBtn) redoBtn.disabled = !s.canRedo;
+    if (counts)  counts.textContent = s.undoCount + ' undo · ' + s.redoCount + ' redo';
+  },
+});
+if (undoBtn) undoBtn.onclick = () => history.undo();
+if (redoBtn) redoBtn.onclick = () => history.redo();
+`,
+  },
+  {
+    id: 'grouping',
+    label: 'Grouped vs discrete',
+    hint: "This grid sets undoRedo:{ enableCommandGrouping:false } so every single edit is its own undo step. Edit several cells, then click Undo repeatedly (or Ctrl/⌘+Z) — each press reverts exactly one edit. Flip enableCommandGrouping back to true and quick edits collapse into one step.",
+    code: `// enableCommandGrouping:false → one undo step per edit (GridOptions.undoRedo).
+const data = [
+  ['Q1 Launch',   'Planned',  4],
+  ['Q2 Migration','Active',   9],
+  ['Q3 Audit',    'Planned',  2],
+  ['Q4 Roadmap',  'Blocked',  6],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  // History tuning is core config — applies with or without the helper.
+  undoRedo: {
+    enableCommandGrouping: false, // try: true (edits within 1s collapse)
+    maxHistorySize: 50,
+  },
+  columns: [
+    { field: 'task',   header: 'Task',   width: 200, editable: true, editor: 'text' },
+    { field: 'status', header: 'Status', width: 150, editable: true, editor: 'text' },
+    { field: 'points', header: 'Points', width: 120, editable: true, editor: 'number' },
+  ],
+});
+
+grid.setData(data);
+
+// Live step counter so you can watch each edit become its own step.
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-undo-count');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-undo-count';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft)';
+  mount.parentElement.insertBefore(out, mount);
+}
+
+const history = undoRedo(grid, {
+  onChange: (s) => { if (out) out.textContent = 'History → ' + s.undoCount + ' undo / ' + s.redoCount + ' redo'; },
+});
+`,
+    controls: [
+      { label: '↶ Undo', action: `grid.undoRedo.undo()` },
+      { label: '↷ Redo', action: `grid.undoRedo.redo()` },
+      { label: 'Clear history', action: `grid.undoRedo.clear()` },
+    ],
+  },
+  {
+    id: 'api',
+    label: 'Programmatic (community API)',
+    hint: "The history itself is community: grid.undoRedo works even without the helper. Here keyboard:false — the buttons drive grid.undoRedo directly. Edit cells, then step through with the controls; the readout shows getState() from the enterprise handle.",
+    code: `// The core grid.undoRedo facade is available on every grid (community).
+const data = [
+  ['Ada Lovelace',   'Engineering', 'active'],
+  ['Grace Hopper',   'Compilers',   'active'],
+  ['Alan Turing',    'Research',    'trial'],
+  ['Katherine Johnson','Orbital',   'active'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 220, editable: true, editor: 'text' },
+    { field: 'team', header: 'Team', width: 180, editable: true, editor: 'text' },
+    { field: 'plan', header: 'Plan', width: 140, editable: true, editor: 'text' },
+  ],
+});
+
+grid.setData(data);
+
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-undo-state');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-undo-state';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft)';
+  mount.parentElement.insertBefore(out, mount);
+}
+
+// keyboard:false — no shortcuts bound; we drive everything from the API.
+const history = undoRedo(grid, { keyboard: false });
+grid.say = () => { if (out) { const s = history.getState(); out.textContent = 'getState() → canUndo:' + s.canUndo + '  canRedo:' + s.canRedo + '  (' + s.undoCount + '/' + s.redoCount + ')'; } };
+history.onChange(grid.say);
+grid.say();
+`,
+    controls: [
+      { label: 'grid.undoRedo.undo()', action: `grid.undoRedo.undo()` },
+      { label: 'grid.undoRedo.redo()', action: `grid.undoRedo.redo()` },
+      { label: 'canUndo / canRedo', action: `grid.say && grid.say()` },
+      { label: 'clear()', action: `grid.undoRedo.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.
+- [Batch Editing](/features/editing/batch/transactions/) — apply and roll back
+  many row changes as one transaction.

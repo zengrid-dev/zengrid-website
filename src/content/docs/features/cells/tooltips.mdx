@@ -1,0 +1,157 @@
+---
+title: Tooltips
+description: Show hover tooltips on header cells, chip overflow, and individual body cells.
+---
+
+import Playground from '../../../../components/docs/Playground.astro';
+
+## Introduction
+
+A tooltip surfaces extra context on hover without spending grid space. ZenGrid
+gives you a **declarative header tooltip** on any column, an automatic
+**overflow tooltip** on chip cells, and — for body cells — a one-line **renderer**
+that sets the element's native `title`.
+
+## Header tooltips
+
+A column's `header` accepts either a string or a full `HeaderConfig`. Switch to
+the object form and add a `tooltip` to get a hover hint on that header:
+
+```ts
+columns: [
+  {
+    field: 'revenue',
+    header: {
+      text: 'Revenue',
+      tooltip: { content: 'Annual contract value in USD' },
+    },
+  },
+]
+```
+
+The `HeaderTooltip` shape (from `types/header.ts`):
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `content` | `string` | The tooltip text. **Required.** |
+| `position` | `'top' \| 'bottom' \| 'left' \| 'right'` | Preferred placement. |
+| `delay` | `number` | Show delay, in ms. |
+
+The current header renderer applies `content` through the element's native
+`title` attribute, so it shows on hover exactly like a browser tooltip.
+`position` and `delay` are part of the config for forward compatibility but are
+**not yet visually applied** — native `title` placement and timing are
+browser-controlled.
+
+## Chip overflow tooltips
+
+`ChipRenderer` already carries a tooltip. When `showOverflowTooltip` is on
+(**default `true`**), the cell gets a native `title` listing every chip's label —
+handy when chips collapse or scroll and some are hidden:
+
+```ts
+import { ChipRenderer } from '@zengrid/core';
+
+const status = new ChipRenderer({
+  showOverflowTooltip: true, // default — set false to suppress
+});
+```
+
+## Body-cell tooltips
+
+There is no declarative per-cell `tooltip` option today. A cell tooltip is a
+**renderer** that writes `element.title` — compose it over any existing renderer:
+
+```ts
+const withTip = {
+  cacheable: false, // title lives on the element, not the cached HTML string
+  render(el, p) {
+    base.render(el, p);
+    el.title = `${p.rowData?.[0]} — ${p.value}`;
+  },
+  update(el, p) {
+    base.update(el, p);
+    el.title = `${p.rowData?.[0]} — ${p.value}`;
+  },
+  destroy(el) {
+    base.destroy(el);
+    el.removeAttribute('title'); // cells are pooled — clear on the way out
+  },
+};
+```
+
+`render` params carry everything the title needs: `value`, `cell` (`{ row, col }`),
+`rowData`, `column`, and the cell's selection/active/editing state (see
+`RenderParams` in `renderer.interface.ts`). Setting `cacheable: false` keeps the
+title correct, since the HTML-string cache captures inner markup, not attributes
+on the pooled cell element.
+
+## Live demo
+
+The **Region** and **Revenue** headers carry declarative tooltips; each
+**Revenue** cell wraps the currency renderer to add its own hover title. Open
+**Code** or **Split** and try it: change a `content` string, add a tooltip to the
+**Role** header, or fold `rowData` into the cell title.
+
+export const code = `// In scope: Zengrid, mount, rows, currency, chips, zg.
+// rows are arrays: [name, role, region, revenue, mrr, status]
+
+// A cell tooltip is a renderer that sets element.title.
+// Here we compose the currency renderer and add a hover title on top.
+const revenueWithTip = {
+  cacheable: false,
+  render(el, p) {
+    currency.render(el, p);
+    el.title = rows[p.cell.row][0] + ' — $' + Number(p.value).toLocaleString();
+  },
+  update(el, p) {
+    currency.update(el, p);
+    el.title = rows[p.cell.row][0] + ' — $' + Number(p.value).toLocaleString();
+  },
+  destroy(el) {
+    currency.destroy(el);
+    el.removeAttribute('title');
+  },
+};
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 220 },
+    { field: 'role', header: 'Role', width: 190 },
+    {
+      field: 'region',
+      width: 160,
+      align: 'center',
+      // Declarative header tooltip — hover the "Region" header.
+      header: {
+        text: 'Region',
+        tooltip: { content: 'Sales territory the account belongs to', position: 'top' },
+      },
+    },
+    {
+      field: 'revenue',
+      width: 170,
+      align: 'right',
+      renderer: revenueWithTip, // per-cell tooltip
+      header: {
+        text: 'Revenue',
+        tooltip: { content: 'Annual contract value in USD' },
+      },
+    },
+    { field: 'mrr',    header: 'MRR',    width: 150, align: 'right', renderer: currency },
+    { field: 'status', header: 'Status', width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`;
+
+<Playground code={code} view="split" height={440} />
+
+## Next
+
+- [Cell Components](/features/cells/cell-components/) — the renderer API the cell tooltip builds on.
+- [Text Formatting](/features/cells/text-formatting/) — the renderers you compose a tooltip over.
+- [Notes](/features/cells/notes/) — persistent per-cell annotations, distinct from hover tooltips.

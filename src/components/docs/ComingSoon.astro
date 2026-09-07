@@ -1,0 +1,56 @@
+---
+// Honest placeholder for a documented-but-not-yet-shipped feature. Renders a
+// clear "planned" banner instead of a fabricated live demo, so the sidebar can
+// carry the full information architecture without implying the API exists.
+// Usage in MDX:  <ComingSoon feature="Row Pinning" issue="ZG-123" />
+import { Badge } from '@astrojs/starlight/components';
+
+interface Props {
+  /** Human name of the feature (defaults to the page title). */
+  feature?: string;
+  /** Optional tracking reference (issue/RFC) to show in the banner. */
+  issue?: string;
+}
+
+const { feature, issue } = Astro.props;
+---
+
+<div class="zg-coming not-content">
+  <div class="zg-coming__head">
+    <Badge text="Planned" variant="caution" size="medium" />
+    <span class="zg-coming__title">{feature ? `${feature} is coming in a future release` : 'Coming in a future release'}</span>
+  </div>
+  <p class="zg-coming__body">
+    This feature isn't in <code>@zengrid/core</code> yet, so there's no live demo
+    to try. The page is here to reserve its place in the docs — it will get a full
+    live, editable example once the library ships support.
+    {issue && <> Tracking: <code>{issue}</code>.</>}
+  </p>
+  <slot />
+</div>
+
+<style>
+  .zg-coming {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--sl-color-orange, #e08a3c);
+    border-radius: 12px;
+    background: var(--surface-2, var(--surface));
+    padding: 1rem 1.15rem;
+    margin: 1.25rem 0;
+  }
+  .zg-coming__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .zg-coming__title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .zg-coming__body {
+    margin: 0.6rem 0 0;
+    color: var(--faint);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+</style>

@@ -1,0 +1,24 @@
+---
+import Button from "./Button.astro";
+import { cta } from "../config/site";
+---
+
+<section
+  class="bg-ink text-bg rounded-[22px] px-12 py-11 flex items-center justify-between gap-6 flex-wrap mb-20"
+  aria-label="Get started with ZenGrid"
+>
+  <div>
+    <div class="font-display text-[30px] font-semibold tracking-[-0.02em] mb-1.5">
+      {cta.title}
+    </div>
+    <div class="text-[15px] opacity-70">{cta.body}</div>
+  </div>
+  <div class="flex gap-3 flex-wrap">
+    <Button href={cta.primary.href} variant="primary" class="text-[15px] px-[22px] py-[13px]">
+      {cta.primary.label}
+    </Button>
+    <Button href={cta.secondary.href} variant="ghost" class="text-[15px] px-[22px] py-3">
+      {cta.secondary.label}
+    </Button>
+  </div>
+</section>

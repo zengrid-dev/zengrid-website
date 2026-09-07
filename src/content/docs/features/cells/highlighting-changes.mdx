@@ -1,0 +1,238 @@
+---
+title: Highlighting Changes
+description: Flash a cell when its value changes — automatic on setData, with direction-aware up/down tints and a manual API for targeted repaints. Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Change highlighting draws the eye to data that *just moved* — a price tick, a
+refreshed metric, a status that flipped. `changeHighlight()` watches your data and,
+whenever a cell's value changes, briefly flashes that one cell, then fades it back.
+
+It plugs into the grid's `cellStyleProvider` slot **and** attaches to the grid so it
+can diff each update:
+
+```ts
+import { changeHighlight } from '@zengrid/enterprise/grid';
+
+const flash = changeHighlight({ duration: 900 });
+
+const grid = new Zengrid(el, {
+  cellStyleProvider: flash,   // flash flags the changed cells
+  columns,
+});
+flash.attach(grid);           // …and watches setData for changes
+
+grid.setData(rows);           // first load — the baseline, nothing flashes
+grid.setData(nextRows);       // every changed cell flashes
+```
+
+`changeHighlight()` is license-gated (it asserts the `change-highlight` feature). The
+default flash uses the bundled `zg-cell-flash` class, whose one-shot animation washes
+`--zg-flash-color` over the cell and fades to transparent over `--zg-flash-duration`.
+
+## How change detection works
+
+The manager wraps `setData`, so detection is automatic: it snapshots the previous
+rows and, on the next `setData`, diffs them cell-by-cell. Snapshotting means it works
+even when you mutate the same row arrays in place and re-set them.
+
+- **Identity.** By default a row is identified by its position, which is right for
+  live feeds that keep row order. Pass `getRowId` to track a row by a stable key
+  instead, so a value change still flashes even when the row is sorted to a new spot.
+- **What counts as a change.** By default any value that isn't `Object.is`-equal to
+  the previous one. Override `changed(prev, next)` to ignore noise (rounding, say).
+- **In-place edits.** If you mutate one cell and repaint it with `updateCells`
+  instead of replacing the data, call `flash.flashCells([{ row, col }])` to flag it
+  yourself. See [View Refresh](/features/cells/view-refresh/) for the repaint APIs.
+
+## Customising the flash
+
+Everything about the highlight is configurable:
+
+- `flashClass` — the CSS class(es) added while a cell flashes (default
+  `zg-cell-flash`). Pass your own to restyle, or `''` to rely on the others.
+- `flashStyle` — inline styles applied while flashing; composes with `flashClass`.
+- `duration` — how long (ms) the highlight stays before it's removed (default `1000`).
+- `directionClasses` — for numeric changes, add an extra `up` / `down` class so a
+  rise and a fall can flash different colours — the classic green-up / red-down ticker.
+
+export const auto = `// In scope: Zengrid, mount, rows, currency, chips, changeHighlight
+// Work on a small, independent copy of the pool so the ticker is cheap.
+const data = rows.slice(0, 40).map((r) => r.slice());
+
+// The provider: flash a changed cell for 900ms with the built-in class.
+const flash = changeHighlight({ duration: 900 });
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  cellStyleProvider: flash,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+flash.attach(grid);
+grid.setData(data);            // baseline — nothing flashes
+
+// Live feed: nudge some numbers, then re-set the data. The manager diffs it and
+// flashes only the cells that actually changed. (The guard clears any timer left
+// by a previous run of this snippet.)
+if (mount.__ticker) clearInterval(mount.__ticker);
+mount.__ticker = setInterval(() => {
+  for (let r = 0; r < 10; r++) {
+    data[r][3] += Math.round((Math.random() - 0.4) * 6000);  // revenue
+    data[r][4] += Math.round((Math.random() - 0.5) * 400);   // mrr
+  }
+  grid.setData(data);          // changed cells flash automatically
+}, 900);
+`;
+
+export const direction = `// Direction-aware ticker: turn off the default class and let up/down carry the
+// colour, so a rise flashes green and a fall flashes red. Inject the two
+// animations once (self-contained demo).
+if (!document.getElementById('demo-flash-dir')) {
+  const style = document.createElement('style');
+  style.id = 'demo-flash-dir';
+  style.textContent = \`
+    .zg-cell.flash-up   { animation: demo-up   0.9s ease-out; }
+    .zg-cell.flash-down { animation: demo-down 0.9s ease-out; }
+    @keyframes demo-up   { from { background: rgba(45, 156, 143, 0.55); } to { background: transparent; } }
+    @keyframes demo-down { from { background: rgba(242, 118, 78, 0.55); } to { background: transparent; } }
+  \`;
+  document.head.appendChild(style);
+}
+
+const data = rows.slice(0, 40).map((r) => r.slice());
+
+const flash = changeHighlight({
+  flashClass: '',              // no base flash — direction classes do the work
+  duration: 900,
+  directionClasses: { up: 'flash-up', down: 'flash-down' },
+});
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  cellStyleProvider: flash,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+flash.attach(grid);
+grid.setData(data);
+
+if (mount.__ticker) clearInterval(mount.__ticker);
+mount.__ticker = setInterval(() => {
+  for (let r = 0; r < 10; r++) {
+    data[r][3] += Math.round((Math.random() - 0.5) * 8000);
+    data[r][4] += Math.round((Math.random() - 0.5) * 500);
+  }
+  grid.setData(data);
+}, 900);
+`;
+
+export const manual = `// Manual control: mutate one cell in place, repaint just that cell with
+// updateCells, then flag it to flash with flashCells — the targeted path when you
+// don't want to re-set the whole dataset. flashStyle composes with the class, so
+// the flashed cell is also bold.
+const data = rows.slice(0, 40).map((r) => r.slice());
+
+const flash = changeHighlight({
+  duration: 900,
+  flashStyle: { fontWeight: 700 },   // extra accent while flashing
+});
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  cellStyleProvider: flash,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+flash.attach(grid);
+grid.setData(data);
+
+if (mount.__ticker) clearInterval(mount.__ticker);
+mount.__ticker = setInterval(() => {
+  const changed = [];
+  for (let r = 0; r < 6; r++) {
+    data[r][3] += Math.round((Math.random() - 0.4) * 6000);
+    changed.push({ row: r, col: 3 });
+  }
+  grid.updateCells(changed);   // repaint only those cells' values
+  flash.flashCells(changed);   // …and flash them
+}, 900);
+`;
+
+export const variants = [
+  { id: 'auto', label: 'Auto on setData', hint: 'The manager diffs each setData and flashes only the changed cells. Change duration, or lower the 6000 to make quieter ticks.', code: auto },
+  { id: 'direction', label: 'Up / down', hint: 'directionClasses adds up/down classes for numeric changes — green rises, red falls. Edit the injected @keyframes to recolour.', code: direction },
+  { id: 'manual', label: 'Manual flashCells', hint: 'Mutate in place, repaint with updateCells, then flag the cells with flash.flashCells(). flashStyle bolds them on top of the class.', code: manual },
+];
+
+<DemoPlayground variants={variants} enterprise height={460} />
+
+## Types
+
+```ts
+interface ChangeHighlightOptions {
+  flashClass?: string | string[];              // default 'zg-cell-flash'
+  flashStyle?: Record<string, string | number>;
+  duration?: number;                           // ms, default 1000
+  getRowId?: (rowData: unknown[]) => string | number;
+  changed?: (prev: unknown, next: unknown) => boolean;
+  directionClasses?: { up?: string; down?: string };
+}
+
+interface CellChange { row: number; col: number } // display coords
+
+function changeHighlight(options?: ChangeHighlightOptions): ChangeHighlight;
+
+interface ChangeHighlight {
+  attach(grid): void;              // watch the grid's setData for changes
+  detach(): void;                  // restore setData, cancel pending flashes
+  flashCells(cells: CellChange[]): void; // flag cells to flash manually
+}
+```
+
+## Notes
+
+- **Set it as `cellStyleProvider` and `attach()` it.** The provider stamps the flash
+  onto changed cells; `attach()` is what wires the automatic `setData` diffing.
+- **The baseline never flashes.** The first `setData` establishes the reference; only
+  changes on later updates flash.
+- **One provider slot.** `cellStyleProvider` holds a single provider, so change
+  highlighting and grid-wide [cell styling](/features/cells/styling-cells/) can't both
+  occupy it at once — pick the one the grid needs.
+- **Positional columns.** Like other cell providers, changes are keyed by column
+  index; if you reorder columns at runtime, pass `getRowId` and key your own logic.
+
+## Next
+
+- [View Refresh](/features/cells/view-refresh/) — the repaint APIs that pair with `flashCells`.
+- [Styling Cells](/features/cells/styling-cells/) — static and rule-based cell styling.
+- [Row Data](/features/rows/row-data/) — replacing and updating the rows behind the grid.
+```

@@ -1,0 +1,184 @@
+---
+import Button from "./Button.astro";
+import { hero } from "../config/site";
+import { rows, bandDots, formatRevenue } from "../config/grid";
+
+const bandRows = rows.slice(0, 5).map((r, i) => ({
+  name: r.name,
+  region: r.region,
+  revenueFmt: formatRevenue(r.revenue),
+  dot: bandDots[i],
+}));
+
+// Decorative placeholder rows (pure visual filler, above/below the viewport).
+const above = [
+  { opacity: 0.35, w1: "42%", w2: "14%" },
+  { opacity: 0.5, w1: "31%", w2: "18%" },
+  { opacity: 0.7, w1: "48%", w2: "12%" },
+];
+const below = [
+  { opacity: 0.7, w1: "36%", w2: "16%" },
+  { opacity: 0.5, w1: "44%", w2: "12%" },
+  { opacity: 0.35, w1: "28%", w2: "19%" },
+];
+---
+
+<section
+  class="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-16 items-center pt-16 pb-[72px]"
+  aria-label="Introduction"
+>
+  <!-- copy -->
+  <div>
+    <div
+      class="zg-fadeup inline-flex items-center gap-2 bg-surface border border-border px-3.5 py-1.5 rounded-full font-mono text-xs font-medium text-muted mb-[30px]"
+    >
+      <span class="zg-pulse w-[7px] h-[7px] rounded-full bg-teal-ink"></span>
+      {hero.version}
+    </div>
+
+    <h1
+      class="font-display text-[clamp(42px,7vw,66px)] leading-[1.06] font-extrabold tracking-[-0.035em] m-0 mb-[26px] text-balance"
+    >
+      <span class="zg-hero-line block">{hero.titleLead}</span>
+      <span class="zg-hero-line block text-coral">{hero.titleAccent}</span>
+    </h1>
+
+    <p
+      class="zg-fadeup text-[18px] leading-[1.6] max-w-[470px] m-0 mb-8 text-muted font-normal"
+      style="animation-delay:0.16s;"
+    >
+      {hero.description}
+    </p>
+
+    <div
+      class="zg-fadeup flex gap-3 items-center flex-wrap"
+      style="animation-delay:0.24s;"
+    >
+      <Button href={hero.primaryCta.href} variant="primary" class="text-base px-[26px] py-[14px]">
+        {hero.primaryCta.label}
+      </Button>
+      <Button href={hero.secondaryCta.href} variant="secondary" class="text-base px-6 py-[13px]">
+        {hero.secondaryCta.label}
+      </Button>
+    </div>
+
+    <button
+      type="button"
+      data-install-copy
+      data-code="npm i @zengrid/core"
+      aria-label="Copy install command to clipboard"
+      class="zg-fadeup inline-flex items-center mt-[22px] font-mono text-[13px] bg-ink text-bg px-4 py-3 rounded-[10px] cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+      style="animation-delay:0.3s;"
+    >
+      <span>{hero.install}</span><span class="zg-blink text-coral" aria-hidden="true">▊</span>
+      <span
+        data-install-label
+        class="ml-2.5 pl-2.5 border-l border-white/20 text-[11px] font-bold uppercase tracking-[0.08em] opacity-55"
+        >copy</span
+      >
+    </button>
+  </div>
+
+  <!-- static virtualization visual (decorative — the copy + stats carry the point) -->
+  <div class="zg-fadeup relative" style="animation-delay:0.2s;" aria-hidden="true">
+    <div class="flex flex-col px-2.5">
+      {
+        above.map((r) => (
+          <div
+            class="h-[42px] flex items-center gap-3 px-4"
+            style={`opacity:${r.opacity};`}
+          >
+            <div class="zg-skeleton w-2.5 h-2.5 rounded-[3px] bg-border" />
+            <div class="zg-skeleton h-2 rounded-full bg-border" style={`width:${r.w1};`} />
+            <div
+              class="zg-skeleton h-2 rounded-full bg-border-soft ml-auto"
+              style={`width:${r.w2};`}
+            />
+          </div>
+        ))
+      }
+    </div>
+    <div class="font-mono text-[11px] font-medium text-faint px-[26px] pt-1.5 pb-2.5">
+      ↑ {hero.rowsAbove} rows above · not rendered
+    </div>
+
+    <div
+      class="border-2 border-coral rounded-[14px] bg-surface overflow-hidden shadow-[var(--card-shadow)] relative"
+    >
+      <div
+        class="absolute top-0 right-0 bg-coral text-white font-mono text-[10.5px] font-bold px-2.5 py-1 rounded-bl-lg"
+      >
+        viewport — the only DOM there is
+      </div>
+      {
+        bandRows.map((r) => (
+          <div class="h-[46px] flex items-center gap-3 px-[18px] border-b border-row-line">
+            <div class="w-2.5 h-2.5 rounded-[3px]" style={`background:${r.dot};`} />
+            <span class="text-sm font-semibold">{r.name}</span>
+            <span class="font-mono text-[11.5px] text-faint">{r.region}</span>
+            <span class="font-mono text-[12.5px] font-semibold ml-auto">
+              {r.revenueFmt}
+            </span>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="font-mono text-[11px] font-medium text-faint px-[26px] pt-2.5 pb-1.5">
+      ↓ {hero.rowsBelow} rows below · recycled on scroll
+    </div>
+    <div class="flex flex-col px-2.5">
+      {
+        below.map((r) => (
+          <div
+            class="h-[42px] flex items-center gap-3 px-4"
+            style={`opacity:${r.opacity};`}
+          >
+            <div class="zg-skeleton w-2.5 h-2.5 rounded-[3px] bg-border" />
+            <div class="zg-skeleton h-2 rounded-full bg-border" style={`width:${r.w1};`} />
+            <div
+              class="zg-skeleton h-2 rounded-full bg-border-soft ml-auto"
+              style={`width:${r.w2};`}
+            />
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  import { animate, stagger } from "motion";
+
+  // Install command → clipboard. Scoped to [data-install-copy] so it doesn't
+  // collide with the [data-copy] code-panel button elsewhere on the page.
+  const installBtn = document.querySelector<HTMLButtonElement>("[data-install-copy]");
+  const installLabel = installBtn?.querySelector<HTMLElement>("[data-install-label]");
+  let installTimer: number | undefined;
+  installBtn?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(installBtn.dataset.code ?? "");
+    } catch {
+      /* clipboard unavailable */
+    }
+    if (installLabel) installLabel.textContent = "✓ copied";
+    window.clearTimeout(installTimer);
+    installTimer = window.setTimeout(() => {
+      if (installLabel) installLabel.textContent = "copy";
+    }, 1800);
+  });
+
+  const lines = document.querySelectorAll<HTMLElement>(".zg-hero-line");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (lines.length && !reduce) {
+    // Soft "focus-in" reveal: each line rises a touch and sharpens from a
+    // gentle blur. Calm easing, no bounce — it reads as the words settling
+    // into place, not a gimmick. Staggered so the two lines have rhythm.
+    animate(
+      lines,
+      { opacity: [0, 1], y: [22, 0], filter: ["blur(10px)", "blur(0px)"] },
+      { duration: 0.7, delay: stagger(0.12), ease: [0.22, 1, 0.36, 1] },
+    );
+  }
+</script>

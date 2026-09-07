@@ -1,0 +1,116 @@
+---
+// Renders every version-controlled feature against every documented version,
+// driven entirely by src/config/features.ts. Includes a small client-side
+// filter to show only the features available in a chosen version.
+import { Badge } from '@astrojs/starlight/components';
+import { features, versions } from '../../config/features';
+
+function cmp(a: string, b: string) {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  }
+  return 0;
+}
+
+/** A feature is available in a version if that version is >= its `since`. */
+function available(featureSince: string, versionSemver: string) {
+  return cmp(versionSemver, featureSince) >= 0;
+}
+
+const rows = features.map((f) => ({
+  ...f,
+  availability: versions.map((v) => ({ id: v.id, ok: available(f.since, v.semver) }))
+}));
+---
+
+<div class="zg-matrix not-content">
+  <label class="zg-matrix__filter">
+    Show features available in:
+    <select data-matrix-filter>
+      <option value="all">All versions</option>
+      {versions.map((v) => <option value={v.id}>{v.label}</option>)}
+    </select>
+  </label>
+
+  <table class="zg-matrix__table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Tier</th>
+        <th>Since</th>
+        {versions.map((v) => <th>{v.label}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((f) => (
+          <tr data-availability={f.availability.map((a) => (a.ok ? a.id : '')).join(' ')}>
+            <td>
+              <a href={`/features/${f.slug}/`}>{f.title}</a>
+            </td>
+            <td>
+              {f.tier === 'enterprise' ? (
+                <Badge text="Enterprise" variant="caution" size="small" />
+              ) : (
+                <Badge text="Community" variant="success" size="small" />
+              )}
+            </td>
+            <td class="zg-matrix__since">v{f.since}</td>
+            {f.availability.map((a) => (
+              <td class="zg-matrix__cell">{a.ok ? '✓' : '—'}</td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .zg-matrix__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-2);
+  }
+  .zg-matrix__filter select {
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.4rem;
+    background: var(--sl-color-black);
+    color: var(--sl-color-white);
+    border: 1px solid var(--sl-color-gray-5);
+  }
+  .zg-matrix__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .zg-matrix__table th,
+  .zg-matrix__table td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--sl-color-gray-6);
+  }
+  .zg-matrix__since {
+    font-family: var(--sl-font-mono);
+    font-size: 0.85rem;
+  }
+  .zg-matrix__cell {
+    text-align: center;
+    font-weight: 700;
+  }
+</style>
+
+<script>
+  const select = document.querySelector<HTMLSelectElement>('[data-matrix-filter]');
+  select?.addEventListener('change', () => {
+    const value = select.value;
+    for (const row of document.querySelectorAll<HTMLElement>('.zg-matrix__table tbody tr')) {
+      const avail = (row.dataset.availability || '').split(' ');
+      row.style.display = value === 'all' || avail.includes(value) ? '' : 'none';
+    }
+  });
+</script>

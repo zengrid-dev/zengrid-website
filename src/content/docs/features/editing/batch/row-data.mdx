@@ -1,0 +1,245 @@
+---
+title: "Batch Editing: Row Data"
+description: "Update the whole grid in one operation by supplying a new row-data array. The community setData replaces everything; the enterprise batchRowData() turns each swap into an identity-aware delta that keeps the selection pinned to the same records, holds the scroll position, and reports exactly what changed. Live, editable examples in the page."
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+The coarsest way to change what the grid shows is to hand it a **new row-data
+array**. Instead of editing cell by cell, you replace the dataset in one
+operation — the grid re-runs its sort and filter against the fresh rows and
+repaints. This is the right tool when your data arrives in bulk: an initial load,
+a page of server results, a "refresh", or an in-memory transform of every row.
+
+Two layers cooperate:
+
+- **Core (community):** [`grid.setData(rows)`](#) swaps the entire dataset in a
+  single batch. It's the primitive every update builds on — filters and sort
+  survive the swap, but because selection is stored by **position**, a full
+  replace leaves the selection sitting on whatever record now occupies those
+  rows. To keep it pinned yourself, the new [`grid.selection`](#) API lets you
+  read the selection before the swap and restore it after.
+- **Enterprise:** [`batchRowData()`](#) wraps `setData` so every swap becomes an
+  **identity-aware delta**: it diffs the old rows against the new by a `getRowId`,
+  keeps the selection pinned to the same *records* as they move, holds the scroll
+  position, and hands you a summary of what changed.
+
+```ts
+import { batchRowData } from '@zengrid/enterprise';
+
+const batch = batchRowData(grid, { getRowId: (row) => row[0] });
+
+grid.setData(nextRows);        // selection + scroll preserved by identity
+batch.getLastDelta();          // { added, removed, updated, moved, unchanged, … }
+```
+
+### `setData` — the community batch
+
+`grid.setData(rows)` is a **whole-array replace**, not a merge: pass the complete
+next state of the grid and it becomes the source of truth. It runs synchronously,
+re-applies the active sort and filter, and repaints once — so replacing a
+thousand rows is one operation, not a thousand.
+
+Selection is stored in **source (data) coordinates** so it survives sort and
+filter, but a full replace reshuffles those positions. The core
+[`grid.selection`](#) facade (read `getRanges()` / `getActive()`, then
+`selectRows` / `selectCell` / `setActive` to restore) is all you need to pin it
+by hand — and it's exactly what the enterprise helper automates.
+
+### `batchRowData()` — identity-aware updates
+
+Give `batchRowData` a `getRowId` and each `setData` becomes an *immutable-data*
+style update:
+
+| Config | Effect |
+|--------|--------|
+| `getRowId(row, index)` | Stable identity per row. Unlocks tracking a record across reorders, inserts, and deletes. Defaults to the row's index (positional). |
+| `preserveSelection` | Keep the selection pinned to the same records across the swap. Default `true`. |
+| `preserveScroll` | Restore the scroll position after the swap. Default `true`. |
+| `changed(prev, next)` | Decide whether two cell values differ (drives `updated`). Default `!Object.is`. |
+| `onDataChanged(delta)` | Called after every swap with the computed [delta](#the-delta). |
+
+It returns a handle: `apply(rows)` (swap and get the delta back), `getLastDelta()`,
+and `destroy()` (restore the plain `setData`).
+
+### The delta
+
+Every swap produces a `BatchRowDataDelta` describing the diff by identity:
+
+| Field | Meaning |
+|-------|---------|
+| `added` / `addedIds` | Rows whose id is new. |
+| `removed` / `removedIds` | Rows whose id disappeared. |
+| `updated` / `updatedRows` | Rows present in both whose values changed (new source indices). |
+| `moved` | Rows present in both that landed at a different index. |
+| `unchanged` | Rows at the same index with identical values. |
+
+Flashing the changed cells is a separate concern — compose
+[`changeHighlight()`](/features/cells/highlighting-changes/) alongside
+`batchRowData()` and updated cells flash on each swap.
+
+## Try it live
+
+export const variants = [
+  {
+    id: 'setdata',
+    label: 'setData (community)',
+    hint: "The community baseline. Click a row to select it, then 'Reverse order' — setData swaps the whole dataset and the selection stays on the same POSITION (row 1), now a different company. This is why a raw replace loses your selection. The next tab fixes it.",
+    code: `// Community: grid.setData replaces the whole dataset in one batch.
+// Row shape: [id, company, region, mrr]
+let data = [
+  ['C-01', 'Acme Corp',  'APAC',    12000],
+  ['C-02', 'Globex',     'EU-West',  8400],
+  ['C-03', 'Initech',    'APAC',     5100],
+  ['C-04', 'Umbrella',   'MEA',      9900],
+  ['C-05', 'Soylent',    'EU-West',  4300],
+  ['C-06', 'Hooli',      'APAC',    15200],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  enableMultiSelection: true,
+  selectionType: 'row',
+  columns: [
+    { field: 'id',      header: 'ID',      width: 90 },
+    { field: 'company', header: 'Company', width: 180 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'mrr',     header: 'MRR',     width: 120 },
+  ],
+});
+grid.setData(data);
+
+// The buttons below call these — a stand-in for your app pushing new data.
+grid.reverse = () => { data = data.slice().reverse(); grid.setData(data); };
+grid.reset   = () => {
+  data = data.slice().sort((a, b) => a[0].localeCompare(b[0]));
+  grid.setData(data);
+};
+`,
+    controls: [
+      { label: 'Select row 1 (Globex)', action: `grid.selection.selectRows(1, 1)` },
+      { label: 'Reverse order', action: `grid.reverse()` },
+      { label: 'Reset', action: `grid.reset()` },
+    ],
+  },
+  {
+    id: 'immutable',
+    label: 'batchRowData (keep selection)',
+    hint: "Same data, now wrapped with batchRowData({ getRowId }). Select Globex, then 'Reverse order' — the selection FOLLOWS the record to its new position (row 4) instead of staying put. Scroll is held too. That's identity-aware updating.",
+    code: `// Enterprise: batchRowData wraps setData with identity-aware updates.
+// Row shape: [id, company, region, mrr]
+let data = [
+  ['C-01', 'Acme Corp',  'APAC',    12000],
+  ['C-02', 'Globex',     'EU-West',  8400],
+  ['C-03', 'Initech',    'APAC',     5100],
+  ['C-04', 'Umbrella',   'MEA',      9900],
+  ['C-05', 'Soylent',    'EU-West',  4300],
+  ['C-06', 'Hooli',      'APAC',    15200],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  enableMultiSelection: true,
+  selectionType: 'row',
+  columns: [
+    { field: 'id',      header: 'ID',      width: 90 },
+    { field: 'company', header: 'Company', width: 180 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'mrr',     header: 'MRR',     width: 120 },
+  ],
+});
+grid.setData(data);
+
+// Identity = the id column. Now selection tracks the RECORD, not the position.
+batchRowData(grid, { getRowId: (row) => row[0] });
+grid.reverse = () => { data = data.slice().reverse(); grid.setData(data); };
+grid.reset   = () => {
+  data = data.slice().sort((a, b) => a[0].localeCompare(b[0]));
+  grid.setData(data);
+};
+`,
+    controls: [
+      { label: 'Select row 1 (Globex)', action: `grid.selection.selectRows(1, 1)` },
+      { label: 'Reverse order', action: `grid.reverse()` },
+      { label: 'Reset', action: `grid.reset()` },
+    ],
+  },
+  {
+    id: 'delta',
+    label: 'Delta report',
+    hint: "onDataChanged reports what each swap changed. Click 'Add + update + remove' — the readout below the grid shows added:1, removed:1, updated:1, moved (rows shifted). getRowId makes those tallies exact even as rows reorder.",
+    code: `// onDataChanged hands you a delta: what was added / removed / updated / moved.
+// Row shape: [id, company, region, mrr]
+let data = [
+  ['C-01', 'Acme Corp',  'APAC',    12000],
+  ['C-02', 'Globex',     'EU-West',  8400],
+  ['C-03', 'Initech',    'APAC',     5100],
+  ['C-04', 'Umbrella',   'MEA',      9900],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 40,
+  columns: [
+    { field: 'id',      header: 'ID',      width: 90 },
+    { field: 'company', header: 'Company', width: 180 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'mrr',     header: 'MRR',     width: 120 },
+  ],
+});
+grid.setData(data);
+
+// A small readout under the grid so you can see the delta (reused across runs).
+let out = mount.parentElement.querySelector('.zg-batch-readout');
+if (!out) {
+  out = document.createElement('div');
+  out.className = 'zg-batch-readout';
+  out.style.cssText = 'margin-top:8px;font:13px ui-monospace,monospace;opacity:0.85';
+  mount.after(out);
+}
+out.textContent = 'Δ waiting for an update…';
+
+batchRowData(grid, {
+  getRowId: (row) => row[0],
+  onDataChanged: (d) => {
+    out.textContent =
+      'Δ added:' + d.added + '  removed:' + d.removed +
+      '  updated:' + d.updated + '  moved:' + d.moved +
+      '  unchanged:' + d.unchanged;
+  },
+});
+
+grid.churn = () => {
+  data = [
+    ['C-02', 'Globex',    'EU-West',  8400],   // moved up
+    ['C-03', 'Initech',   'APAC',     7777],   // value updated
+    ['C-04', 'Umbrella',  'MEA',      9900],
+    ['C-05', 'Soylent',   'EU-West',  4300],   // added (C-01 removed)
+  ];
+  grid.setData(data);
+};
+`,
+    controls: [
+      { label: 'Add + update + remove', action: `grid.churn()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Next
+
+- [Single Row / Cell](/features/editing/batch/single-row/) — update one row or
+  one cell in place instead of replacing the whole array.
+- [Transactions](/features/editing/batch/transactions/) — add, remove, and
+  update rows with a transaction object.
+- [Highlighting Changes](/features/cells/highlighting-changes/) — flash the cells
+  a `batchRowData` swap changed.

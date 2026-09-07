@@ -1,0 +1,217 @@
+---
+title: Notes
+description: Attach a note to any cell — a corner marker flags it, and the text appears in a popup on hover or click, with an optional inline editor. Live, editable examples in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Notes let you pin a comment to an individual cell — a reviewer's remark, a data
+caveat, a follow-up. A noted cell shows a small marker in its top-right corner; the
+note's text appears in a floating popup on hover (or click), and with `editable`
+turned on a double-click opens an inline editor.
+
+`cellNotes()` plugs into the grid's `cellStyleProvider` slot **and** attaches to the
+grid, so it can both mark the noted cells and bind the popup to the viewport:
+
+```ts
+import { cellNotes } from '@zengrid/enterprise/grid';
+
+const notes = cellNotes({ editable: true });
+
+const grid = new Zengrid(el, {
+  cellStyleProvider: notes,   // marks cells that carry a note
+  columns,
+});
+notes.attach(grid);           // …and binds the hover / edit popup
+
+notes.setNote(0, 2, 'Follow up with finance');  // display row, display col
+```
+
+`cellNotes()` is license-gated (it asserts the `cell-notes` feature). The marker and
+popup CSS ship in `@zengrid/enterprise/styles.css`.
+
+## The notes API
+
+Notes are addressed by **display** coordinates — the row and column as they sit on
+screen — exactly like the other cell providers:
+
+- `setNote(row, col, text)` — add or replace a cell's note.
+- `getNote(row, col)` — read the current text, or `undefined`.
+- `removeNote(row, col)` — drop a cell's note.
+- `getNotes()` — every stored note as `{ rowId, col, text }`.
+- `clearNotes()` — remove them all.
+
+By default a note is keyed to its **position**, which is right when row order is
+stable. Pass `getRowId` and a note sticks to its *record* instead, so it follows the
+row through sorting and filtering.
+
+## Customising notes
+
+Everything about the presentation and interaction is configurable:
+
+- `trigger` — `'hover'` (default) or `'click'` to open the read-only popup.
+- `editable` — when `true`, double-clicking a cell opens a textarea: type to set the
+  note, empty it to clear. Commits fire `onChange`.
+- `markerColor` — the colour of the corner marker (default `#f2764e`); sets the
+  `--zg-note-marker-color` custom property on noted cells.
+- `popupClass` — an extra class on the popup, on top of `zg-cell-note-popup`, for
+  restyling.
+- `onChange(note)` — called after any programmatic or edited change.
+
+export const hover = `// In scope: Zengrid, mount, rows, currency, chips, cellNotes
+// A small, independent copy of the pool.
+const data = rows.slice(0, 30).map((r) => r.slice());
+
+// Default provider: hover trigger, orange corner marker.
+const notes = cellNotes();
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  cellStyleProvider: notes,     // marks the noted cells
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+notes.attach(grid);             // …and binds the hover popup
+grid.setData(data);
+
+// Seed a few notes by display coordinate, then repaint to show the markers.
+notes.setNote(0, 1, 'Promoted last quarter — revisit comp.');
+notes.setNote(2, 3, 'Revenue includes a one-off migration fee.');
+notes.setNote(5, 5, 'Status pending a countersigned contract.');
+grid.refresh();
+`;
+
+export const editable = `// Editable notes: double-click any cell to open the inline editor. Enter saves,
+// an empty note clears, Escape cancels. onChange fires on every commit (open the
+// console to watch). markerColor tints the corner marker purple.
+const data = rows.slice(0, 30).map((r) => r.slice());
+
+const notes = cellNotes({
+  editable: true,
+  markerColor: '#7c3aed',
+  onChange: (note) => console.log('note changed', note),
+});
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  cellStyleProvider: notes,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+notes.attach(grid);
+grid.setData(data);
+
+notes.setNote(1, 0, 'Double-click any cell to write your own note.');
+grid.refresh();
+`;
+
+export const api = `// Click trigger + the imperative API driven from the buttons below. The snippet
+// stashes the provider on the grid (grid.__notes) so the controls can reach it.
+const data = rows.slice(0, 30).map((r) => r.slice());
+
+const notes = cellNotes({ trigger: 'click', markerColor: '#2d9c8f' });
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  cellStyleProvider: notes,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, align: 'right', renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 150, align: 'right', renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+notes.attach(grid);
+grid.setData(data);
+grid.__notes = notes;           // expose the API to the control buttons
+
+notes.setNote(0, 4, 'MRR under review with finance.');
+grid.refresh();
+`;
+
+export const variants = [
+  { id: 'hover', label: 'Hover to read', hint: 'Hover a cell with a corner marker to read its note. Edit the setNote calls (display row, display col) to move or reword them.', code: hover },
+  { id: 'editable', label: 'Editable', hint: 'Double-click a cell to add or edit a note — Enter saves, empty clears, Escape cancels. Change markerColor to recolour the marker.', code: editable },
+  {
+    id: 'api',
+    label: 'Click + API',
+    hint: 'trigger: "click" opens the popup on click. Use the buttons to drive the API — the snippet stashes the provider on grid.__notes.',
+    code: api,
+    controls: [
+      { label: 'Note a random cell', action: "const r = Math.floor(Math.random() * 10); grid.__notes.setNote(r, 2, 'Flagged ' + new Date().toLocaleTimeString());" },
+      { label: 'Log all notes', action: 'console.log(grid.__notes.getNotes());' },
+      { label: 'Clear notes', action: 'grid.__notes.clearNotes();' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise height={460} />
+
+## Types
+
+```ts
+interface CellNotesOptions {
+  getRowId?: (rowData: unknown[]) => string | number;
+  trigger?: 'hover' | 'click';                 // default 'hover'
+  editable?: boolean;                          // default false
+  markerColor?: string;                        // default '#f2764e'
+  popupClass?: string;
+  onChange?: (note: CellNote) => void;
+}
+
+interface CellNote { rowId: string | number; col: number; text: string }
+
+function cellNotes(options?: CellNotesOptions): CellNotes;
+
+interface CellNotes {
+  attach(grid): void;                          // bind the popup to the viewport
+  detach(): void;                              // remove listeners, close the popup
+  setNote(row: number, col: number, text: string): void;
+  getNote(row: number, col: number): string | undefined;
+  removeNote(row: number, col: number): void;
+  getNotes(): CellNote[];
+  clearNotes(): void;
+}
+```
+
+## Notes
+
+- **Set it as `cellStyleProvider` and `attach()` it.** The provider marks the noted
+  cells; `attach()` is what binds the hover / click / edit popup to the viewport.
+- **One provider slot.** `cellStyleProvider` holds a single provider, so cell notes
+  and grid-wide [cell styling](/features/cells/styling-cells/) or [change
+  highlighting](/features/cells/highlighting-changes/) can't share it — pick the one
+  the grid needs.
+- **Positional by default.** Notes are keyed by display position; pass `getRowId` to
+  key by a stable record identity so a note follows its row through sorting and
+  filtering.
+
+## Next
+
+- [Styling Cells](/features/cells/styling-cells/) — static and rule-based cell styling.
+- [Tooltips](/features/cells/tooltips/) — transient hover hints, as opposed to persistent notes.
+- [Highlighting Changes](/features/cells/highlighting-changes/) — flash a cell when its value changes.
+```

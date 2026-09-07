@@ -1,0 +1,31 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Nav from "../../components/Nav.astro";
+import Footer from "../../components/Footer.astro";
+import LegalDocView from "../../components/LegalDoc.astro";
+import { legalDocs } from "../../config/legal";
+
+export function getStaticPaths() {
+  return legalDocs.map((doc) => ({
+    params: { slug: doc.slug },
+    props: { doc },
+  }));
+}
+
+const { doc } = Astro.props;
+---
+
+<Layout
+  title={`${doc.title} — ZenGrid`}
+  description={doc.intro}
+>
+  <header>
+    <Nav />
+  </header>
+
+  <main id="main">
+    <LegalDocView doc={doc} />
+  </main>
+
+  <Footer slot="footer" />
+</Layout>

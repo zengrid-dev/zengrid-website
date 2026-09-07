@@ -1,0 +1,189 @@
+---
+title: Data Updates
+description: How a List Filter reacts when the grid's data changes — the value list follows the data, an active filter re-applies automatically, and newRowsAction (keep / clear / select) decides what happens to the selection. Demonstrated live in the page.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Grids rarely sit on static data — rows stream in, get edited, or are replaced by
+a refresh. This page is about what a [List Filter](/features/filters/list-filter/)
+does when the data underneath it changes. Three things move:
+
+1. **The value list follows the data.** `setFilter()` reads the column's distinct
+   values lazily, so every time the funnel opens it reflects the **current** data
+   — new values appear, gone values disappear, and `showCount` totals update.
+2. **An active filter re-applies automatically.** Replace the data with
+   `grid.setData(...)` and the applied `in` filter re-runs against the new rows —
+   you don't lose the filter, and it stays correct.
+3. **The selection is reconciled by policy.** What happens to the *checked values*
+   when new data arrives is up to you — keep them, clear them, or grow them to
+   cover new values — via **`newRowsAction`**.
+
+## `newRowsAction`
+
+`newRowsAction` is an option on `setFilter()`:
+
+| Value | When the data changes… |
+|-------|------------------------|
+| `keep` *(default)* | The selection is preserved as-is. New values that appear are **not** ticked, so their rows stay hidden until the reader adds them. |
+| `clear` | The filter is dropped — every row shows again. Use it when a refresh invalidates the current selection. |
+| `select` | The selection **grows** to include any brand-new values, so rows carrying them stay visible. |
+
+`keep` needs nothing extra — the re-apply is built into the grid. `clear` and
+`select` are driven by a small manager you attach once:
+
+```ts
+import { setFilter, attachSetFilterUpdates } from '@zengrid/enterprise';
+
+const columns = [
+  setFilter({ field: 'region', header: 'Region', newRowsAction: 'select' }),
+  // …
+];
+const grid = new Zengrid(el, { columns });
+attachSetFilterUpdates(grid, columns); // reads each column's newRowsAction
+
+grid.setData(nextRows); // a new region auto-joins the active selection
+```
+
+`attachSetFilterUpdates(grid, columns)` wraps `setData`: after each data change it
+reads every `setFilter` column's `newRowsAction` and reconciles that column's
+selection. Columns left on the default `keep` are simply not touched.
+
+## Values supplied vs. derived
+
+When a column **supplies** its own `values` (an array or a
+[values getter](/features/filters/value-list/)), the option list is decoupled
+from the data — data changes don't add or remove options, and `select` won't
+auto-add data-only values (the supplied list owns what's offered). When the list
+is **derived** from the column, it tracks the data and `select` can grow it.
+
+## Try it live
+
+Each variant seeds a small dataset and gives you buttons that stand in for your
+app pushing new data. Apply a filter, then **change the data**, and watch how the
+selection responds — reopen the funnel to see the value list track the data too.
+
+export const baseRows = `const base = [
+  ['Aria Vaskov',  'Data Engineer', 'APAC'],
+  ['Kenji Okafor', 'Product Lead',  'EU-West'],
+  ['Lucia Moreno', 'Analyst',       'US-East'],
+  ['Otto Bergman', 'Platform Eng',  'APAC'],
+  ['Priya Nair',   'Staff SWE',     'LATAM'],
+  ['Marcus Webb',  'Designer',      'EU-West'],
+  ['Sofia Rossi',  'Eng Manager',   'US-East'],
+  ['Idris Haddad', 'Researcher',    'APAC'],
+  ['Mei Chen',     'SRE',           'LATAM'],
+  ['Noor Silva',   'Solutions Eng', 'EU-West'],
+  ['Diego Larsson','Data Engineer', 'US-East'],
+  ['Ingrid Novak', 'Analyst',       'APAC'],
+];`;
+
+export const demo = ({ region, attach, mutate }) => `// In scope (enterprise): Zengrid, mount, setFilter, attachSetFilterUpdates
+${baseRows}
+let live = base.map((r) => r.slice());
+
+const columns = [
+  { field: 'name', header: 'Name', width: 220 },
+  { field: 'role', header: 'Role', width: 180 },
+  ${region},
+];
+
+const grid = new Zengrid(mount, { columns, rowCount: base.length, rowHeight: 40 });
+${attach ? 'attachSetFilterUpdates(grid, columns);\n' : ''}grid.setData(live);
+
+// The buttons below call these — a stand-in for your app pushing new data.
+grid.mutate = () => {
+  ${mutate}
+  grid.setData(live);
+};
+grid.reset = () => {
+  live = base.map((r) => r.slice());
+  grid.setData(live);
+};
+`;
+
+export const variants = [
+  {
+    id: 'keep',
+    label: 'Follow the data (keep)',
+    hint: 'Filter Region → APAC + EU-West, then Change the data. The filter re-applies to the new rows on its own: the LATAM→EU-West row joins the view, while the two new MEA rows stay hidden (MEA isn’t ticked — the default "keep"). Reopen the funnel — MEA is now in the list with its count.',
+    code: demo({
+      region: `setFilter({ field: 'region', header: 'Region', width: 170, showCount: true })`,
+      attach: false,
+      mutate: `live = base.map((r) => r.slice());
+    live[2][2] = 'MEA'; live[6][2] = 'MEA';  // two rows gain a brand-new region
+    live[4][2] = 'EU-West';                  // one row moves into your selection`,
+    }),
+    controls: [
+      { label: 'Filter → APAC + EU-West', action: `grid.filter.set(2, 'in', ['APAC', 'EU-West'])` },
+      { label: 'Change the data', action: `grid.mutate()` },
+      { label: 'Reset data', action: `grid.reset()` },
+      { label: 'Clear filter', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'select',
+    label: 'Auto-include new values (select)',
+    hint: 'newRowsAction:"select". Filter Region → APAC, then Add a new region. The two ANTARCTICA rows appear even though you never ticked them — a brand-new value is auto-added to the selection so its rows stay visible. With "keep" they would have been hidden.',
+    code: demo({
+      region: `setFilter({
+    field: 'region', header: 'Region', width: 170, showCount: true,
+    newRowsAction: 'select',
+  })`,
+      attach: true,
+      mutate: `live = base.map((r) => r.slice());
+    live[2][2] = 'ANTARCTICA'; live[6][2] = 'ANTARCTICA'; // a value not seen before`,
+    }),
+    controls: [
+      { label: 'Filter → APAC', action: `grid.filter.set(2, 'in', ['APAC'])` },
+      { label: 'Add a new region', action: `grid.mutate()` },
+      { label: 'Reset data', action: `grid.reset()` },
+      { label: 'Clear filter', action: `grid.filter.clear()` },
+    ],
+  },
+  {
+    id: 'clear',
+    label: 'Reset on update (clear)',
+    hint: 'newRowsAction:"clear". Filter Region → APAC, then Change the data: the filter drops and every row returns. Use this when a data refresh makes the previous selection meaningless.',
+    code: demo({
+      region: `setFilter({
+    field: 'region', header: 'Region', width: 170, showCount: true,
+    newRowsAction: 'clear',
+  })`,
+      attach: true,
+      mutate: `live = base.map((r) => r.slice());
+    live[2][2] = 'MEA'; live[8][2] = 'EU-West'; // any change resets the filter`,
+    }),
+    controls: [
+      { label: 'Filter → APAC', action: `grid.filter.set(2, 'in', ['APAC'])` },
+      { label: 'Change the data', action: `grid.mutate()` },
+      { label: 'Reset data', action: `grid.reset()` },
+      { label: 'Clear filter', action: `grid.filter.clear()` },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Options reference
+
+| Option | What it does |
+|--------|--------------|
+| `newRowsAction` | Selection policy on data change: `keep` (default), `clear`, or `select`. Anything but `keep` needs `attachSetFilterUpdates`. |
+| `attachSetFilterUpdates(grid, columns)` | Wire the manager: wraps `setData` and reconciles each `setFilter` column per its `newRowsAction`. Returns a handle with `detach()`. |
+
+## Next
+
+- [Value List](/features/filters/value-list/) — shape the value list itself
+  (supply, sort, format), including the supplied-vs-derived distinction that
+  governs `select`.
+- [List Filter](/features/filters/list-filter/) — the checkbox filter these updates
+  apply to, and how a selection maps to an `in` condition.
+- [Applying Filters](/features/filters/applying-filters/) — the `grid.filter` API
+  the buttons above drive.

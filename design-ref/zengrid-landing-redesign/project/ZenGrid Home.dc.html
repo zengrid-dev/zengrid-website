@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; transition: background-color .35s ease, color .35s ease, border-color .35s ease, box-shadow .35s ease; }
+  body { margin: 0; }
+  a { color: var(--coral); text-decoration: none; }
+  a:hover { color: var(--coral-sh); }
+  @keyframes zg-fadeup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes zg-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-9px) rotate(var(--r, 0deg)); } }
+  @keyframes zg-pulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
+</style>
+</helmet>
+
+<div style="{{ themeStyle }} background:var(--bg); color:var(--ink); font-family:'Bricolage Grotesque',sans-serif; min-height:100vh;">
+  <div style="max-width:1180px; margin:0 auto;">
+
+    <!-- nav -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:22px 40px;">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <div style="width:28px; height:28px; border-radius:9px; background:var(--logo-ink); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2.5px; padding:4px;">
+          <div style="background:#f2764e; border-radius:2px;"></div><div style="background:#e9b949; border-radius:2px;"></div><div style="background:#57b6a6; border-radius:2px;"></div><div style="background:#9b7ed6; border-radius:2px;"></div>
+        </div>
+        <span style="font-weight:800; font-size:20px; letter-spacing:-0.02em;">ZenGrid</span>
+      </div>
+      <div style="display:flex; gap:24px; align-items:center; font-size:15px; font-weight:600; color:var(--muted);">
+        <span style="cursor:pointer;">Features</span><span style="cursor:pointer;">Examples</span><span style="cursor:pointer;">Docs</span><span style="cursor:pointer;">API</span>
+        <button onClick="{{ toggleTheme }}" style="display:inline-flex; align-items:center; gap:6px; background:var(--chip-bg); border:1px solid var(--border); color:var(--ink); padding:8px 14px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; cursor:pointer;">{{ themeIcon }}</button>
+        <span style="background:var(--ink); color:var(--bg); padding:9px 18px; border-radius:999px; font-weight:700; cursor:pointer;">Get started</span>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div style="padding:52px 40px 36px; text-align:center; position:relative;">
+      <div style="position:absolute; top:44px; left:80px; --r:-8deg; animation:zg-float 5s ease-in-out infinite; background:var(--coral); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; transform:rotate(-8deg); box-shadow:0 6px 0 var(--coral-sh);">1M rows ✦</div>
+      <div style="position:absolute; top:128px; right:90px; --r:7deg; animation:zg-float 6s ease-in-out infinite 0.5s; background:var(--teal); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; transform:rotate(7deg); box-shadow:0 6px 0 var(--teal-sh);">type-safe ✦</div>
+      <div style="display:inline-flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); padding:7px 16px; border-radius:999px; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; margin-bottom:26px; box-shadow:0 2px 0 var(--border); color:var(--muted);">
+        <span style="width:7px; height:7px; background:var(--teal-ink); border-radius:50%; animation:zg-pulse 1.6s ease-in-out infinite;"></span>
+        v1.3.1 · fresh on npm
+      </div>
+      <h1 style="font-size:80px; line-height:0.98; font-weight:800; letter-spacing:-0.03em; margin:0 auto 22px; max-width:840px; text-wrap:balance;">
+        Fast data grids,<br>
+        <span style="font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--coral);">finally</span> a joy to build.
+      </h1>
+      <p style="font-size:19px; line-height:1.55; max-width:520px; margin:0 auto 30px; color:var(--muted); font-weight:500;">
+        A performance-first TypeScript grid with virtual scrolling, typed plugins, and spreadsheet interactions — that actually feels good to wire up.
+      </p>
+      <div style="display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap;">
+        <span style="background:var(--coral); color:#fff; font-weight:700; font-size:16px; padding:14px 26px; border-radius:14px; box-shadow:0 5px 0 var(--coral-sh); cursor:pointer;">Start coding →</span>
+        <span style="background:var(--surface); border:1px solid var(--border); color:var(--ink); font-weight:700; font-size:16px; padding:13px 24px; border-radius:14px; box-shadow:0 5px 0 var(--border); cursor:pointer;">View examples</span>
+      </div>
+    </div>
+
+    <!-- grid demo -->
+    <div style="padding:0 40px 40px;">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:var(--card-shadow);">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border-soft);">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:11px; height:11px; border-radius:50%; background:#f2764e;"></span><span style="width:11px; height:11px; border-radius:50%; background:#e9b949;"></span><span style="width:11px; height:11px; border-radius:50%; background:#57b6a6;"></span></div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--teal-ink); font-weight:600;">✦ 58ms · 1M rows virtualized</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1.4fr 1.2fr 1fr 1fr 0.9fr;">
+          <div onClick="{{ handlers.name }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--faint); border-bottom:1px solid var(--border-soft); text-transform:uppercase; letter-spacing:0.06em; background:var(--surface-2);">Name {{ arrows.name }}</div>
+          <div onClick="{{ handlers.role }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--faint); border-bottom:1px solid var(--border-soft); text-transform:uppercase; letter-spacing:0.06em; background:var(--surface-2);">Role {{ arrows.role }}</div>
+          <div onClick="{{ handlers.region }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--faint); border-bottom:1px solid var(--border-soft); text-transform:uppercase; letter-spacing:0.06em; background:var(--surface-2);">Region {{ arrows.region }}</div>
+          <div onClick="{{ handlers.revenue }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--faint); border-bottom:1px solid var(--border-soft); text-transform:uppercase; letter-spacing:0.06em; background:var(--surface-2); text-align:right;">Revenue {{ arrows.revenue }}</div>
+          <div onClick="{{ handlers.status }}" style="cursor:pointer; padding:12px 18px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--faint); border-bottom:1px solid var(--border-soft); text-transform:uppercase; letter-spacing:0.06em; background:var(--surface-2);">Status {{ arrows.status }}</div>
+          <sc-for list="{{ rows }}" as="row" hint-placeholder-count="7">
+            <div style="padding:13px 18px; font-size:14px; font-weight:600; border-bottom:1px solid var(--row-line);">{{ row.name }}</div>
+            <div style="padding:13px 18px; font-size:14px; color:var(--muted); font-weight:500; border-bottom:1px solid var(--row-line);">{{ row.role }}</div>
+            <div style="padding:13px 18px; font-size:14px; color:var(--muted); font-weight:500; border-bottom:1px solid var(--row-line);">{{ row.region }}</div>
+            <div style="padding:13px 18px; font-size:14px; font-family:'JetBrains Mono',monospace; text-align:right; border-bottom:1px solid var(--row-line);">{{ row.revenueFmt }}</div>
+            <div style="padding:13px 18px; border-bottom:1px solid var(--row-line);"><span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; background:{{ row.statusBg }}; color:{{ row.statusInk }};">{{ row.status }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- stats -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; padding:0 40px 32px;">
+      <div style="background:var(--stat1bg); border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:var(--stat1ink);">1M+</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Rows rendered</div></div>
+      <div style="background:var(--stat2bg); border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:var(--stat2ink);">&lt;50ms</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Initial load</div></div>
+      <div style="background:var(--stat3bg); border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:var(--stat3ink);">14</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Data structures</div></div>
+      <div style="background:var(--stat4bg); border-radius:16px; padding:22px;"><div style="font-size:36px; font-weight:800; letter-spacing:-0.02em; color:var(--stat4ink);">100%</div><div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Type safe</div></div>
+    </div>
+
+    <!-- frameworks -->
+    <div style="display:flex; align-items:center; gap:12px; padding:22px 40px 48px; border-top:1px solid var(--border-soft); flex-wrap:wrap;">
+      <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--faint); font-weight:600;">plays nice with</span>
+      <span style="background:var(--surface); border:1px solid var(--border); padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">React</span>
+      <span style="background:var(--surface); border:1px solid var(--border); padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Vue</span>
+      <span style="background:var(--surface); border:1px solid var(--border); padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Angular</span>
+      <span style="background:var(--surface); border:1px solid var(--border); padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Svelte</span>
+      <span style="background:var(--surface); border:1px solid var(--border); padding:7px 15px; border-radius:999px; font-size:14px; font-weight:700;">Vanilla TS</span>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { sortKey: 'revenue', sortDir: 'desc', theme: 'light' };
+  data = [
+    { name: 'Aria Vaskov', role: 'Data Engineer', region: 'EU-West', revenue: 184200, status: 'Active' },
+    { name: 'Kenji Tanaka', role: 'Product Lead', region: 'APAC', revenue: 92750, status: 'Trial' },
+    { name: 'Lucia Moreno', role: 'Analyst', region: 'LATAM', revenue: 231400, status: 'Active' },
+    { name: 'Otto Bergman', role: 'Platform Eng', region: 'EU-North', revenue: 57300, status: 'Churned' },
+    { name: 'Priya Nair', role: 'Staff SWE', region: 'APAC', revenue: 168900, status: 'Active' },
+    { name: 'Marcus Webb', role: 'Designer', region: 'US-East', revenue: 43600, status: 'Trial' },
+    { name: 'Sofia Rossi', role: 'Eng Manager', region: 'EU-South', revenue: 205100, status: 'Active' },
+  ];
+
+  themes = {
+    light: "--bg:#f8f5ef;--surface:#ffffff;--surface-2:#faf8f3;--border:#e6e0d5;--border-soft:#f0ece3;--row-line:#f5f1e9;--ink:#211d1a;--muted:#6b6258;--faint:#8a8175;--coral:#f2764e;--coral-sh:#d85a34;--teal:#57b6a6;--teal-sh:#3f9284;--teal-ink:#3f9284;--chip-bg:#ffffff;--logo-ink:#211d1a;--stat1bg:#fdeee7;--stat1ink:#f2764e;--stat2bg:#e6f3f0;--stat2ink:#3f9284;--stat3bg:#fbf1dc;--stat3ink:#c9962a;--stat4bg:#efe9f9;--stat4ink:#7b5fc4;--card-shadow:0 12px 40px -12px #21201c30;",
+    dark: "--bg:#1a1714;--surface:#232019;--surface-2:#2a261e;--border:#34302a;--border-soft:#2f2b24;--row-line:#2a261f;--ink:#f6f1e7;--muted:#b3a998;--faint:#8c8272;--coral:#f2764e;--coral-sh:#a34d2f;--teal:#57b6a6;--teal-sh:#2f6b60;--teal-ink:#6fd0bf;--chip-bg:#2a261e;--logo-ink:#f6f1e7;--stat1bg:#331f18;--stat1ink:#f7906b;--stat2bg:#1f302c;--stat2ink:#6fd0bf;--stat3bg:#322a16;--stat3ink:#e3b354;--stat4bg:#2a2338;--stat4ink:#ad93e0;--card-shadow:0 12px 40px -12px #00000070;",
+  };
+
+  sort(key) {
+    this.setState(s => ({ sortKey: key, sortDir: s.sortKey === key && s.sortDir === 'desc' ? 'asc' : 'desc' }));
+  }
+  toggleTheme() {
+    this.setState(s => ({ theme: s.theme === 'light' ? 'dark' : 'light' }));
+  }
+
+  renderVals() {
+    const { sortKey, sortDir, theme } = this.state;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const sorted = [...this.data].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+
+    const pills = {
+      light: {
+        Active:  { bg: '#e3f5e9', ink: '#2f8f52' },
+        Trial:   { bg: '#fbf1d6', ink: '#a67c1a' },
+        Churned: { bg: '#f7e3dd', ink: '#b04a34' },
+      },
+      dark: {
+        Active:  { bg: '#16341f', ink: '#7fe6a0' },
+        Trial:   { bg: '#3a3113', ink: '#f0cf6b' },
+        Churned: { bg: '#3a1f18', ink: '#f0a08c' },
+      },
+    };
+    const pal = pills[theme];
+
+    const rows = sorted.map(r => ({
+      ...r,
+      revenueFmt: '$' + r.revenue.toLocaleString(),
+      statusBg: pal[r.status].bg,
+      statusInk: pal[r.status].ink,
+    }));
+
+    const cols = ['name', 'role', 'region', 'revenue', 'status'];
+    const arrow = sortDir === 'asc' ? '↑' : '↓';
+    const arrows = {}, handlers = {};
+    cols.forEach(k => { arrows[k] = sortKey === k ? arrow : ''; handlers[k] = () => this.sort(k); });
+
+    return {
+      rows, arrows, handlers,
+      themeStyle: this.themes[theme],
+      themeIcon: theme === 'light' ? '☾ Dark' : '☀ Light',
+      toggleTheme: () => this.toggleTheme(),
+    };
+  }
+}
+</script>
+</body>
+</html>

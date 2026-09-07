@@ -1,0 +1,16 @@
+---
+// Starlight `SiteTitle` override — reuse the marketing site's brand mark and
+// link it back to the landing page.
+import Logo from '../Logo.astro';
+---
+
+<a href="/" class="site-title sl-flex" aria-label="ZenGrid home">
+  <Logo size={26} textSize={18} />
+</a>
+
+<style>
+  .site-title {
+    text-decoration: none;
+    overflow: hidden;
+  }
+</style>

@@ -1,0 +1,307 @@
+---
+title: Select Editor
+description: Edit a cell from a fixed list with the built-in select editor (options, allow-empty, placeholder, validation) or the premium selectEditor() — a matching cell display that renders the committed value as its human label or a colored badge in one call. Live, editable examples in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+ZenGrid edits single-choice cells in two layers:
+
+- **Built-in select editor (Community).** Set `editor: 'select'` on an editable
+  column for a native `<select>` dropdown. Configure it declaratively through
+  `editorOptions` — the `options` list, `allowEmpty`, a `placeholder`, and a
+  custom `validator`. `Enter` commits; `Escape` cancels. No license needed. The
+  cell renders the **raw stored value** when not editing.
+- **Select column (Enterprise).** `selectEditor()` returns a ready-made column
+  that wires the same editor **and** renders the committed value to *match* the
+  choice — its human **label** (`display: 'text'`) or a **colored badge**
+  (`display: 'badge'`) — so a column that stores `'active'` reads `Active` (or a
+  green pill) instead of the raw code. One call, no hand-wired renderer.
+
+The built-in editor reads and writes the option's `value` as-is. When your
+options map codes to friendly labels (`{ value: 'active', label: 'Active' }`),
+the dropdown shows the label but the *cell* shows the stored code — reach for the
+Enterprise `selectEditor()` when the cell should show the label or a badge too.
+
+## Built-in select editor (Community)
+
+Select it on any editable column:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    { field: 'status', header: 'Status', editable: true, editor: 'select',
+      editorOptions: { options: ['active', 'inactive', 'pending'] } },
+  ],
+});
+```
+
+### `editorOptions`
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `options` | `string[] \| { value, label }[]` | The choices offered in the dropdown. A `{ value, label }` shows `label` but stores `value`. |
+| `allowEmpty` | `boolean` | Add a leading empty option so the cell can be cleared to `null`. |
+| `placeholder` | `string` | Text for the empty option (when `allowEmpty` is on). |
+| `validator` | `(value) => boolean \| string` | Custom check on commit; return a string to supply the error message (e.g. require a non-empty pick). |
+
+A failing `validator` commit is governed by the grid-level
+[`editing.invalidEditMode`](/features/editing/validation/): `'block'` (default)
+keeps the editor open and flags the cell.
+
+export const communityVariants = [
+  {
+    id: 'basic',
+    label: 'Fixed list',
+    hint: "Status uses editor:'select' with a string options list. Double-click a cell, pick from the dropdown, press Enter to commit. Add or reorder the options and re-run.",
+    code: `// In scope: Zengrid, mount, zg
+const data = [
+  ['Aria Vaskov', 'active'],
+  ['Kenji Tanaka', 'pending'],
+  ['Lucia Moreno', 'inactive'],
+  ['Otto Bergman', 'active'],
+  ['Priya Nair', 'pending'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'status', header: 'Status', width: 180,
+      editable: true, editor: 'select',
+      editorOptions: { options: ['active', 'inactive', 'pending'] } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'labels',
+    label: 'Labels & allow-empty',
+    hint: "options map a stored value to a friendly label ({ value, label }); allowEmpty + placeholder add a clearable blank option. Note the cell shows the raw code (e.g. 'gold') — the Enterprise selectEditor() below renders the label instead. Double-click, open the dropdown, pick '(none)' to clear.",
+    code: `// { value, label } shows the label in the dropdown but stores the value.
+const data = [
+  ['Northwind', 'gold'],
+  ['Acme Co', 'silver'],
+  ['Globex', ''],
+  ['Initech', 'bronze'],
+  ['Umbrella', 'gold'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'account', header: 'Account', width: 200 },
+    { field: 'tier', header: 'Tier', width: 200,
+      editable: true, editor: 'select',
+      editorOptions: {
+        options: [
+          { value: 'bronze', label: 'Bronze' },
+          { value: 'silver', label: 'Silver' },
+          { value: 'gold', label: 'Gold' },
+        ],
+        allowEmpty: true,
+        placeholder: '(none)',
+      } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'validation',
+    label: 'Required & validation',
+    hint: "allowEmpty offers a blank option, but the validator rejects it — under invalidEditMode:'block' a commit with no pick keeps the editor open. Double-click a cell, choose '— choose —', press Enter → blocked; pick a real role → it commits.",
+    code: `// A validator that requires a non-empty selection; invalidEditMode:'block'
+// keeps the editor open on a failing commit.
+const data = [
+  ['Aria Vaskov', 'Engineer'],
+  ['Kenji Tanaka', ''],
+  ['Lucia Moreno', 'Designer'],
+  ['Otto Bergman', ''],
+  ['Priya Nair', 'Manager'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    { field: 'role', header: 'Role', width: 200,
+      editable: true, editor: 'select',
+      editorOptions: {
+        options: ['Engineer', 'Designer', 'Manager', 'Analyst'],
+        allowEmpty: true,
+        placeholder: '— choose —',
+        validator: (v) => (v ? true : 'Pick a role to continue'),
+      } },
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={communityVariants} />
+
+## Select column (Enterprise)
+
+<FeatureMeta tier="enterprise" />
+
+`selectEditor()` returns a `ColumnDef` — drop it straight into `columns`. It
+wires the select editor and, by default, renders the committed value to *match*
+the choice, so you don't hand-wire a `renderer`:
+
+```ts
+import { selectEditor } from '@zengrid/enterprise';
+
+const grid = new Zengrid(mount, {
+  columns: [
+    selectEditor({ field: 'status', header: 'Status', display: 'badge',
+      options: [
+        { value: 'active', label: 'Active', color: '#22c55e' },
+        { value: 'churned', label: 'Churned', color: '#ef4444' },
+      ] }),
+  ],
+});
+```
+
+The column **keeps its stored value** (the raw code) but the cell shows the
+option's `label` — as plain text (`display: 'text'`, the default) or a colored
+pill (`display: 'badge'`). Give each option a `color`, or omit it and a built-in
+palette assigns distinct colors in order.
+
+### Options
+
+Everything from the built-in editor (`options`/`allowEmpty`/`placeholder`/
+`validator`) **plus**:
+
+| Option | Type | Purpose |
+|--------|------|---------|
+| `options` | `(string \| number \| { value, label, color })[]` | Choices; an object may carry a badge `color`. |
+| `display` | `'text' \| 'badge'` | Render the committed value as its label (default) or a colored badge. |
+| `emptyLabel` | `string` | Text shown for an empty / unmatched value (default `'—'`). |
+| `formatDisplay` | `boolean` | Render the matching display (default `true`; `false` keeps your own `renderer`). |
+
+export const enterpriseVariants = [
+  {
+    id: 'label',
+    label: 'Label display',
+    hint: "selectEditor() with display:'text' (the default) renders each committed value as its human label — the column stores the code ('engineer') but the cell reads 'Engineer'. Double-click a cell and pick a new role; the label updates while the stored value stays the code.",
+    code: `// In scope (enterprise): selectEditor
+const data = [
+  ['Aria Vaskov', 'engineer'],
+  ['Kenji Tanaka', 'designer'],
+  ['Lucia Moreno', 'manager'],
+  ['Otto Bergman', 'analyst'],
+  ['Priya Nair', 'engineer'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name', header: 'Name', width: 200 },
+    selectEditor({ field: 'role', header: 'Role', width: 200,
+      options: [
+        { value: 'engineer', label: 'Engineer' },
+        { value: 'designer', label: 'Designer' },
+        { value: 'manager', label: 'Manager' },
+        { value: 'analyst', label: 'Analyst' },
+      ] }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'badge',
+    label: 'Colored badges',
+    hint: "display:'badge' renders the value as a colored pill using each option's color. Double-click a Status cell and pick a new value — the badge recolors to match. Change a color and re-run.",
+    code: `// display: 'badge' draws a colored pill per option color.
+const data = [
+  ['Northwind', 'active'],
+  ['Acme Co', 'trial'],
+  ['Globex', 'churned'],
+  ['Initech', 'active'],
+  ['Umbrella', 'trial'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'account', header: 'Account', width: 200 },
+    selectEditor({ field: 'status', header: 'Status', width: 200,
+      display: 'badge',
+      options: [
+        { value: 'active', label: 'Active', color: '#22c55e' },
+        { value: 'trial', label: 'Trial', color: '#f59e0b' },
+        { value: 'churned', label: 'Churned', color: '#ef4444' },
+      ] }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+  {
+    id: 'auto',
+    label: 'Auto palette + required',
+    hint: "Omit each option's color and a built-in palette assigns distinct badge colors in order. allowEmpty + a validator make a pick required (invalidEditMode:'block'). Double-click a Priority cell, choose '(unset)', press Enter → blocked; pick a real priority → it commits with its palette color.",
+    code: `// No per-option color → the palette colors each badge; a validator requires a pick.
+const data = [
+  ['Migrate billing', 'high'],
+  ['Ship v2 API', 'medium'],
+  ['Security audit', 'critical'],
+  ['Q3 planning', 'low'],
+  ['Data backfill', 'medium'],
+];
+
+const grid = new Zengrid(mount, {
+  rowCount: data.length,
+  rowHeight: 44,
+  editing: { invalidEditMode: 'block' },
+  columns: [
+    { field: 'task', header: 'Task', width: 220 },
+    selectEditor({ field: 'priority', header: 'Priority', width: 180,
+      display: 'badge',
+      allowEmpty: true,
+      placeholder: '(unset)',
+      emptyLabel: '(unset)',
+      options: [
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
+        { value: 'critical', label: 'Critical' },
+      ],
+      validator: (v) => (v ? true : 'Set a priority before saving') }),
+  ],
+});
+
+grid.setData(data);
+`,
+  },
+];
+
+<DemoPlayground variants={enterpriseVariants} enterprise />
+
+## Next
+
+- [Search Select Editor](/features/editing/provided/search-select/) — searchable,
+  richly rendered options.
+- [Validation](/features/editing/validation/) — `invalidEditMode` and how a
+  failing value is handled.

@@ -1,0 +1,36 @@
+{
+  "sidebar": [
+    {
+      "label": "Start Here",
+      "items": [
+        {
+          "label": "Getting Started",
+          "slug": "getting-started"
+        }
+      ]
+    },
+    {
+      "label": "Features",
+      "items": [
+        {
+          "autogenerate": {
+            "directory": "features"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Reference",
+      "items": [
+        {
+          "label": "Feature Matrix",
+          "slug": "feature-matrix"
+        },
+        {
+          "label": "Release Notes",
+          "slug": "release-notes"
+        }
+      ]
+    }
+  ]
+}

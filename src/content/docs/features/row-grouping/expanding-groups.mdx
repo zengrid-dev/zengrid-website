@@ -1,0 +1,226 @@
+---
+title: Expanding Groups
+description: Control which groups start open, expand to a chosen depth, drive expand/collapse from the API, and save & restore the exact expansion state.
+tier: enterprise
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="enterprise" />
+
+## Introduction
+
+Every group header ZenGrid renders is **collapsible** — clicking the chevron (or
+anywhere on the banner) toggles it, and the rows beneath appear or disappear. This
+page is about controlling that expansion: which groups start open, how deep to
+open a hierarchy by default, and how to drive it all from code — including
+**saving and restoring** the exact set of open/closed groups.
+
+All of it lives on the `rowGrouping()` manager returned when you set the feature
+up (see [Overview](/features/row-grouping/overview/)); there's nothing extra to
+wire.
+
+## Which groups start open
+
+By default every group starts **expanded**. Two options change that:
+
+- **`expandedByDefault: false`** — every group starts **collapsed** (just the top
+  banners show).
+- **`groupDefaultExpanded: N`** — open the first **N** nesting levels and collapse
+  anything deeper. This is the precise control for deep hierarchies and it
+  **overrides** `expandedByDefault`:
+  - `groupDefaultExpanded: -1` — open **every** level (fully expanded).
+  - `groupDefaultExpanded: 0` — collapse **all** (same as `expandedByDefault: false`).
+  - `groupDefaultExpanded: 1` — open only the **outermost** groups; their children
+    start collapsed.
+  - `groupDefaultExpanded: 2` — open the first **two** levels, and so on.
+
+```ts
+rowGrouping({
+  groupBy: [2, 1, 5],          // Region -> Role -> Status (three levels)
+  groupDefaultExpanded: 1,     // only the Region banners open on load
+});
+```
+
+A group at 0-based `level` shows its children when `level < groupDefaultExpanded`,
+so the value reads as *"how many levels of rows are visible under the top banners."*
+
+## Driving expansion from the API
+
+The manager exposes the full expand/collapse surface:
+
+- **`expandAll()` / `collapseAll()`** — open or close every group.
+- **`expandToLevel(n)`** — open the first `n` levels and collapse the rest, exactly
+  like `groupDefaultExpanded` but applied live (`-1` = all, `0` = none).
+- **`setExpanded(path, open)`** / **`toggle(path)`** — open or close **one** group
+  by its path (a group's `path` is its key, joined by a space through the nesting
+  chain — e.g. `'EU-West'`, or `'EU-West Analyst'`).
+- **`isExpanded(path)`** — query a single group's state.
+- **`onExpandedChanged({ path, expanded })`** — a callback fired on every
+  user-driven or programmatic toggle (great for logging or syncing UI).
+
+## Saving & restoring state
+
+A user's open/closed choices are worth persisting across a reload or a data
+refresh. Two methods snapshot and restore the **exact** expansion state:
+
+- **`getCollapsedPaths(): string[]`** — a serialisable list of every currently
+  **collapsed** group. Stash it (local storage, your app state, a URL).
+- **`setCollapsedPaths(paths)`** — restore that snapshot; every listed group closes,
+  everything else opens.
+
+```ts
+const saved = grouping.getCollapsedPaths();   // persist this
+// ...later...
+grouping.setCollapsedPaths(saved);            // restore the exact state
+```
+
+## Try it live
+
+export const levels = `// In scope: Zengrid, mount, currency, rowGrouping
+// Three nesting levels: Region -> Role -> Status. groupDefaultExpanded:1 opens
+// only the top (Region) banners on load. Use the controls to expandToLevel(n) —
+// the same knob applied live — or collapse everything back down.
+const data = rows.slice(0, 120);
+
+const grouping = rowGrouping({
+  groupBy: [2, 1, 5],               // Region -> Role -> Status
+  groupDefaultExpanded: 1,          // only Region banners open on load
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 38,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const api = `// Drive expansion from code. This groups by Region only, and logs every
+// toggle via onExpandedChanged — open the console and click a banner (or a
+// control button) to watch it fire. setExpanded(path, open) targets one group
+// by its path; for a top-level group the path is just the Region value.
+const data = rows.slice(0, 160);
+
+const grouping = rowGrouping({
+  groupBy: [2],                     // Region
+  aggregations: { 3: 'sum' },
+  aggLabel: (col, value) =>
+    'Revenue $' + Math.round(Number(value)).toLocaleString('en-US'),
+  onExpandedChanged: ({ path, expanded }) =>
+    console.log('group', JSON.stringify(path), expanded ? 'expanded' : 'collapsed'),
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 38,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const persist = `// Save & restore the exact expansion state. Collapse a few Region banners by
+// hand, hit "Save state" to snapshot which are closed, "Expand all" to blow it
+// away, then "Restore" — the same regions close again. getCollapsedPaths()
+// returns a plain string[] you can drop into local storage or a URL.
+const data = rows.slice(0, 160);
+
+const grouping = rowGrouping({
+  groupBy: [2],                     // Region
+});
+
+const grid = new Zengrid(mount, {
+  rowHeight: 38,
+  fullWidthProvider: grouping.provider,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 190 },
+    { field: 'role',    header: 'Role',    width: 160 },
+    { field: 'region',  header: 'Region',  width: 130 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 120 },
+  ],
+});
+
+grouping.attach(grid);
+grouping.setData(data);
+grid.__grouping = grouping;
+`;
+
+export const variants = [
+  {
+    id: 'levels',
+    label: 'Default & expand-to-level',
+    hint: 'groupDefaultExpanded:1 opens only the Region banners. The controls call expandToLevel(n) — open the first n levels live — or collapse all. Level 3 reveals the leaf rows under Region -> Role -> Status.',
+    code: levels,
+    controls: [
+      { label: 'Level 1', action: 'grid.__grouping.expandToLevel(1)' },
+      { label: 'Level 2', action: 'grid.__grouping.expandToLevel(2)' },
+      { label: 'Level 3 (rows)', action: 'grid.__grouping.expandToLevel(3)' },
+      { label: 'Collapse all', action: 'grid.__grouping.expandToLevel(0)' },
+    ],
+  },
+  {
+    id: 'api',
+    label: 'Expand from the API',
+    hint: 'setExpanded/toggle target one group by path; expandAll/collapseAll do the lot. onExpandedChanged logs every toggle to the console. The path of a top-level group is just its Region value.',
+    code: api,
+    controls: [
+      { label: 'Open EU-West', action: "grid.__grouping.setExpanded('EU-West', true)" },
+      { label: 'Close EU-West', action: "grid.__grouping.setExpanded('EU-West', false)" },
+      { label: 'Toggle APAC', action: "grid.__grouping.toggle('APAC')" },
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Collapse all', action: 'grid.__grouping.collapseAll()' },
+    ],
+  },
+  {
+    id: 'persist',
+    label: 'Save & restore state',
+    hint: 'Collapse a few Region banners by hand, Save state (snapshots getCollapsedPaths), Expand all, then Restore — setCollapsedPaths reinstates the exact same closed set. That string[] is what you would persist.',
+    code: persist,
+    controls: [
+      { label: 'Save state', action: 'grid.__saved = grid.__grouping.getCollapsedPaths(); console.log("saved", grid.__saved)' },
+      { label: 'Expand all', action: 'grid.__grouping.expandAll()' },
+      { label: 'Restore', action: 'grid.__grouping.setCollapsedPaths(grid.__saved || [])' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} enterprise />
+
+## Notes
+
+- **`groupDefaultExpanded` wins over `expandedByDefault`.** Set the numeric one
+  when you care about depth; the boolean is a shorthand for all-open/all-closed.
+- **Paths are stable keys, not indices.** A group's `path` is built from its key
+  chain (`'EU-West'`, `'EU-West Analyst'`), so `setExpanded`/`getCollapsedPaths`
+  survive re-sorting siblings — but change if the underlying key changes.
+- **State resets on re-group.** Changing the grouping columns
+  ([`setGroupBy`](/features/row-grouping/grouping-data/), `addGroup`,
+  `removeGroup`) rebuilds the tree and re-applies the default expansion policy, so
+  snapshot first if you need to carry state across a re-group.
+- **`expandToLevel` mirrors the config.** `expandToLevel(n)` at runtime is exactly
+  what `groupDefaultExpanded: n` does on load — `-1` all, `0` none.
+
+## Next
+
+- [Hierarchy Selection](/features/row-grouping/hierarchy-selection/) — selecting a
+  group selects its rows.
+- [Sorting](/features/row-grouping/sorting/) — ordering groups and their leaves.

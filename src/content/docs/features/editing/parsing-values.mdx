@@ -1,0 +1,185 @@
+---
+title: Parsing Values
+description: Turn what the user typed into the value your data holds — strip currency, normalise text, clamp or reject — with a column valueParser that runs on commit.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+An editor gives you back whatever the user typed — almost always a **string**.
+But your row usually wants something else: a `number`, an uppercased code, a
+trimmed name, an id looked up from a label. A column's `valueParser` sits in the
+middle of the commit and turns the one into the other:
+
+```ts
+const grid = new Zengrid(mount, {
+  columns: [
+    {
+      field: 'revenue',
+      editable: true,
+      editor: 'text',
+      // "£1,250" (or "1,250", or "1250") → the number 1250
+      valueParser: ({ newValue }) =>
+        Number(String(newValue).replace(/[^0-9.-]/g, '')),
+      renderer: currency,
+    },
+  ],
+});
+```
+
+It runs **once per commit, after validation passes and before the value is
+stored**. Whatever it returns becomes the new cell value — and the `newValue` on
+the `edit:commit` event and the undo/redo history. Return `oldValue` to reject
+the edit and leave the cell untouched.
+
+### The parser params
+
+`valueParser` is called with everything it needs to make the decision:
+
+| Field | What it is |
+|-------|------------|
+| `newValue` | The raw value the editor committed — usually the typed string. |
+| `oldValue` | The cell's value **before** the edit. Return it to reject. |
+| `row` | The display row index. |
+| `field` | This column's `field`. |
+| `data` | The whole source row, so you can parse against sibling cells. |
+
+Parsing is separate from **validation** (an editor rejecting bad input) and from
+**saving** (where the committed value goes). Parse to *shape* the value; see
+[Validation](/features/editing/validation/) to *reject* it up front and
+[Saving Values](/features/editing/saving-values/) for what happens after.
+
+## Try it live
+
+Each tab parses a different way. Edit the code and commit an edit to watch the
+stored value differ from what you typed.
+
+export const variants = [
+  {
+    id: 'numbers',
+    label: 'Parse numbers',
+    hint: "Both money columns use a plain text editor so you can type a formatted amount. valueParser strips everything but digits/sign/dot and returns a Number — type £1,250 or 1 250 into Revenue and it stores 1250, which the currency renderer redraws cleanly. Change the regex to keep decimals or reject NaN.",
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// A TEXT editor lets the user type formatting; valueParser turns that
+// string into the number the row actually stores.
+const toNumber = ({ newValue, oldValue }) => {
+  const cleaned = String(newValue).replace(/[^0-9.-]/g, '');
+  const n = Number(cleaned);
+  // keep the old value when nothing numeric was typed ('' → Number('') is 0)
+  return cleaned !== '' && Number.isFinite(n) ? n : oldValue;
+};
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 160, editable: true, editor: 'text',
+      valueParser: toNumber, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, editable: true, editor: 'text',
+      valueParser: toNumber, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'text',
+    label: 'Normalise text',
+    hint: "Name trims whitespace and Title-Cases each word; Region uppercases into a short code. Type '  aria vaskov  ' into Name and it stores 'Aria Vaskov'; type 'emea' into Region and it stores 'EMEA'. The value you SEE after commit is the parsed one, not what you typed.",
+    code: `// Clean up free text on commit: trim + Title Case names, uppercase codes.
+const titleCase = ({ newValue }) =>
+  String(newValue).trim().replace(/\\s+/g, ' ')
+    .replace(/\\b\\w/g, (c) => c.toUpperCase());
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 240, editable: true, editor: 'text',
+      valueParser: titleCase },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150, editable: true, editor: 'text',
+      valueParser: ({ newValue }) => String(newValue).trim().toUpperCase() },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+`,
+  },
+  {
+    id: 'guard',
+    label: 'Clamp, reject & derive',
+    hint: "MRR clamps into 0…50,000 (type 999999 → stored 50000; type 'abc' → rejected, old value kept). Name refuses to go blank by returning oldValue. The readout shows edit:commit's newValue — proof that the STORED value is the parsed one. Reject an edit and no commit fires at all.",
+    code: `// valueParser is also your last gate: clamp ranges, reject junk (return
+// oldValue), or derive from sibling cells via params.data.
+const clampMrr = ({ newValue, oldValue }) => {
+  const cleaned = String(newValue).replace(/[^0-9.-]/g, '');
+  const n = Number(cleaned);
+  if (cleaned === '' || !Number.isFinite(n)) return oldValue; // reject non-numeric
+  return Math.max(0, Math.min(50000, Math.round(n)));         // clamp to range
+};
+
+// Names can't be emptied; keep the previous value if they try.
+const nonBlank = ({ newValue, oldValue }) => {
+  const v = String(newValue).trim();
+  return v.length ? v : oldValue;
+};
+
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  columns: [
+    { field: 'name',    header: 'Name',    width: 220, editable: true, editor: 'text',
+      valueParser: nonBlank },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 140, editable: true, editor: 'text',
+      valueParser: clampMrr, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],
+});
+
+grid.setData(rows);
+
+// Readout: what edit:commit actually stored (the parsed value).
+const play = mount.closest('.zg-play');
+let out = play && play.querySelector('.zg-api-readout');
+if (play && !out) {
+  out = document.createElement('pre');
+  out.className = 'zg-api-readout';
+  out.style.cssText = 'margin:0;padding:.5rem .7rem;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-bottom:1px solid var(--border-soft);white-space:pre-wrap';
+  mount.parentElement.insertBefore(out, mount);
+}
+grid.say = (m) => { if (out) out.textContent = m; };
+grid.say('Edit MRR or Name, then Enter. Try 999999, abc, or an empty name.');
+
+grid.on('edit:commit', (e) =>
+  grid.say('edit:commit — typed became ' + JSON.stringify(e.newValue) + ' (was ' + JSON.stringify(e.oldValue) + ')'));
+`,
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Next
+
+- [Saving Values](/features/editing/saving-values/) — where the parsed value goes
+  and how to intercept the write.
+- [Validation](/features/editing/validation/) — reject bad input before it ever
+  commits.
+- [Provided Cell Editors](/features/editing/provided/text/) — the built-in
+  editors and their options.

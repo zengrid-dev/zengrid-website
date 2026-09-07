@@ -1,0 +1,150 @@
+---
+title: Selection Overview
+description: Select cells, rows, columns, or rectangular ranges — single or multiple — with click, shift-click, and ctrl-click, all backed by a programmatic grid.selection API, live in the page.
+tier: community
+---
+
+import FeatureMeta from '../../../../components/docs/FeatureMeta.astro';
+import DemoPlayground from '../../../../components/docs/DemoPlayground.astro';
+
+<FeatureMeta tier="community" />
+
+## Introduction
+
+Selection is how a user (or your code) points at the data they want to act on —
+to copy it, delete it, edit it, or drive a side panel. ZenGrid ships selection in
+core: enable it with one option, and the grid wires up click, **shift-click** (to
+extend), and **ctrl/⌘-click** (to add), highlights the selected cells, and keeps a
+live model you can read back at any time.
+
+There are two dials that shape every selection:
+
+- **What** is selected — the `selectionType`: `'cell'`, `'row'`, `'column'`, or
+  `'range'` (a rectangle of cells).
+- **How many** things at once — the mode. By default only one item is selected at
+  a time; set `enableMultiSelection: true` to allow several via ctrl/⌘-click and
+  shift-click.
+
+```ts
+const grid = new Zengrid(mount, {
+  columns,
+  selectionType: 'row',          // 'cell' | 'row' | 'column' | 'range'
+  enableMultiSelection: true,    // allow more than one at a time
+  onSelectionChange: (ranges) => console.log(ranges),
+});
+```
+
+:::note[Selection uses source coordinates]
+A selection is stored in **source (data) indices** — a row's original position in
+the array you passed to `setData`, not its on-screen position. That means a stored
+selection survives a sort or filter. Use `grid.rows.toSourceIndex` /
+`toDisplayedIndex` to convert if you are working from screen positions. (This
+differs from `grid.editing`, which uses view coordinates.)
+:::
+
+## Interactions you get for free
+
+| Gesture | Result |
+|---------|--------|
+| Click | Select the cell/row/column under the pointer (replaces the current selection). |
+| Click again | Clicking an already-selected cell/row clears it. |
+| Shift-click | Extend from the anchor to here (a range of cells, rows, or columns). |
+| Ctrl/⌘-click | Add this item to the selection (multi-selection only). |
+| Triple-click column 0 | Select the whole row. |
+| Header checkbox | Select-all / clear-all (add a `type: 'checkbox'` header). |
+
+## Try it live
+
+Each tab flips `selectionType` / `enableMultiSelection`. Click, shift-click, and
+ctrl/⌘-click in the grid — the highlight follows, and the controls read the live
+`grid.selection` model back.
+
+export const columns = `  columns: [
+    { field: 'name',    header: 'Name',    width: 220 },
+    { field: 'role',    header: 'Role',    width: 190 },
+    { field: 'region',  header: 'Region',  width: 150 },
+    { field: 'revenue', header: 'Revenue', width: 150, renderer: currency },
+    { field: 'mrr',     header: 'MRR',     width: 130, renderer: currency },
+    { field: 'status',  header: 'Status',  width: 130, renderer: chips },
+  ],`;
+
+export const variants = [
+  {
+    id: 'cell',
+    label: 'Cell selection',
+    hint: 'The default. Click a cell to select it; shift-click another to sweep a rectangle; click a selected cell again to clear. Try changing selectionType to "range".',
+    code: `// In scope: Zengrid, mount, rows, currency, chips, zg
+// selectionType 'cell' selects one cell at a time. Click, then
+// shift-click elsewhere to extend to a rectangle.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'cell',
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Ranges', action: "alert('selected ranges:\\n' + JSON.stringify(grid.selection.getRanges(), null, 1))" },
+      { label: 'Active cell', action: "alert('active cell: ' + JSON.stringify(grid.selection.getActive()))" },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'row',
+    label: 'Row selection',
+    hint: 'selectionType "row" selects a whole row per click. enableMultiSelection lets ctrl/⌘-click add rows and shift-click take a run of rows.',
+    code: `// selectionType 'row' + enableMultiSelection: click a row to select it,
+// ctrl/⌘-click to add more, shift-click to take a contiguous run.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'row',
+  enableMultiSelection: true,
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Selected rows', action: "alert('row ranges:\\n' + JSON.stringify(grid.selection.getRanges().map(r => [r.startRow, r.endRow])))" },
+      { label: 'Select rows 2–5', action: 'grid.selection.selectRows(2, 5)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+  {
+    id: 'multi-range',
+    label: 'Multiple ranges',
+    hint: 'With enableMultiSelection on a range grid, ctrl/⌘-click builds several independent rectangles. getRanges() returns them all.',
+    code: `// enableMultiSelection with a range type: shift-click sweeps a rectangle,
+// ctrl/⌘-click starts another one — getRanges() returns every rectangle.
+const grid = new Zengrid(mount, {
+  rowCount: rows.length,
+  rowHeight: 44,
+  selectionType: 'range',
+  enableMultiSelection: true,
+${columns}
+});
+
+grid.setData(rows);
+`,
+    controls: [
+      { label: 'Count ranges', action: "alert(grid.selection.getRanges().length + ' range(s) selected')" },
+      { label: 'Select 0,0 → 3,2', action: 'grid.selection.selectRange(0, 0, 3, 2)' },
+      { label: 'Add 6,3 → 8,5', action: 'grid.selection.selectRange(6, 3, 8, 5, true)' },
+      { label: 'Clear', action: 'grid.selection.clear()' },
+    ],
+  },
+];
+
+<DemoPlayground variants={variants} />
+
+## Where to go next
+
+- [Row Selection](/features/selection/row-selection/) — select whole rows, with a
+  select-all header checkbox.
+- [Cell Selection](/features/selection/cell-selection/) — cells and rectangular
+  ranges.
+- [Selection API](/features/selection/row-api/) — the full `grid.selection`
+  surface for reading and driving selection from code.
