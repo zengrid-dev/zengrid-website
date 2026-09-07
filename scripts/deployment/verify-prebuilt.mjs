@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = new URL("../../dist/", import.meta.url);
+const repository = new URL("../../", import.meta.url);
 
 function filesBelow(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
@@ -25,4 +26,19 @@ assert.equal((buy.match(/<button\b[^>]*\bdisabled\b/g) ?? []).length, 2,
 assert.doesNotMatch(buy, /href="https:\/\/buy\.polar\.sh/,
   "The production artifact contains an enabled Polar checkout link");
 
-console.log(`Verified prebuilt ZenGrid site: ${htmlCount} HTML files, checkout disabled.`);
+const config = JSON.parse(readFileSync(new URL("vercel.json", repository), "utf8"));
+const csvRows = readFileSync(new URL("vercel-redirects.csv", repository), "utf8")
+  .trim().split(/\r?\n/).slice(1).map((line) => line.split(","));
+const configured = new Map(config.redirects.map((redirect) => [
+  `${redirect.source}\0${redirect.destination}`,
+  redirect.permanent,
+]));
+for (const [source, destination, status] of csvRows) {
+  assert.equal(status, "308", `Legacy redirect must be permanent: ${source}`);
+  assert.equal(configured.get(`${source}\0${destination}`), true,
+    `Missing Vercel redirect: ${source}`);
+}
+
+console.log(
+  `Verified prebuilt ZenGrid site: ${htmlCount} HTML files, ${csvRows.length} redirects, checkout disabled.`,
+);
