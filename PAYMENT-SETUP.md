@@ -38,9 +38,11 @@ organization name is now `ZenGrid`, with the canonical website and existing
 Public organization, product, benefit, and checkout-link IDs are recorded in
 [`src/config/polar-catalog.ts`](src/config/polar-catalog.ts).
 
-## Remaining launch blockers
+## Accepted launch debt
 
-Checkout remains disabled in the website and local `.env`.
+On 8 September 2026, the owner directed production checkout to open with
+one-business-day manual fulfillment while the production signer is completed.
+The following work remains urgent even though checkout is enabled:
 
 1. **Polar account/catalog verification:** the authenticated audit on
    6 September 2026 passed Solo and Team and reported no account capability
@@ -111,11 +113,11 @@ Keep signing keys and customer records outside this repository and its build
 environment. Never log license keys. See `serverless/README.md` for the deferred
 issuer gaps, including its empty product map and nonfunctional email delivery.
 
-## Enable reviewed plans
+## Production checkout activation
 
-After resolving the blockers and testing fulfillment, set these public build
-variables. Preserve your existing `.env`; do not overwrite it with the example.
-The permanent checkout URLs already default to the corrected links.
+The public production values are committed in `.env.production`, while local
+development remains fail-closed through `.env.example`. The permanent checkout
+URLs point to the audited offers.
 
 ```dotenv
 POLAR_PORTAL_URL=https://polar.sh/zengrid/portal
@@ -135,8 +137,8 @@ npm run test:payments
 npm run dev -- --background
 ```
 
-Build-output tests expect disabled flags. Configuration tests cover enabled
-handoffs. Use Polar's sandbox for actual payment and fulfillment tests;
+Build-output and deployment tests require both audited checkout links.
+Configuration tests still cover disabled and partial handoffs. Use Polar's sandbox for actual payment and fulfillment tests;
 production tests here only inspect hosted checkout pages without submitting.
 
 Verification on 5 September 2026: both live catalogs passed the authenticated
@@ -154,9 +156,9 @@ service. It signature-verifies raw Polar webhooks, accepts only reviewed
 period data, and deduplicates by order ID in a Firestore transaction.
 
 It intentionally does not hold the offline signing key or claim that an offline
-license can be remotely revoked. Deployment, operator alerting, offline signing,
-private package delivery, and reconciliation still need to be completed before
-checkout is enabled. See `serverless/backend/README.md`.
+license can be remotely revoked. Operator alerting, offline signing, private
+package delivery, and reconciliation remain manual launch work. See
+`serverless/backend/README.md`.
 
 ## References
 

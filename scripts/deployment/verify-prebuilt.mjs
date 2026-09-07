@@ -22,12 +22,16 @@ const htmlCount = files.filter((path) => path.endsWith(".html")).length;
 assert(htmlCount >= 200, `Incomplete prebuilt site: found only ${htmlCount} HTML files`);
 
 const buy = readFileSync(new URL("buy/index.html", root), "utf8");
-assert.doesNotMatch(buy, /href="https:\/\/buy\.polar\.sh/,
-  "The production artifact contains an enabled Polar checkout link");
+assert.match(buy, /href="https:\/\/buy\.polar\.sh\/polar_cl_q5SjcnHkcgYReOxBTDOAU4Qa4E9TONsdZaw4t0ym1Ry"/,
+  "The production artifact is missing the reviewed Solo checkout link");
+assert.match(buy, /href="https:\/\/buy\.polar\.sh\/polar_cl_N3Zgi1e254i0hMvduXrgYSbSmHIYWoCPfRhMC2RV8lg"/,
+  "The production artifact is missing the reviewed Team checkout link");
 assert.doesNotMatch(buy, /Online checkout unavailable/,
   "The production artifact still contains the retired checkout message");
-assert.match(buy, /Contact us to buy Solo/);
-assert.match(buy, /Contact us to buy Team/);
+assert.doesNotMatch(buy, /Contact us to buy/,
+  "The production artifact still contains the checkout fallback");
+assert.equal((buy.match(/Continue to Polar →/g) ?? []).length, 2,
+  "The production artifact must contain both Polar purchase actions");
 
 const home = readFileSync(new URL("index.html", root), "utf8");
 const gettingStarted = readFileSync(new URL("getting-started/index.html", root), "utf8");
@@ -50,5 +54,5 @@ for (const [source, destination, status] of csvRows) {
 }
 
 console.log(
-  `Verified prebuilt ZenGrid site: ${htmlCount} HTML files, ${csvRows.length} redirects, checkout links withheld.`,
+  `Verified prebuilt ZenGrid site: ${htmlCount} HTML files, ${csvRows.length} redirects, both Polar checkout links enabled.`,
 );

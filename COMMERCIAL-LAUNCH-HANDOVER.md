@@ -68,7 +68,7 @@ remote revocation. Refund termination and seat limits are contractual.
 - Website payment tests passed; website production build passed (232 pages).
 - Production-build browser smoke test passed: Community row sorting and
   Enterprise row numbers rendered with working variants and no page errors.
-  The refund wording is present and checkout remains disabled.
+  The refund wording is present.
 - Authenticated Polar catalog audit passed for Solo ($120/year, 1 seat) and
   Team ($999/year, 10 seats). No account capability blocker was reported.
   Fulfillment remains the reported launch blocker. This was a read-only audit.
@@ -80,7 +80,9 @@ remote revocation. Refund termination and seat limits are contractual.
 
 ## Next action — production signing identity (required)
 
-The owner was asked for the existing **public** key/path, or to generate the
+Production checkout was enabled on 8 September 2026 at the owner's direction,
+with a public one-business-day manual delivery promise. Complete this signer
+before the first fulfillment is due. The owner was asked for the existing **public** key/path, or to generate the
 keypair on an offline device. No production keypair was generated here.
 Only disposable test signers were generated; their private keys were not logged.
 Follow [`../zengrid-enterprise/OFFLINE-RELEASE.md`](../zengrid-enterprise/OFFLINE-RELEASE.md).
@@ -111,13 +113,12 @@ forwardable bearer credentials, not authenticated customer sessions.
 3. Test the **real Polar Sandbox** lifecycle: purchase, duplicate handling,
    renewal, cancellation, refund, invalid product, and failed delivery. Local
    cryptographic tests do not count as these external lifecycle tests.
-4. Re-run the full authenticated audit after fulfillment is proven. Only then
-   enable `ZENGRID_LICENSE_DELIVERY=manual`, `POLAR_SOLO_READY=true`, and
-   `POLAR_TEAM_READY=true` in the production deployment, rebuild/deploy, and
-   smoke-test both checkout buttons and return URLs.
+4. Re-run the full authenticated audit after fulfillment is proven. If manual
+   delivery cannot meet the published turnaround, set both readiness flags to
+   `false`, rebuild, and deploy to pause new orders.
 
-No production checkout flag was enabled, no customer delivery was sent, and no
-website deployment was performed. The TypeScript issuer remains a prototype.
+Production checkout flags are enabled in the reviewed website artifact. No
+customer delivery was sent. The TypeScript issuer remains a prototype.
 The Go intake is deployed at
 `https://zengrid-fulfillment-524657803620.asia-south1.run.app`; its production
 Polar endpoint and signing secret are connected. The local organization token

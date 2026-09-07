@@ -12,4 +12,4 @@ export const checkout = createCheckoutConfig({
 });
 
 export const licenseDelivery =
-  "License delivery is separate from payment confirmation. We verify paid orders before issuing a signed ZenGrid license key. For delivery status or setup help, email hello@zengrid.dev from the address on your order.";
+  "License delivery is separate from payment confirmation. We manually verify paid orders and deliver a signed ZenGrid license key within one business day. For delivery status or setup help, email hello@zengrid.dev from the address on your order.";

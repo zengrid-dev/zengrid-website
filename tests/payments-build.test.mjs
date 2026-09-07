@@ -2,19 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-// Run after npm run build with the default configuration that withholds checkout links.
+// Run after npm run build with the committed production checkout configuration.
 const read = (path) => readFileSync(new URL(`../dist/${path}/index.html`, import.meta.url), "utf8");
 const buy = read("buy");
 const billing = read("billing");
 
-test("default static output cannot start an unreviewed checkout", () => {
-  assert.doesNotMatch(buy, /href="https:\/\/buy\.polar\.sh/);
+test("production static output uses the reviewed Polar checkout links", () => {
+  assert.match(buy, /href="https:\/\/buy\.polar\.sh\/polar_cl_q5SjcnHkcgYReOxBTDOAU4Qa4E9TONsdZaw4t0ym1Ry"/);
+  assert.match(buy, /href="https:\/\/buy\.polar\.sh\/polar_cl_N3Zgi1e254i0hMvduXrgYSbSmHIYWoCPfRhMC2RV8lg"/);
   assert.doesNotMatch(buy, /Online checkout unavailable/);
+  assert.doesNotMatch(buy, /Contact us to buy/);
   assert.match(buy, /id="solo"/);
   assert.match(buy, /id="team"/);
-  assert.match(buy, /mailto:hello@zengrid.dev\?subject=ZenGrid%20Solo%20license/);
-  assert.match(buy, /Contact us to buy Solo/);
-  assert.match(buy, /Contact us to buy Team/);
+  assert.equal((buy.match(/Continue to Polar →/g) ?? []).length, 2);
 });
 
 test("billing uses the unauthenticated hosted portal without collecting payment data", () => {
