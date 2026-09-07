@@ -8,6 +8,8 @@
 // `id` is the Starlight/Pagefind version identifier: 'current' is the latest
 // (unversioned) docs, and each archived version uses its slug (e.g. '1.3').
 
+import { coreVersion, currentDocsVersionLabel } from './core-version.mjs';
+
 export type Tier = 'community' | 'enterprise';
 
 export interface DocVersion {
@@ -35,7 +37,7 @@ export interface Feature {
 
 /** Newest first. `semver` is compared against a feature's `since`. */
 export const versions: DocVersion[] = [
-  { id: 'current', label: 'v1.4 (Latest)', semver: '1.4.0' },
+  { id: 'current', label: currentDocsVersionLabel, semver: coreVersion },
   { id: '1.3', label: 'v1.3', semver: '1.3.1' }
 ];
 

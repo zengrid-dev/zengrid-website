@@ -6,6 +6,7 @@ import sitemap from '@astrojs/sitemap';
 import mdx from '@astrojs/mdx';
 import starlight from '@astrojs/starlight';
 import starlightVersions from 'starlight-versions';
+import { currentDocsVersionLabel } from './src/config/core-version.mjs';
 
 // Custom Expressive Code theme matching the marketing design system's code
 // blocks (design-ref/…/CLAUDE.md → "Code blocks"): warm dark ink slab with the
@@ -100,7 +101,8 @@ export default defineConfig({
         '@fontsource-variable/manrope',
         '@fontsource-variable/instrument-sans',
         '@fontsource-variable/jetbrains-mono',
-        './src/styles/docs.css'
+        './src/styles/docs.css',
+        './src/styles/docs-header.css'
       ],
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/zengrid-dev/zengrid' }
@@ -297,7 +299,7 @@ export default defineConfig({
       ],
       plugins: [
         starlightVersions({
-          current: { label: 'v1.4 (Latest)' },
+          current: { label: currentDocsVersionLabel },
           versions: [{ slug: '1.3', label: 'v1.3' }]
         })
       ]

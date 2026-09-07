@@ -1,0 +1,9 @@
+/* The versions plugin defaults the select to 6.5em, which clips the full current
+   version label in both the desktop header and the mobile menu. */
+starlight-version-select {
+  flex: 0 0 auto;
+}
+
+starlight-version-select select {
+  width: 10rem !important;
+}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { coreVersionLabel, currentDocsVersionLabel } from "../../src/config/core-version.mjs";
 
 const root = new URL("../../dist/", import.meta.url);
 const repository = new URL("../../", import.meta.url);
@@ -21,10 +22,19 @@ const htmlCount = files.filter((path) => path.endsWith(".html")).length;
 assert(htmlCount >= 200, `Incomplete prebuilt site: found only ${htmlCount} HTML files`);
 
 const buy = readFileSync(new URL("buy/index.html", root), "utf8");
-assert.equal((buy.match(/<button\b[^>]*\bdisabled\b/g) ?? []).length, 2,
-  "The production artifact must keep both paid checkouts disabled");
 assert.doesNotMatch(buy, /href="https:\/\/buy\.polar\.sh/,
   "The production artifact contains an enabled Polar checkout link");
+assert.doesNotMatch(buy, /Online checkout unavailable/,
+  "The production artifact still contains the retired checkout message");
+assert.match(buy, /Contact us to buy Solo/);
+assert.match(buy, /Contact us to buy Team/);
+
+const home = readFileSync(new URL("index.html", root), "utf8");
+const gettingStarted = readFileSync(new URL("getting-started/index.html", root), "utf8");
+assert(home.includes(`${coreVersionLabel} · fresh on npm`),
+  "The homepage version does not match @zengrid/core");
+assert(gettingStarted.includes(currentDocsVersionLabel),
+  "The docs version does not match @zengrid/core");
 
 const config = JSON.parse(readFileSync(new URL("vercel.json", repository), "utf8"));
 const csvRows = readFileSync(new URL("vercel-redirects.csv", repository), "utf8")
@@ -40,5 +50,5 @@ for (const [source, destination, status] of csvRows) {
 }
 
 console.log(
-  `Verified prebuilt ZenGrid site: ${htmlCount} HTML files, ${csvRows.length} redirects, checkout disabled.`,
+  `Verified prebuilt ZenGrid site: ${htmlCount} HTML files, ${csvRows.length} redirects, checkout links withheld.`,
 );

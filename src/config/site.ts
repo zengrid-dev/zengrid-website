@@ -1,4 +1,5 @@
 import { links } from "./links";
+import { coreVersionLabel } from "./core-version.mjs";
 export { links } from "./links";
 export { pricing, buy, type Plan, type BuyPlan } from "./plans";
 export { enterprise } from "./enterprise";
@@ -25,7 +26,7 @@ export const nav = [
 ];
 
 export const hero = {
-  version: "v1.3.1 · fresh on npm",
+  version: `${coreVersionLabel} · fresh on npm`,
   titleLead: "Your data is huge.",
   titleAccent: "Your DOM isn't.",
   description:
