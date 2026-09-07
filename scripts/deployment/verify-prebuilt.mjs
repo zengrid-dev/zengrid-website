@@ -30,8 +30,8 @@ assert.doesNotMatch(buy, /Online checkout unavailable/,
   "The production artifact still contains the retired checkout message");
 assert.doesNotMatch(buy, /Contact us to buy/,
   "The production artifact still contains the checkout fallback");
-assert.equal((buy.match(/Continue to Polar →/g) ?? []).length, 2,
-  "The production artifact must contain both Polar purchase actions");
+assert.match(buy, /Buy Solo →/, "The production artifact is missing the Solo purchase action");
+assert.match(buy, /Buy Team →/, "The production artifact is missing the Team purchase action");
 
 const home = readFileSync(new URL("index.html", root), "utf8");
 const gettingStarted = readFileSync(new URL("getting-started/index.html", root), "utf8");

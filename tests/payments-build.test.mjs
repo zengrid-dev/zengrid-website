@@ -14,7 +14,8 @@ test("production static output uses the reviewed Polar checkout links", () => {
   assert.doesNotMatch(buy, /Contact us to buy/);
   assert.match(buy, /id="solo"/);
   assert.match(buy, /id="team"/);
-  assert.equal((buy.match(/Continue to Polar →/g) ?? []).length, 2);
+  assert.match(buy, /Buy Solo →/);
+  assert.match(buy, /Buy Team →/);
 });
 
 test("billing uses the unauthenticated hosted portal without collecting payment data", () => {
